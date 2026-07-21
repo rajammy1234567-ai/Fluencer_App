@@ -8,7 +8,7 @@ export const API_CONFIG = {
   // BASE_URL: 'http://15.207.108.137', 
   // BASE_URL: 'https://fluencer-backend.onrender.com',
   // BASE_URL: 'http://10.162.1.92:3000',
-  BASE_URL : 'http://localhost:3000',
+  BASE_URL : 'https://fluencer-app.onrender.com',
   // For Physical Device: 'http://YOUR_IP:3000'
   
   // Endpoints for utils/api.js
