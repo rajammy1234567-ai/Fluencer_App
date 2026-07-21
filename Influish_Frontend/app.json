@@ -1,0 +1,79 @@
+{
+  "expo": {
+    "name": "Fluencer",
+    "slug": "Influish_Frontend",
+    "version": "1.0.0",
+    "orientation": "portrait",
+
+    "icon": "./assets/images/logo_fluencer.png",
+
+    "scheme": "fluencer",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+
+    "ios": {
+      "supportsTablet": true
+    },
+
+    "android": {
+      "package": "com.fluencer.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundColor": "#E6F4FE"
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/logo_fluencer.png"
+    },
+
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/logo_fluencer.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow Fluencer to access your photos.",
+          "savePhotosPermission": "Allow Fluencer to save photos.",
+          "isAccessMediaLocationEnabled": true
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Fluencer needs access to your photos.",
+          "cameraPermission": "Fluencer needs access to your camera."
+        }
+      ]
+    ],
+
+    "experiments": {
+      "typedRoutes": true
+    },
+
+    "updates": {
+      "enabled": false
+    },
+
+    "assetBundlePatterns": ["**/*"],
+
+    "extra": {
+      "eas": {
+        "projectId": "fa0da15a-4f86-442a-8f89-65d707794a8f"
+      }
+    },
+
+    "owner": "fluencer"
+  }
+}
