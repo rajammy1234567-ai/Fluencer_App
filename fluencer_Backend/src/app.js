@@ -13,6 +13,7 @@ import paymentRoutes from './routes/payments.js';
 import adminRoutes from './routes/admin.js';
 import debugRoutes from './routes/debug.js';
 import notificationRoutes from './routes/notifications.js';
+import walletRoutes from './routes/wallet.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -52,6 +53,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/debug', debugRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/wallet', walletRoutes);
 
 // CRITICAL: Root health check - MUST return JSON
 app.get('/', (req, res) => {

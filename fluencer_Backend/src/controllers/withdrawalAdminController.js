@@ -177,19 +177,23 @@ export const rejectWithdrawal = async (req, res) => {
       });
     }
 
-    if (w.status !== 'pending') {
-      return res.status(400).json({
-        success: false,
-        message: 'Only pending withdrawals can be rejected',
-      });
-    }
+    const infId = w.influencer_id || w.user_id;
 
     w.status = 'rejected';
     await w.save();
 
+    // Refund amount back to Influencer Wallet Balance
+    if (infId) {
+      const influencerProfile = await InfluencerProfile.findOne({ user_id: infId });
+      if (influencerProfile) {
+        influencerProfile.wallet_balance = (influencerProfile.wallet_balance || 0) + w.amount;
+        await influencerProfile.save();
+      }
+    }
+
     res.json({
       success: true,
-      message: 'Withdrawal rejected successfully',
+      message: 'Withdrawal rejected & amount refunded back to influencer wallet',
       data: {
         id,
         status: 'rejected',

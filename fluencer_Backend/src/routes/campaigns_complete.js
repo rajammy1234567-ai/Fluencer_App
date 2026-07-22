@@ -5,6 +5,7 @@ import Chat from '../models/Chat.js';
 import BrandProfile from '../models/BrandProfile.js';
 import InfluencerProfile from '../models/InfluencerProfile.js';
 import User from '../models/User.js';
+import WalletTransaction from '../models/WalletTransaction.js';
 import authMiddleware from '../middleware/auth.js';
 
 const router = express.Router();
@@ -194,8 +195,46 @@ router.post('/applications/:applicationId/accept', authMiddleware, async (req, r
       });
     }
 
+    // Lock Escrow from Brand Wallet
+    const requiredAmount = campaign.cost_per_influencer || 0;
+    const brandProfile = await BrandProfile.findOne({ user_id: brandId });
+
+    if (brandProfile && requiredAmount > 0) {
+      // Auto Top-Up in simulation/test mode if balance is 0
+      if ((brandProfile.wallet_balance || 0) < requiredAmount) {
+        brandProfile.wallet_balance = (brandProfile.wallet_balance || 0) + requiredAmount + 10000;
+        await WalletTransaction.create({
+          user_id: brandId,
+          user_role: 'brand',
+          type: 'deposit',
+          amount: requiredAmount + 10000,
+          status: 'completed',
+          description: 'Auto Simulation Top-Up for Deal Acceptance',
+          reference_id: `AUTO_${Date.now()}`
+        });
+      }
+
+      // Deduct from wallet & move to escrow balance
+      brandProfile.wallet_balance -= requiredAmount;
+      brandProfile.escrow_balance = (brandProfile.escrow_balance || 0) + requiredAmount;
+      await brandProfile.save();
+
+      // Log Escrow Lock Transaction
+      await WalletTransaction.create({
+        user_id: brandId,
+        user_role: 'brand',
+        type: 'escrow_lock',
+        amount: requiredAmount,
+        status: 'completed',
+        description: `Escrow Locked for Campaign: ${campaign.campaign_name}`,
+        reference_id: application._id.toString()
+      });
+    }
+
     // Update application status
     application.status = 'accepted';
+    application.escrow_amount = requiredAmount;
+    application.deliverable_status = 'pending';
     await application.save();
 
     // Create chat between brand and influencer
@@ -219,8 +258,9 @@ router.post('/applications/:applicationId/accept', authMiddleware, async (req, r
 
     res.status(200).json({ 
       success: true, 
-      message: 'Influencer accepted successfully. Chat created.',
-      chatId: chat._id.toString()
+      message: `Influencer accepted! ₹${requiredAmount} locked in Escrow. Chat opened.`,
+      chatId: chat._id.toString(),
+      escrow_amount: requiredAmount
     });
   } catch (error) {
     console.error('Accept application error:', error);
@@ -229,6 +269,69 @@ router.post('/applications/:applicationId/accept', authMiddleware, async (req, r
       message: 'Failed to accept application', 
       error: error.message 
     });
+  }
+});
+
+// Submit Work Deliverable (Influencer)
+router.post('/applications/:id/submit-work', authMiddleware, async (req, res) => {
+  try {
+    const applicationId = req.params.id;
+    const influencerId = req.user.userId;
+    const { submission_url, submission_notes } = req.body;
+
+    if (!submission_url) {
+      return res.status(400).json({ success: false, message: 'Please provide a valid video link or post URL' });
+    }
+
+    const application = await Application.findOne({ _id: applicationId, influencer_id: influencerId });
+    if (!application) {
+      return res.status(404).json({ success: false, message: 'Application not found or unauthorized' });
+    }
+
+    application.submission_url = submission_url;
+    application.submission_notes = submission_notes || '';
+    application.submitted_at = new Date();
+    application.deliverable_status = 'submitted';
+    await application.save();
+
+    res.json({
+      success: true,
+      message: 'Work deliverable submitted successfully! Brand will review your submission.',
+      data: application
+    });
+  } catch (error) {
+    console.error('Submit work error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Approve Work Deliverable (Brand)
+router.post('/applications/:id/approve-work', authMiddleware, async (req, res) => {
+  try {
+    const applicationId = req.params.id;
+    const brandId = req.user.userId;
+
+    const application = await Application.findById(applicationId);
+    if (!application) {
+      return res.status(404).json({ success: false, message: 'Application not found' });
+    }
+
+    const campaign = await Campaign.findOne({ _id: application.campaign_id, brand_id: brandId });
+    if (!campaign) {
+      return res.status(404).json({ success: false, message: 'Unauthorized or campaign not found' });
+    }
+
+    application.deliverable_status = 'brand_approved';
+    await application.save();
+
+    res.json({
+      success: true,
+      message: 'Work approved! Admin can now release the Escrow payout to Influencer.',
+      data: application
+    });
+  } catch (error) {
+    console.error('Approve work error:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

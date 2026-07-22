@@ -10,6 +10,8 @@ import {
   getRecentCampaigns,
   getRecentPayments,
   getWithdrawRequests,
+  getPendingEscrows,
+  releaseEscrowPayout,
 } from '../controllers/adminController.js';
 
 import {
@@ -79,6 +81,8 @@ router.get('/chats/stats', getChatStats);
 router.get('/chats/search', searchMessages);
 router.get('/chats', getAllChats);
 router.get('/chats/:chatId', getChatDetails);
-router.put('/chats/:chatId/status', toggleChatStatus);
+// Escrow Management Routes
+router.get('/escrow/pending', getPendingEscrows);
+router.post('/escrow/release/:applicationId', releaseEscrowPayout);
 
 export default router;

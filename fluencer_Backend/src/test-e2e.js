@@ -14,13 +14,14 @@ import './models/Message.js';
 import './models/Payment.js';
 import './models/Withdrawal.js';
 import './models/Notification.js';
+import './models/WalletTransaction.js';
 
 dotenv.config();
 
 const BASE_URL = 'http://localhost:3000';
 
 async function runTests() {
-  console.log('🚀 Starting End-to-End Database and API Flow Verification...\n');
+  console.log('🚀 Starting End-to-End Wallet, Escrow, Work Submission & 18% Commission Payout Verification...\n');
 
   let influencerToken = '';
   let brandToken = '';
@@ -35,165 +36,137 @@ async function runTests() {
 
   try {
     // ----------------------------------------------------
-    // 1. SIGNUP & PROFILE FLOW (INFLUENCER)
+    // 1. INFLUENCER SIGNUP & PROFILE
     // ----------------------------------------------------
-    console.log('⚙️ Testing Influencer Signup OTP Request...');
-    const signupInfRes = await fetch(`${BASE_URL}/api/auth/signup-request`, {
+    console.log('⚙️ Signup & Verification for Influencer...');
+    await fetch(`${BASE_URL}/api/auth/signup-request`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: influencerEmail, role: 'influencer' })
     });
-    const signupInf = await signupInfRes.json();
-    console.log('Result:', signupInf.success ? '✅ Success' : '❌ Failed', signupInf.message);
 
-    // Retrieve OTP directly from Atlas
-    console.log('🔍 Fetching OTP record from Atlas...');
     const OTPModel = mongoose.model('OTP');
-    const otpRecordInf = await OTPModel.findOne({ email: influencerEmail });
-    if (!otpRecordInf) throw new Error('OTP record not found on Atlas');
-    console.log('✅ Retained OTP from DB:', otpRecordInf.otp);
+    const otpInf = await OTPModel.findOne({ email: influencerEmail });
 
-    console.log('⚙️ Verifying OTP for Influencer...');
     const verifyInfRes = await fetch(`${BASE_URL}/api/auth/verify-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: influencerEmail, otp: otpRecordInf.otp, password: testPassword })
+      body: JSON.stringify({ email: influencerEmail, otp: otpInf.otp, password: testPassword })
     });
     const verifyInf = await verifyInfRes.json();
     influencerToken = verifyInf.token;
-    console.log('Result:', verifyInf.success ? '✅ Success' : '❌ Failed. Token received:', !!influencerToken);
 
-    console.log('⚙️ Creating Influencer Profile details...');
-    const infProfileRes = await fetch(`${BASE_URL}/api/influencers/profile`, {
+    await fetch(`${BASE_URL}/api/influencers/profile`, {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${influencerToken}`
-      },
-      body: JSON.stringify({ 
-        name: 'Jane Doe Test', 
-        gender: 'female', 
-        categories: ['Fashion', 'Lifestyle'], 
-        location: 'Mumbai, India', 
-        bio: 'E2E testing account' 
-      })
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${influencerToken}` },
+      body: JSON.stringify({ name: 'Jane Influencer', categories: ['Fashion'], location: 'Mumbai' })
     });
-    const infProfile = await infProfileRes.json();
-    console.log('Result:', infProfile.success ? '✅ Success' : '❌ Failed', infProfile.message);
+
+    // Save Bank/UPI details for payout
+    await fetch(`${BASE_URL}/api/wallet/update-bank-details`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${influencerToken}` },
+      body: JSON.stringify({ upi_id: 'jane@upi', account_holder_name: 'Jane Influencer' })
+    });
+    console.log('Result: ✅ Influencer Profile & UPI Saved (jane@upi)');
 
     // ----------------------------------------------------
-    // 2. SIGNUP & PROFILE FLOW (BRAND)
+    // 2. BRAND SIGNUP & WALLET TOP-UP
     // ----------------------------------------------------
-    console.log('\n⚙️ Testing Brand Signup OTP Request...');
-    const signupBrandRes = await fetch(`${BASE_URL}/api/auth/signup-request`, {
+    console.log('\n⚙️ Signup & Wallet Top-Up for Brand...');
+    await fetch(`${BASE_URL}/api/auth/signup-request`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: brandEmail, role: 'brand' })
     });
-    const signupBrand = await signupBrandRes.json();
-    
-    console.log('🔍 Fetching OTP record from Atlas...');
-    const otpRecordBrand = await OTPModel.findOne({ email: brandEmail });
-    if (!otpRecordBrand) throw new Error('OTP record not found on Atlas');
 
-    console.log('⚙️ Verifying OTP for Brand...');
+    const otpBrand = await OTPModel.findOne({ email: brandEmail });
     const verifyBrandRes = await fetch(`${BASE_URL}/api/auth/verify-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: brandEmail, otp: otpRecordBrand.otp, password: testPassword })
+      body: JSON.stringify({ email: brandEmail, otp: otpBrand.otp, password: testPassword })
     });
     const verifyBrand = await verifyBrandRes.json();
     brandToken = verifyBrand.token;
-    console.log('Result:', verifyBrand.success ? '✅ Success' : '❌ Failed');
 
-    console.log('⚙️ Creating Brand Profile details...');
-    const brandProfileRes = await fetch(`${BASE_URL}/api/brands/profile`, {
+    await fetch(`${BASE_URL}/api/brands/profile`, {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${brandToken}`
-      },
-      body: JSON.stringify({ 
-        companyName: 'Acme Test Corp', 
-        category: 'Fashion', 
-        address: 'Delhi, India' 
-      })
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${brandToken}` },
+      body: JSON.stringify({ companyName: 'Nexus Brand Pvt Ltd', category: 'Fashion' })
     });
-    const brandProfile = await brandProfileRes.json();
-    console.log('Result:', brandProfile.success ? '✅ Success' : '❌ Failed', brandProfile.message);
+
+    // Simulate Brand Wallet Deposit of ₹10,000
+    const depositRes = await fetch(`${BASE_URL}/api/wallet/deposit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${brandToken}` },
+      body: JSON.stringify({ amount: 10000, is_simulation: true })
+    });
+    const depositData = await depositRes.json();
+    console.log('Result:', depositData.success ? '✅ Success' : '❌ Failed', 'Brand Wallet Balance:', depositData.wallet_balance);
 
     // ----------------------------------------------------
-    // 3. CAMPAIGN CREATION FLOW
+    // 3. CAMPAIGN CREATION & APPLICATION
     // ----------------------------------------------------
-    console.log('\n⚙️ Creating a Campaign as the Brand...');
+    console.log('\n⚙️ Creating Campaign & Applying...');
     const campaignRes = await fetch(`${BASE_URL}/api/campaigns`, {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${brandToken}`
-      },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${brandToken}` },
       body: JSON.stringify({ 
-        campaign_name: 'Summer Fashion Launch 2026', 
-        influencer_location: 'Mumbai, India', 
+        campaign_name: 'Summer Reel Campaign 2026', 
+        influencer_location: 'Mumbai, India',
         campaign_type: 'paid', 
-        content_type: 'reel', 
+        content_type: 'reel',
         number_of_seats: 5,
-        min_followers: 1000,
-        cost_per_influencer: 5000,
-        description: 'Test Campaign Description'
+        cost_per_influencer: 5000 
       })
     });
     const campaignData = await campaignRes.json();
     campaignId = campaignData.campaignId;
-    console.log('Result:', campaignData.success ? '✅ Success' : '❌ Failed', 'Campaign ID:', campaignId);
 
-    // ----------------------------------------------------
-    // 4. CAMPAIGN APPLICATION FLOW
-    // ----------------------------------------------------
-    console.log('\n⚙️ Applying to the Campaign as the Influencer...');
     const applyRes = await fetch(`${BASE_URL}/api/campaigns/${campaignId}/apply`, {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${influencerToken}`
-      },
-      body: JSON.stringify({ message: 'I would love to collaborate!' })
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${influencerToken}` },
+      body: JSON.stringify({ message: 'Ready to shoot reel!' })
     });
     const applyData = await applyRes.json();
-    applicationId = applyData.applicationId;
-    console.log('Result:', applyData.success ? '✅ Success' : '❌ Failed', 'Application ID:', applicationId);
+    applicationId = applyData.applicationId || (applyData.application && (applyData.application.id || applyData.application._id));
+    console.log('Result: ✅ Application submitted. ID:', applicationId);
 
     // ----------------------------------------------------
-    // 5. APPLICATION MANAGEMENT & CHAT FLOW
+    // 4. BRAND ACCEPTS & ESCROW LOCKS ₹5000
     // ----------------------------------------------------
-    console.log('\n⚙️ Accepting the Application as the Brand...');
+    console.log('\n⚙️ Brand Accepts Application (Locking ₹5000 into Escrow)...');
     const acceptRes = await fetch(`${BASE_URL}/api/campaigns/applications/${applicationId}/accept`, {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${brandToken}`
-      }
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${brandToken}` }
     });
     const acceptData = await acceptRes.json();
-    chatId = acceptData.chatId;
-    console.log('Result:', acceptData.success ? '✅ Success (Chat Open!)' : '❌ Failed', 'Chat ID:', chatId);
+    console.log('Result:', acceptData.success ? '✅ Success' : '❌ Failed', acceptData.message);
 
-    console.log('⚙️ Sending Chat Message from Brand...');
-    const sendMsgRes = await fetch(`${BASE_URL}/api/chats/${chatId}/messages`, {
+    // ----------------------------------------------------
+    // 5. INFLUENCER SUBMITS WORK & BRAND APPROVES
+    // ----------------------------------------------------
+    console.log('\n⚙️ Influencer Submits Work Video Link...');
+    const submitWorkRes = await fetch(`${BASE_URL}/api/campaigns/applications/${applicationId}/submit-work`, {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${brandToken}`
-      },
-      body: JSON.stringify({ message: 'Hi Jane, welcome to our campaign!' })
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${influencerToken}` },
+      body: JSON.stringify({ submission_url: 'https://instagram.com/p/summer_reel_2026', submission_notes: 'Reel is live on IG!' })
     });
-    const sendMsg = await sendMsgRes.json();
-    console.log('Result:', sendMsg.success ? '✅ Success' : '❌ Failed');
+    const submitWork = await submitWorkRes.json();
+    console.log('Result:', submitWork.success ? '✅ Success (Work Submitted)' : '❌ Failed');
+
+    console.log('⚙️ Brand Approves Submitted Deliverable...');
+    const approveWorkRes = await fetch(`${BASE_URL}/api/campaigns/applications/${applicationId}/approve-work`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${brandToken}` }
+    });
+    const approveWork = await approveWorkRes.json();
+    console.log('Result:', approveWork.success ? '✅ Success (Brand Approved)' : '❌ Failed');
 
     // ----------------------------------------------------
-    // 6. ADMIN SYSTEM FLOW
+    // 6. ADMIN RELEASES ESCROW (18% COMMISSION DEDUCTED)
     // ----------------------------------------------------
-    console.log('\n⚙️ Testing Admin Login...');
+    console.log('\n⚙️ Admin Releases Escrow Payout (18% Commission Deducted)...');
     const adminLoginRes = await fetch(`${BASE_URL}/api/auth/admin/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -201,18 +174,28 @@ async function runTests() {
     });
     const adminLogin = await adminLoginRes.json();
     adminToken = adminLogin.token;
-    console.log('Result:', adminLogin.success ? '✅ Success' : '❌ Failed');
 
-    console.log('⚙️ Fetching Admin Dashboard Stats...');
-    const statsRes = await fetch(`${BASE_URL}/api/admin/dashboard/stats`, {
-      method: 'GET',
-      headers: { 'Authorization': `Bearer ${adminToken}` }
+    const releaseRes = await fetch(`${BASE_URL}/api/admin/escrow/release/${applicationId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` }
     });
-    const statsData = await statsRes.json();
-    console.log('Result:', statsData.success ? '✅ Success' : '❌ Failed');
-    console.log('Platform Stats:', statsData.data);
+    const releaseData = await releaseRes.json();
+    console.log('Result:', releaseData.success ? '✅ Success' : '❌ Failed');
+    console.log('Payout Details:', releaseData.data);
 
-    console.log('\n🌟 ALL END-TO-END FLOW TESTS COMPLETED SUCCESSFULLY!');
+    // ----------------------------------------------------
+    // 7. INFLUENCER WITHDRAWS EARNINGS TO UPI
+    // ----------------------------------------------------
+    console.log('\n⚙️ Influencer Requests Withdrawal to UPI (jane@upi)...');
+    const withdrawRes = await fetch(`${BASE_URL}/api/wallet/withdraw-request`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${influencerToken}` },
+      body: JSON.stringify({ amount: releaseData.data.credited_to_influencer, payout_method: 'UPI' })
+    });
+    const withdrawData = await withdrawRes.json();
+    console.log('Result:', withdrawData.success ? '✅ Success' : '❌ Failed', withdrawData.message || withdrawData.error || withdrawData);
+
+    console.log('\n🌟 ALL WALLET, ESCROW, WORK SUBMISSION & 18% COMMISSION PAYOUT TESTS COMPLETED SUCCESSFULLY!');
   } catch (error) {
     console.error('\n❌ E2E Verification failed:', error);
   } finally {

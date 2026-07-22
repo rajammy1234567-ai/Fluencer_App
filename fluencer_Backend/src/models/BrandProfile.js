@@ -34,6 +34,14 @@ const brandProfileSchema = new mongoose.Schema({
   phone: {
     type: String,
     default: null
+  },
+  wallet_balance: {
+    type: Number,
+    default: 0
+  },
+  escrow_balance: {
+    type: Number,
+    default: 0
   }
 }, {
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }

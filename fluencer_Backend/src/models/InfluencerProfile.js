@@ -47,6 +47,30 @@ const influencerProfileSchema = new mongoose.Schema({
   twitter: {
     type: String,
     default: null
+  },
+  wallet_balance: {
+    type: Number,
+    default: 0
+  },
+  escrow_balance: {
+    type: Number,
+    default: 0
+  },
+  upi_id: {
+    type: String,
+    default: ''
+  },
+  bank_account_number: {
+    type: String,
+    default: ''
+  },
+  ifsc_code: {
+    type: String,
+    default: ''
+  },
+  account_holder_name: {
+    type: String,
+    default: ''
   }
 }, {
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
