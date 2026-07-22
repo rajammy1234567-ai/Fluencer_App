@@ -159,6 +159,7 @@ export const getChatDetails = async (req, res) => {
   }
 };
 
+
 /**
  * Get chat statistics
  */
@@ -191,6 +192,8 @@ export const getChatStats = async (req, res) => {
         message_count: ch.message_count
       };
     }));
+
+    
 
     res.status(200).json({
       success: true,

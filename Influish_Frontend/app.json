@@ -69,11 +69,7 @@
     "assetBundlePatterns": ["**/*"],
 
     "extra": {
-      "eas": {
-        "projectId": "fa0da15a-4f86-442a-8f89-65d707794a8f"
-      }
-    },
-
-    "owner": "fluencer"
+      "eas": {}
+    }
   }
 }
