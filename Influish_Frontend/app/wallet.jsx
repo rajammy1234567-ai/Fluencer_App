@@ -22,42 +22,48 @@ export default function Wallet() {
   const [transactions, setTransactions] = useState([]);
 
   useEffect(() => {
-  let isMounted = true;
-  let timeoutId;
+    let isMounted = true;
 
-  const fetchWalletData = async () => {
-    try {
-      timeoutId = setTimeout(() => {
-        if (!isMounted) return;
+    const fetchWalletData = async () => {
+      try {
+        setLoading(true);
+        const headers = await getAuthHeader();
+        const apiBase = API_CONFIG.BASE_URL;
 
-        setBalance({
-          total: 12500,
-          pending: 3200,
-          available: 9300,
-        });
+        // Fetch Balance
+        const balRes = await fetch(`${apiBase}/api/wallet/balance`, { headers });
+        const balData = await balRes.json();
 
-        setTransactions([
-          { id: 1, type: 'credit', amount: 500, description: 'Campaign Payment - Nike Summer', date: '2024-01-25', status: 'completed' },
-          { id: 2, type: 'credit', amount: 1200, description: 'Campaign Payment - Tech Review', date: '2024-01-20', status: 'completed' },
-          { id: 3, type: 'debit', amount: 300, description: 'Withdrawal to Bank', date: '2024-01-18', status: 'completed' },
-          { id: 4, type: 'credit', amount: 800, description: 'Campaign Payment - Fashion Haul', date: '2024-01-15', status: 'pending' },
-        ]);
+        // Fetch Transactions
+        const txRes = await fetch(`${apiBase}/api/wallet/transactions`, { headers });
+        const txData = await txRes.json();
 
-        setLoading(false);
-      }, 1000);
-    } catch (error) {
-      console.error('Wallet fetch error:', error);
-      if (isMounted) setLoading(false);
-    }
-  };
+        if (isMounted) {
+          if (balData.success) {
+            setBalance({
+              total: (balData.data.wallet_balance || 0) + (balData.data.escrow_balance || 0),
+              pending: balData.data.escrow_balance || 0,
+              available: balData.data.wallet_balance || 0,
+              role: balData.data.role || 'influencer'
+            });
+          }
+          if (txData.success) {
+            setTransactions(txData.data || []);
+          }
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Wallet fetch error:', error);
+        if (isMounted) setLoading(false);
+      }
+    };
 
-  fetchWalletData();
+    fetchWalletData();
 
-  return () => {
-    isMounted = false;
-    if (timeoutId) clearTimeout(timeoutId);
-  };
-}, []);
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
 
   if (loading) {
@@ -67,6 +73,73 @@ export default function Wallet() {
       </View>
     );
   }
+
+  const handleTopUp = async () => {
+    try {
+      setLoading(true);
+      const headers = await getAuthHeader();
+      const res = await fetch(`${API_CONFIG.BASE_URL}/api/wallet/deposit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...headers },
+        body: JSON.stringify({ amount: 10000, is_simulation: true })
+      });
+      const data = await res.json();
+      if (data.success) {
+        Alert.alert('Success', '₹10,000 added to your Brand Wallet (Simulation Mode)!');
+        fetchWalletData();
+      } else {
+        Alert.alert('Error', data.message || 'Failed to top-up wallet');
+        setLoading(false);
+      }
+    } catch (err) {
+      console.error(err);
+      setLoading(false);
+    }
+  };
+
+  const handleWithdraw = async () => {
+    if (balance.available <= 0) {
+      return Alert.alert('Notice', 'You have no available balance to withdraw.');
+    }
+    Alert.prompt(
+      'Withdraw Funds',
+      `Enter amount to withdraw to UPI (Max: ₹${balance.available}):`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Submit Request',
+          onPress: async (amountStr) => {
+            const amount = parseFloat(amountStr);
+            if (!amount || amount <= 0 || amount > balance.available) {
+              return Alert.alert('Invalid Amount', 'Please enter a valid amount.');
+            }
+            try {
+              setLoading(true);
+              const headers = await getAuthHeader();
+              const res = await fetch(`${API_CONFIG.BASE_URL}/api/wallet/withdraw-request`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...headers },
+                body: JSON.stringify({ amount, payout_method: 'UPI' })
+              });
+              const data = await res.json();
+              if (data.success) {
+                Alert.alert('Success', 'Withdrawal request submitted! Admin will process your payout.');
+                fetchWalletData();
+              } else {
+                Alert.alert('Error', data.message || 'Withdrawal failed');
+                setLoading(false);
+              }
+            } catch (err) {
+              console.error(err);
+              setLoading(false);
+            }
+          }
+        }
+      ],
+      'plain-text',
+      String(balance.available)
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -90,7 +163,7 @@ export default function Wallet() {
           <View style={styles.mainBalanceCard}>
             <View style={styles.balanceHeader}>
               <MaterialCommunityIcons name="wallet" size={28} color="#FFFFFF" />
-              <Text style={styles.balanceLabel}>Total Earnings</Text>
+              <Text style={styles.balanceLabel}>Total Balance</Text>
             </View>
             <Text style={styles.balanceAmount}>₹{balance.total.toLocaleString()}</Text>
           </View>
@@ -98,7 +171,7 @@ export default function Wallet() {
           <View style={styles.subBalanceRow}>
             <View style={[styles.subBalanceCard, { backgroundColor: '#FFF7ED' }]}>
               <MaterialCommunityIcons name="clock-outline" size={20} color="#F59E0B" />
-              <Text style={styles.subBalanceLabel}>Pending</Text>
+              <Text style={styles.subBalanceLabel}>Escrow / Pending</Text>
               <Text style={[styles.subBalanceAmount, { color: '#F59E0B' }]}>
                 ₹{balance.pending.toLocaleString()}
               </Text>
@@ -106,7 +179,7 @@ export default function Wallet() {
 
             <View style={[styles.subBalanceCard, { backgroundColor: '#ECFDF5' }]}>
               <MaterialCommunityIcons name="check-circle" size={20} color="#10B981" />
-              <Text style={styles.subBalanceLabel}>Available</Text>
+              <Text style={styles.subBalanceLabel}>Available Wallet</Text>
               <Text style={[styles.subBalanceAmount, { color: '#10B981' }]}>
                 ₹{balance.available.toLocaleString()}
               </Text>
@@ -116,20 +189,32 @@ export default function Wallet() {
 
         {/* Quick Actions */}
         <View style={styles.actionsSection}>
-          <TouchableOpacity style={styles.actionButton}>
-            <LinearGradient
-              colors={[COLORS.primary, COLORS.primaryDark]}
-              style={styles.actionGradient}
-            >
-              <MaterialCommunityIcons name="bank-transfer-out" size={24} color="#FFFFFF" />
-              <Text style={styles.actionText}>Withdraw</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+          {balance.role === 'brand' || balance.role === 'business' ? (
+            <TouchableOpacity style={styles.actionButton} onPress={handleTopUp}>
+              <LinearGradient
+                colors={['#10B981', '#059669']}
+                style={styles.actionGradient}
+              >
+                <MaterialCommunityIcons name="plus-circle" size={24} color="#FFFFFF" />
+                <Text style={styles.actionText}>Top-Up +₹10,000</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.actionButton} onPress={handleWithdraw}>
+              <LinearGradient
+                colors={[COLORS.primary, COLORS.primaryDark]}
+                style={styles.actionGradient}
+              >
+                <MaterialCommunityIcons name="bank-transfer-out" size={24} color="#FFFFFF" />
+                <Text style={styles.actionText}>Withdraw to UPI</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
 
-          <TouchableOpacity style={styles.actionButton}>
+          <TouchableOpacity style={styles.actionButton} onPress={fetchWalletData}>
             <View style={[styles.actionGradient, { backgroundColor: '#F1F5F9' }]}>
-              <MaterialCommunityIcons name="file-document" size={24} color={COLORS.primary} />
-              <Text style={[styles.actionText, { color: COLORS.primary }]}>Statement</Text>
+              <MaterialCommunityIcons name="refresh" size={24} color={COLORS.primary} />
+              <Text style={[styles.actionText, { color: COLORS.primary }]}>Refresh</Text>
             </View>
           </TouchableOpacity>
         </View>
