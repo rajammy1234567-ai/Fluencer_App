@@ -1,10 +1,17 @@
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+// Clean keys
+const keyId = (process.env.RAZORPAY_KEY_ID || '').trim().replace(/[\s"']/g, '');
+const keySecret = (process.env.RAZORPAY_KEY_SECRET || '').trim().replace(/[\s"']/g, '');
 
 // Initialize Razorpay
 const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID || 'your_key_id',
-  key_secret: process.env.RAZORPAY_KEY_SECRET || 'your_key_secret'
+  key_id: keyId,
+  key_secret: keySecret
 });
 
 // Create order
