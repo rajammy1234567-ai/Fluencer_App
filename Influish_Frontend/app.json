@@ -4,17 +4,13 @@
     "slug": "Influish_Frontend",
     "version": "1.0.0",
     "orientation": "portrait",
-
     "icon": "./assets/images/logo_fluencer.png",
-
     "scheme": "fluencer",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-
     "ios": {
       "supportsTablet": true
     },
-
     "android": {
       "package": "com.fluencer.app",
       "adaptiveIcon": {
@@ -22,15 +18,16 @@
         "backgroundColor": "#E6F4FE"
       },
       "permissions": [
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_MEDIA_LOCATION"
       ]
     },
-
     "web": {
       "output": "static",
       "favicon": "./assets/images/logo_fluencer.png"
     },
-
     "plugins": [
       "expo-router",
       [
@@ -57,19 +54,21 @@
         }
       ]
     ],
-
     "experiments": {
       "typedRoutes": true
     },
-
     "updates": {
       "enabled": false
     },
-
-    "assetBundlePatterns": ["**/*"],
-
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "extra": {
-      "eas": {}
-    }
+      "eas": {
+        "projectId": "4ea6c4a8-8374-4969-a3c4-15ca2d6c90d3"
+      },
+      "router": {}
+    },
+    "owner": "rjstore9097"
   }
 }
