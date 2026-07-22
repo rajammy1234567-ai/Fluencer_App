@@ -214,12 +214,12 @@ router.post('/applications/:applicationId/accept', authMiddleware, async (req, r
         });
       }
 
-      // Deduct from wallet & move to escrow balance
+      // Deduct from brand wallet & move to brand escrow balance
       brandProfile.wallet_balance -= requiredAmount;
       brandProfile.escrow_balance = (brandProfile.escrow_balance || 0) + requiredAmount;
       await brandProfile.save();
 
-      // Log Escrow Lock Transaction
+      // Log Escrow Lock Transaction for Brand
       await WalletTransaction.create({
         user_id: brandId,
         user_role: 'brand',
@@ -229,6 +229,24 @@ router.post('/applications/:applicationId/accept', authMiddleware, async (req, r
         description: `Escrow Locked for Campaign: ${campaign.campaign_name}`,
         reference_id: application._id.toString()
       });
+
+      // Credit Influencer Escrow Balance (Reflects in Pending Escrow Balance, Non-Withdrawable until payout)
+      const influencerProfile = await InfluencerProfile.findOne({ user_id: application.influencer_id });
+      if (influencerProfile) {
+        influencerProfile.escrow_balance = (influencerProfile.escrow_balance || 0) + requiredAmount;
+        await influencerProfile.save();
+
+        // Log Pending Escrow Lock for Influencer
+        await WalletTransaction.create({
+          user_id: application.influencer_id,
+          user_role: 'influencer',
+          type: 'escrow_lock',
+          amount: requiredAmount,
+          status: 'pending',
+          description: `Deal Locked: ₹${requiredAmount} held in Escrow for ${campaign.campaign_name}`,
+          reference_id: application._id.toString()
+        });
+      }
     }
 
     // Update application status

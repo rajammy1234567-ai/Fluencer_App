@@ -280,12 +280,13 @@ export const releaseEscrowPayout = async (req, res) => {
       await brandProfile.save();
     }
 
-    // Credit Influencer Wallet Balance
+    // Credit Influencer Wallet Balance & Deduct from Influencer Escrow Balance
     const influencerProfile = await InfluencerProfile.findOne({ user_id: application.influencer_id });
     if (!influencerProfile) {
       return res.status(404).json({ success: false, message: 'Influencer profile not found' });
     }
 
+    influencerProfile.escrow_balance = Math.max(0, (influencerProfile.escrow_balance || 0) - escrowAmount);
     influencerProfile.wallet_balance = (influencerProfile.wallet_balance || 0) + finalPayout;
     await influencerProfile.save();
 
