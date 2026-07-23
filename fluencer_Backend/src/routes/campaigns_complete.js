@@ -465,18 +465,11 @@ router.post('/applications/:applicationId/reject', authMiddleware, async (req, r
 
 // ==================== INFLUENCER ROUTES ====================
 
-// Get all active campaigns (Influencer view)
+// Get all active campaigns (Visible to every single user)
 router.get('/active/all', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.userId;
     const role = req.user.role;
-
-    if (role !== 'influencer') {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Only influencers can view campaigns' 
-      });
-    }
 
     const campaignsList = await Campaign.find({ is_deleted: false }).lean();
 

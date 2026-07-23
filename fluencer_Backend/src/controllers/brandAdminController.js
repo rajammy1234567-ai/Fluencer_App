@@ -67,7 +67,6 @@ export const getAllBrands = async (req, res) => {
     });
   }
 };
-
 /**
  * Get Brand By ID with Details
  */
