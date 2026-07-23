@@ -86,9 +86,12 @@ const Login = () => {
       } else if (data.role === 'brand' || data.role === 'business') {
         router.replace('/(brand-tabs)/home');
       } else if (data.role === 'admin') {
-         // Save to admin storage specifically to pass AdminAuthGuard
-         await saveAdminAuth(data.token, data.userId, data.role);
-         router.replace('/(admin)/(tabs)/dashboard');
+        Alert.alert(
+          '🚫 Web-Only Admin Access',
+          'The Admin Control Panel is strictly restricted to Desktop Web Browsers. Please log in from a web browser to access the Admin Dashboard.'
+        );
+        setLoading(false);
+        return;
       } else {
         router.replace('/role-selection');
       }

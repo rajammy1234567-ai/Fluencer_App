@@ -114,7 +114,11 @@ const RoleSelection = () => {
 
   const handleRoleSelect = (role) => {
     if (role === 'admin') {
-      router.push('/(admin)/login');
+      const { Alert } = require('react-native');
+      Alert.alert(
+        '🚫 Web-Only Admin Access',
+        'The Admin Control Panel is strictly restricted to Desktop Web Browsers. Please open a web browser to access the Admin Dashboard.'
+      );
       return;
     }
 

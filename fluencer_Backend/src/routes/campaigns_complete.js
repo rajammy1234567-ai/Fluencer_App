@@ -23,7 +23,11 @@ router.post('/', authMiddleware, async (req, res) => {
       number_of_seats,
       min_followers,
       cost_per_influencer,
-      description
+      description,
+      reference_images,
+      shooting_location_guide,
+      sample_reel_url,
+      guidelines
     } = req.body;
     
     const brandId = req.user.userId;
@@ -54,6 +58,10 @@ router.post('/', authMiddleware, async (req, res) => {
       min_followers: min_followers || 0,
       cost_per_influencer: cost_per_influencer || 0,
       description: description || '',
+      reference_images: reference_images || [],
+      shooting_location_guide: shooting_location_guide || '',
+      sample_reel_url: sample_reel_url || '',
+      guidelines: guidelines || '',
       status: 'open'
     });
 

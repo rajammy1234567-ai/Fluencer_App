@@ -40,6 +40,21 @@ const campaignSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  reference_images: [{
+    type: String
+  }],
+  shooting_location_guide: {
+    type: String,
+    default: ''
+  },
+  sample_reel_url: {
+    type: String,
+    default: ''
+  },
+  guidelines: {
+    type: String,
+    default: ''
+  },
   status: {
     type: String,
     enum: ['open', 'closed', 'paused'],
