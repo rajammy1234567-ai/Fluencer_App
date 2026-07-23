@@ -32,9 +32,36 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+import fs from 'fs';
+
+let cachedAdminHtml = null;
+function getAdminHtml() {
+  try {
+    const paths = [
+      path.join(__dirname, '../public/admin.html'),
+      path.join(process.cwd(), 'public/admin.html'),
+      path.join(process.cwd(), 'fluencer_Backend/public/admin.html'),
+      path.join(__dirname, 'public/admin.html'),
+    ];
+    for (const p of paths) {
+      if (fs.existsSync(p)) {
+        return fs.readFileSync(p, 'utf8');
+      }
+    }
+  } catch (err) {
+    console.error('Error reading admin HTML:', err);
+  }
+  return null;
+}
+
 // Serve Web Admin Dashboard HTML
-app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/admin.html'));
+app.get(['/admin', '/admin/'], (req, res) => {
+  const html = getAdminHtml();
+  if (html) {
+    res.setHeader('Content-Type', 'text/html; charset=UTF-8');
+    return res.status(200).send(html);
+  }
+  res.status(404).json({ success: false, message: 'Admin HTML file not found on server' });
 });
 
 // CRITICAL: Ensure API responses are JSON by default
