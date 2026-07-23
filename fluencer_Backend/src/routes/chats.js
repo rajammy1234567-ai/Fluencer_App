@@ -291,4 +291,139 @@ router.get('/:chatId', authMiddleware, async (req, res) => {
   }
 });
 
+// In-Chat Action: Brand Locks Deal & Deposits Escrow
+router.post('/:chatId/lock-deal', authMiddleware, async (req, res) => {
+  try {
+    const chatId = req.params.chatId;
+    const userId = req.user.userId;
+
+    const chat = await Chat.findById(chatId);
+    if (!chat) return res.status(404).json({ success: false, message: 'Chat not found' });
+    if (chat.brand_id.toString() !== userId.toString()) {
+      return res.status(403).json({ success: false, message: 'Only brand owner can lock deal' });
+    }
+
+    const Application = (await import('../models/Application.js')).default;
+    const campaign = await Campaign.findById(chat.campaign_id);
+    const application = await Application.findOne({ campaign_id: chat.campaign_id, influencer_id: chat.influencer_id });
+
+    if (!application) {
+      return res.status(404).json({ success: false, message: 'Application not found for this chat' });
+    }
+
+    const dealAmount = application.escrow_amount || (campaign ? campaign.cost_per_influencer : 5000) || 5000;
+
+    // Deduct Brand Wallet & Add to Escrow
+    const brandProfile = await BrandProfile.findOne({ user_id: userId });
+    if (!brandProfile || (brandProfile.wallet_balance || 0) < dealAmount) {
+      return res.status(400).json({ success: false, message: `Insufficient brand wallet balance (Required: ₹${dealAmount})` });
+    }
+
+    brandProfile.wallet_balance -= dealAmount;
+    brandProfile.escrow_balance = (brandProfile.escrow_balance || 0) + dealAmount;
+    await brandProfile.save();
+
+    const influencerProfile = await InfluencerProfile.findOne({ user_id: chat.influencer_id });
+    if (influencerProfile) {
+      influencerProfile.escrow_balance = (influencerProfile.escrow_balance || 0) + dealAmount;
+      await influencerProfile.save();
+    }
+
+    application.status = 'accepted';
+    application.escrow_amount = dealAmount;
+    await application.save();
+
+    // Post system message into Chat
+    await ChatMessage.create({
+      chat_id: chatId,
+      sender_id: userId,
+      message: `🔒 DEAL LOCKED! Brand deposited ₹${dealAmount} into Escrow. Creator can now shoot and submit the reel.`,
+      message_type: 'system',
+      is_read: false
+    });
+
+    res.json({ success: true, message: `Deal locked and ₹${dealAmount} held in escrow!`, dealAmount });
+  } catch (error) {
+    console.error('In-chat lock deal error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// In-Chat Action: Creator Submits Work Reel Proof
+router.post('/:chatId/submit-work', authMiddleware, async (req, res) => {
+  try {
+    const chatId = req.params.chatId;
+    const userId = req.user.userId;
+    const { submission_url, submission_notes } = req.body;
+
+    if (!submission_url) {
+      return res.status(400).json({ success: false, message: 'Instagram Reel URL is required' });
+    }
+
+    const chat = await Chat.findById(chatId);
+    if (!chat) return res.status(404).json({ success: false, message: 'Chat not found' });
+
+    const Application = (await import('../models/Application.js')).default;
+    const application = await Application.findOne({ campaign_id: chat.campaign_id, influencer_id: chat.influencer_id });
+
+    if (!application) return res.status(404).json({ success: false, message: 'Application not found' });
+
+    application.deliverable_status = 'submitted';
+    application.submission_url = submission_url;
+    application.submission_notes = submission_notes || '';
+    application.submitted_at = new Date();
+    await application.save();
+
+    // Post system message into Chat
+    await ChatMessage.create({
+      chat_id: chatId,
+      sender_id: userId,
+      message: `🎬 WORK SUBMITTED! Creator submitted Reel proof: ${submission_url}`,
+      message_type: 'system',
+      is_read: false
+    });
+
+    res.json({ success: true, message: 'Reel work proof submitted successfully!' });
+  } catch (error) {
+    console.error('In-chat submit work error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// In-Chat Action: Brand Approves Deliverable Work Proof
+router.post('/:chatId/approve-work', authMiddleware, async (req, res) => {
+  try {
+    const chatId = req.params.chatId;
+    const userId = req.user.userId;
+
+    const chat = await Chat.findById(chatId);
+    if (!chat) return res.status(404).json({ success: false, message: 'Chat not found' });
+    if (chat.brand_id.toString() !== userId.toString()) {
+      return res.status(403).json({ success: false, message: 'Only brand owner can approve work' });
+    }
+
+    const Application = (await import('../models/Application.js')).default;
+    const application = await Application.findOne({ campaign_id: chat.campaign_id, influencer_id: chat.influencer_id });
+
+    if (!application) return res.status(404).json({ success: false, message: 'Application not found' });
+
+    application.deliverable_status = 'brand_approved';
+    await application.save();
+
+    // Post system message into Chat
+    await ChatMessage.create({
+      chat_id: chatId,
+      sender_id: userId,
+      message: `✅ DELIVERABLE APPROVED! Brand confirmed work quality. Web Admin can now release 18% escrow payout.`,
+      message_type: 'system',
+      is_read: false
+    });
+
+    res.json({ success: true, message: 'Deliverable approved! Ready for Admin escrow payout.' });
+  } catch (error) {
+    console.error('In-chat approve work error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 export default router;
