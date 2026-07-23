@@ -1,4 +1,5 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import Campaign from '../models/Campaign.js';
 import Application from '../models/Application.js';
 import Chat from '../models/Chat.js';
@@ -476,19 +477,31 @@ router.post('/applications/:applicationId/reject', authMiddleware, async (req, r
 // Get all active campaigns (Visible to every single user)
 router.get('/active/all', authMiddleware, async (req, res) => {
   try {
-    const userId = req.user.userId;
-    const role = req.user.role;
+    const userId = req.user?.userId;
 
-    const campaignsList = await Campaign.find({ is_deleted: false }).lean();
+    const campaignsList = await Campaign.find({ is_deleted: false }).sort({ created_at: -1 }).lean();
 
     const campaigns = await Promise.all(campaignsList.map(async (c) => {
-      const bp = await BrandProfile.findOne({ user_id: c.brand_id }).lean();
-      const app = await Application.findOne({ campaign_id: c._id, influencer_id: userId }).lean();
+      let bp = null;
+      let app = null;
+      
+      if (c.brand_id && mongoose.Types.ObjectId.isValid(c.brand_id)) {
+        try {
+          bp = await BrandProfile.findOne({ user_id: c.brand_id }).lean();
+        } catch (err) {}
+      }
+
+      if (userId && mongoose.Types.ObjectId.isValid(userId)) {
+        try {
+          app = await Application.findOne({ campaign_id: c._id, influencer_id: userId }).lean();
+        } catch (err) {}
+      }
 
       c.id = c._id.toString();
-      c.company_name = bp ? bp.company_name : 'Brand';
+      c.brand_name = bp ? bp.company_name : 'Krishna Private Limited';
+      c.company_name = bp ? bp.company_name : 'Krishna Private Limited';
       c.brand_image = bp ? bp.profile_image : null;
-      c.brand_category = bp ? bp.category : '';
+      c.brand_category = bp ? bp.category : 'Fashion & Apparel';
       c.brand_description = bp ? bp.description : '';
       c.application_status = app ? app.status : null;
       return c;

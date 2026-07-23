@@ -391,7 +391,7 @@ export default function CreateCampaign() {
                     <Text style={styles.label}>Campaign Name</Text>
                     <View style={styles.inputWrapper}>
                       <MaterialCommunityIcons name="bullhorn-outline" size={22} color={THEME.textMuted} />
-                      <TextInput style={styles.input} value={campaignName} onChangeText={setCampaignName} placeholder="Enter campaign name" placeholderTextColor={THEME.textMuted} />
+                      <TextInput style={styles.input} value={campaignName} onChangeText={setCampaignName} placeholder="e.g., Summer Ethnic Wear Reel Collection Drop" placeholderTextColor={THEME.textMuted} />
                     </View>
                   </View>
 
@@ -399,7 +399,7 @@ export default function CreateCampaign() {
                     <Text style={styles.label}>Target Location</Text>
                     <View style={styles.inputWrapper}>
                       <MaterialCommunityIcons name="map-marker-outline" size={22} color={THEME.textMuted} />
-                      <TextInput style={styles.input} value={location} onChangeText={setLocation} placeholder="e.g., Mumbai, Delhi" placeholderTextColor={THEME.textMuted} />
+                      <TextInput style={styles.input} value={location} onChangeText={setLocation} placeholder="e.g., Mumbai, Delhi, Bangalore, All India" placeholderTextColor={THEME.textMuted} />
                     </View>
                   </View>
 
@@ -424,9 +424,9 @@ export default function CreateCampaign() {
                   </View>
 
                   <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Description (Optional)</Text>
+                    <Text style={styles.label}>Description & Guidelines (Optional)</Text>
                     <View style={[styles.inputWrapper, styles.textAreaWrapper]}>
-                      <TextInput style={[styles.input, styles.textArea]} value={description} onChangeText={setDescription} placeholder="Tell about your campaign..." placeholderTextColor={THEME.textMuted} multiline numberOfLines={4} />
+                      <TextInput style={[styles.input, styles.textArea]} value={description} onChangeText={setDescription} placeholder="e.g., Shoot a 30s Reel showcasing our summer collection in natural sunlight. Tag @krishnaprivatelimited and use hashtag #SummerVibes." placeholderTextColor={THEME.textMuted} multiline numberOfLines={4} />
                     </View>
                   </View>
 
