@@ -12,6 +12,7 @@ import {
   getWithdrawRequests,
   getPendingEscrows,
   releaseEscrowPayout,
+  deleteAdminCampaign,
 } from '../controllers/adminController.js';
 
 import {
@@ -54,6 +55,7 @@ router.get('/dashboard/stats', getDashboardStats);
 router.get('/dashboard/recent-campaigns', getRecentCampaigns);
 router.get('/dashboard/recent-payments', getRecentPayments);
 router.get('/dashboard/withdraw-requests', getWithdrawRequests);
+router.delete('/campaigns/:id', deleteAdminCampaign);
 
 // Influencer Management Routes
 router.get('/influencers', getAllInfluencers);

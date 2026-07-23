@@ -324,3 +324,16 @@ export const releaseEscrowPayout = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+/**
+ * Delete Campaign by Admin
+ */
+export const deleteAdminCampaign = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await Campaign.findByIdAndDelete(id);
+    res.json({ success: true, message: 'Campaign deleted successfully by Admin' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
