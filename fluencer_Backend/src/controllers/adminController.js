@@ -337,3 +337,98 @@ export const deleteAdminCampaign = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+/**
+ * Trigger Live System Test Simulation
+ */
+export const triggerSystemTest = async (req, res) => {
+  try {
+    const timestamp = Date.now().toString().slice(-4);
+    const creatorEmail = `test_creator_${timestamp}@fluencer.test`;
+    const brandEmail = `test_brand_${timestamp}@fluencer.test`;
+
+    const bcrypt = (await import('bcrypt')).default;
+
+    // 1. Create Creator User & Profile
+    let creatorUser = await User.create({
+      email: creatorEmail,
+      password: await bcrypt.hash('Test@123', 10),
+      role: 'influencer',
+      is_verified: true
+    });
+    let creatorProfile = await InfluencerProfile.create({
+      user_id: creatorUser._id.toString(),
+      name: `Test Creator ${timestamp}`,
+      categories: ['Fashion', 'Lifestyle'],
+      upi_id: `creator_${timestamp}@upi`,
+      wallet_balance: 0,
+      escrow_balance: 0
+    });
+
+    // 2. Create Brand User & Profile with Wallet Top Up
+    let brandUser = await User.create({
+      email: brandEmail,
+      password: await bcrypt.hash('Test@123', 10),
+      role: 'brand',
+      is_verified: true
+    });
+    let brandProfile = await BrandProfile.create({
+      user_id: brandUser._id.toString(),
+      company_name: `Test Brand ${timestamp}`,
+      category: 'Fashion',
+      wallet_balance: 10000,
+      escrow_balance: 0
+    });
+
+    // 3. Create Campaign
+    let campaign = await Campaign.create({
+      brand_id: brandUser._id.toString(),
+      campaign_name: `Summer Reel Promo ${timestamp}`,
+      description: 'Create a 30s Instagram reel featuring our summer collection.',
+      campaign_type: 'paid',
+      content_type: 'reel',
+      number_of_seats: 5,
+      shooting_location_guide: 'Shoot outdoors in natural sunlight.',
+      guidelines: 'Show product in first 3 seconds, tag @brand',
+      cost_per_influencer: 5000,
+      total_budget: 25000,
+      status: 'open'
+    });
+
+    // 4. Apply & Accept (Lock Escrow)
+    let application = await Application.create({
+      campaign_id: campaign._id.toString(),
+      influencer_id: creatorUser._id.toString(),
+      status: 'accepted',
+      escrow_amount: 5000,
+      deliverable_status: 'submitted',
+      submission_url: 'https://instagram.com/p/live_test_reel_' + timestamp,
+      submission_notes: 'Reel created following all brand guidelines!'
+    });
+
+    // Update Escrow Balances
+    brandProfile.wallet_balance -= 5000;
+    brandProfile.escrow_balance += 5000;
+    await brandProfile.save();
+
+    creatorProfile.escrow_balance += 5000;
+    await creatorProfile.save();
+
+    res.json({
+      success: true,
+      message: '✅ Live Test Deal Simulation Created & Escrow Locked!',
+      step: 'Work Submitted by Creator & Ready for Admin Release',
+      data: {
+        application_id: application._id.toString(),
+        brand_name: brandProfile.company_name,
+        creator_name: creatorProfile.name,
+        reel_url: application.submission_url,
+        escrow_locked: 5000,
+        creator_upi: creatorProfile.upi_id
+      }
+    });
+  } catch (error) {
+    console.error('Trigger test error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};

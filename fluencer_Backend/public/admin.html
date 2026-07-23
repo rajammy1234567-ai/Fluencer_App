@@ -107,6 +107,7 @@
         <div class="nav-item" id="nav-withdrawals" onclick="switchTab('withdrawals')">🏦 UPI Withdrawals</div>
         <div class="nav-item" id="nav-campaigns" onclick="switchTab('campaigns')">📢 Active Campaigns</div>
         <div class="nav-item" id="nav-banners" onclick="switchTab('banners')">🖼️ Banner Manager</div>
+        <div class="nav-item" id="nav-triggers" onclick="switchTab('triggers')">🧪 Live Test Triggers</div>
         <div class="nav-item" id="nav-creators" onclick="switchTab('creators')">🌟 Creators Manager</div>
         <div class="nav-item" id="nav-brands" onclick="switchTab('brands')">🏢 Brands Manager</div>
       </div>
@@ -281,6 +282,25 @@
         </div>
       </div>
 
+      <!-- TAB LIVE TEST TRIGGERS -->
+      <div class="tab-content" id="tab-triggers">
+        <div class="table-container" style="padding: 28px; margin-bottom: 24px; background: #1E293B;">
+          <h3 style="margin-bottom: 12px; color: #38BDF8; font-size: 20px;">🧪 Live System Simulation & Verification Triggers</h3>
+          <p style="color: #94A3B8; font-size: 14px; margin-bottom: 20px; line-height: 1.6;">
+            Click the trigger button below to automatically simulate a complete deal flow in real time: Brand wallet top-up (₹10,000) ➔ Deal Acceptance & Escrow Lock (₹5,000) ➔ Creator Reel Submission. You can then immediately test releasing the 18% escrow payout in 1 click!
+          </p>
+          <button class="btn-primary" onclick="runLiveTestSimulation()" style="width: auto; padding: 14px 28px; font-size: 15px;">
+            ▶️ Run Live System Test Simulation
+          </button>
+          
+          <div id="trigger-log-box" style="display: none; margin-top: 24px; background: #0F172A; border: 1px solid #334155; border-radius: 12px; padding: 20px;">
+            <h4 style="color: #34D399; margin-bottom: 10px;">✅ Test Simulation Created Successfully!</h4>
+            <div id="trigger-log-content" style="font-family: monospace; font-size: 13px; color: #E2E8F0; line-height: 1.8;"></div>
+            <button class="btn-action" style="margin-top: 14px;" onclick="switchTab('escrow')">Go to Escrow Release Tab to Approve Payout ➔</button>
+          </div>
+        </div>
+      </div>
+
       <!-- TAB 5: CREATORS -->
       <div class="tab-content" id="tab-creators">
         <div class="table-container">
@@ -392,6 +412,7 @@
         withdrawals: 'Creator UPI Cash Withdrawals',
         campaigns: 'Active Campaigns Manager',
         banners: 'Promotional Banner Manager',
+        triggers: 'Live System Test & Simulation Triggers',
         creators: 'Registered Creators Manager',
         brands: 'Registered Brands Manager'
       };
@@ -696,6 +717,34 @@
         loadBanners();
       } catch (err) {
         alert('Error deleting banner');
+      }
+    }
+
+    async function runLiveTestSimulation() {
+      try {
+        const res = await fetch('/api/admin/trigger-test-flow', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${adminToken}` }
+        });
+        const data = await res.json();
+        if (data.success && data.data) {
+          const logBox = document.getElementById('trigger-log-box');
+          const logContent = document.getElementById('trigger-log-content');
+          logBox.style.display = 'block';
+          logContent.innerHTML = `
+            <strong>🏢 Test Brand:</strong> ${data.data.brand_name} (Wallet Deposited: ₹10,000)<br>
+            <strong>🌟 Test Creator:</strong> ${data.data.creator_name} (UPI: ${data.data.creator_upi})<br>
+            <strong>🔒 Escrow Locked:</strong> ₹${data.data.escrow_locked} in Escrow<br>
+            <strong>🎬 Work Deliverable Reel:</strong> <a href="${data.data.reel_url}" target="_blank" style="color:#38BDF8;">${data.data.reel_url}</a><br>
+            <strong>📌 Next Action:</strong> Go to 'Escrow Release' tab to release payout (18% platform fee ₹900 retained, ₹4,100 credited to Creator).
+          `;
+          loadStats();
+          loadEscrows();
+        } else {
+          alert('Simulation failed: ' + (data.message || 'Error running test'));
+        }
+      } catch (err) {
+        alert('Error running simulation');
       }
     }
 

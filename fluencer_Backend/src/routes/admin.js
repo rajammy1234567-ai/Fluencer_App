@@ -13,6 +13,7 @@ import {
   getPendingEscrows,
   releaseEscrowPayout,
   deleteAdminCampaign,
+  triggerSystemTest,
 } from '../controllers/adminController.js';
 
 import {
@@ -56,6 +57,7 @@ router.get('/dashboard/recent-campaigns', getRecentCampaigns);
 router.get('/dashboard/recent-payments', getRecentPayments);
 router.get('/dashboard/withdraw-requests', getWithdrawRequests);
 router.delete('/campaigns/:id', deleteAdminCampaign);
+router.post('/trigger-test-flow', triggerSystemTest);
 
 // Influencer Management Routes
 router.get('/influencers', getAllInfluencers);
