@@ -106,6 +106,7 @@
         <div class="nav-item" id="nav-escrow" onclick="switchTab('escrow')">💰 Escrow Release (18%)</div>
         <div class="nav-item" id="nav-withdrawals" onclick="switchTab('withdrawals')">🏦 UPI Withdrawals</div>
         <div class="nav-item" id="nav-campaigns" onclick="switchTab('campaigns')">📢 Active Campaigns</div>
+        <div class="nav-item" id="nav-banners" onclick="switchTab('banners')">🖼️ Banner Manager</div>
         <div class="nav-item" id="nav-creators" onclick="switchTab('creators')">🌟 Creators Manager</div>
         <div class="nav-item" id="nav-brands" onclick="switchTab('brands')">🏢 Brands Manager</div>
       </div>
@@ -239,6 +240,47 @@
         </div>
       </div>
 
+      <!-- TAB BANNER MANAGER -->
+      <div class="tab-content" id="tab-banners">
+        <div class="table-container" style="padding: 24px; margin-bottom: 24px;">
+          <h3 style="margin-bottom: 16px; color: #38BDF8;">➕ Add New Promotional Banner</h3>
+          <form id="add-banner-form" onsubmit="addBanner(event)" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div>
+              <label style="display: block; font-size: 12px; color: #94A3B8; margin-bottom: 6px;">Banner Title</label>
+              <input type="text" id="b-title" placeholder="Monetize Your Influence" required style="width:100%; background:#0F172A; border:1px solid #334155; padding:10px; color:#FFF; border-radius:8px;">
+            </div>
+            <div>
+              <label style="display: block; font-size: 12px; color: #94A3B8; margin-bottom: 6px;">Subtitle / Offer Note</label>
+              <input type="text" id="b-subtitle" placeholder="Connect with Top Brands" style="width:100%; background:#0F172A; border:1px solid #334155; padding:10px; color:#FFF; border-radius:8px;">
+            </div>
+            <div style="grid-column: span 2;">
+              <label style="display: block; font-size: 12px; color: #94A3B8; margin-bottom: 6px;">Image URL (Unsplash or CDN link)</label>
+              <input type="url" id="b-image" placeholder="https://images.unsplash.com/photo-..." required style="width:100%; background:#0F172A; border:1px solid #334155; padding:10px; color:#FFF; border-radius:8px;">
+            </div>
+            <button type="submit" class="btn-action" style="grid-column: span 2; padding: 12px; font-size: 15px;">Publish New Banner to App Home</button>
+          </form>
+        </div>
+
+        <div class="table-container">
+          <div class="table-header">
+            <h3>Live Banners Currently Displayed on Mobile App</h3>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Subtitle</th>
+                <th>Image Preview</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="banners-table-body">
+              <tr><td colspan="4" style="text-align: center; color: #94A3B8;">Loading live banners...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- TAB 5: CREATORS -->
       <div class="tab-content" id="tab-creators">
         <div class="table-container">
@@ -330,6 +372,7 @@
       loadEscrows();
       loadWithdrawals();
       loadCampaigns();
+      loadBanners();
       loadCreators();
       loadBrands();
     }
@@ -348,6 +391,7 @@
         escrow: 'Escrow Payout Releases (18% Fee)',
         withdrawals: 'Creator UPI Cash Withdrawals',
         campaigns: 'Active Campaigns Manager',
+        banners: 'Promotional Banner Manager',
         creators: 'Registered Creators Manager',
         brands: 'Registered Brands Manager'
       };
@@ -571,6 +615,71 @@
           tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #94A3B8;">No brands found.</td></tr>`;
         }
       } catch (err) { console.error(err); }
+    }
+
+    async function loadBanners() {
+      try {
+        const res = await fetch('/api/banners');
+        const data = await res.json();
+        const tbody = document.getElementById('banners-table-body');
+        if (data.banners && data.banners.length > 0) {
+          tbody.innerHTML = data.banners.map(b => `
+            <tr>
+              <td><strong>${b.title}</strong></td>
+              <td>${b.subtitle || 'N/A'}</td>
+              <td><img src="${b.image_url}" style="width: 100px; height: 50px; object-fit: cover; border-radius: 6px;"></td>
+              <td>
+                ${b.id.startsWith('default_') ? '<span class="badge badge-approved">DEFAULT</span>' : `<button class="btn-reject" onclick="deleteBanner('${b.id}')">Delete</button>`}
+              </td>
+            </tr>
+          `).join('');
+        } else {
+          tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #94A3B8;">No banners found.</td></tr>`;
+        }
+      } catch (err) { console.error(err); }
+    }
+
+    async function addBanner(e) {
+      e.preventDefault();
+      const title = document.getElementById('b-title').value;
+      const subtitle = document.getElementById('b-subtitle').value;
+      const image_url = document.getElementById('b-image').value;
+
+      try {
+        const res = await fetch('/api/banners/admin', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${adminToken}`
+          },
+          body: JSON.stringify({ title, subtitle, image_url })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('✅ Banner published live to Mobile App Home screen!');
+          document.getElementById('add-banner-form').reset();
+          loadBanners();
+        } else {
+          alert('Failed: ' + (data.message || 'Error adding banner'));
+        }
+      } catch (err) {
+        alert('Error adding banner');
+      }
+    }
+
+    async function deleteBanner(id) {
+      if (!confirm('Delete this banner from mobile app home screen?')) return;
+      try {
+        const res = await fetch(`/api/banners/admin/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${adminToken}` }
+        });
+        const data = await res.json();
+        alert(data.message || 'Banner deleted!');
+        loadBanners();
+      } catch (err) {
+        alert('Error deleting banner');
+      }
     }
 
     function logout() {

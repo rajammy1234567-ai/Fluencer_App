@@ -14,7 +14,16 @@ export function getAdminPageContent() {
     ];
     for (const p of possiblePaths) {
       if (fs.existsSync(p)) {
-        return fs.readFileSync(p, 'utf8');
+        let content = fs.readFileSync(p, 'utf8');
+        content = content.replace(
+          '<div class="nav-item" id="nav-campaigns" onclick="switchTab(\'campaigns\')">📢 Active Campaigns</div>',
+          '<div class="nav-item" id="nav-campaigns" onclick="switchTab(\'campaigns\')">📢 Active Campaigns</div>\n        <div class="nav-item" id="nav-banners" onclick="switchTab(\'banners\')">🖼️ Banner Manager</div>'
+        );
+        content = content.replace(
+          '<div id="campaigns-tab" class="tab-content">',
+          '<div id="banners-tab" class="tab-content" style="display:none;"></div>\n    <div id="campaigns-tab" class="tab-content">'
+        );
+        return content;
       }
     }
   } catch (err) {

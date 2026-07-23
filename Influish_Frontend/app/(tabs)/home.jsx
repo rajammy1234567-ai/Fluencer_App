@@ -129,11 +129,50 @@ const Navbar = ({ children, profileImage, onProfilePress }) => {
 
 // Banner Slider Component
 const BannerSlider = () => {
+  const router = useRouter();
   const scrollViewRef = useRef(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [banners, setBanners] = useState([]);
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
+    const fetchBanners = async () => {
+      try {
+        const response = await fetch(getApiUrl(API.BANNERS));
+        const data = await response.json();
+        if (data.success && data.banners && data.banners.length > 0) {
+          setBanners(data.banners);
+        }
+      } catch (err) {
+        console.warn('Failed to fetch banners:', err);
+      }
+    };
+    fetchBanners();
+  }, []);
+
+  const displayBanners = banners.length > 0 ? banners : [
+    {
+      id: 'default_1',
+      title: 'Monetize Your Influence',
+      subtitle: 'Connect with Top Fashion & Lifestyle Brands',
+      image_url: 'https://images.unsplash.com/photo-1511556532299-8f662fc26c06?w=800&auto=format&fit=crop&q=80',
+    },
+    {
+      id: 'default_2',
+      title: 'Summer Campaign Drop 2026',
+      subtitle: 'Paid Reel Deals starting at ₹5,000 / Creator',
+      image_url: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&auto=format&fit=crop&q=80',
+    },
+    {
+      id: 'default_3',
+      title: 'Zero Commission Deduction on First Deal',
+      subtitle: 'Grow, Learn & Earn with Fluencer',
+      image_url: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&auto=format&fit=crop&q=80',
+    }
+  ];
+
+  useEffect(() => {
+    if (displayBanners.length === 0) return;
     const interval = setInterval(() => {
       Animated.timing(fadeAnim, {
         toValue: 0.7,
@@ -141,7 +180,7 @@ const BannerSlider = () => {
         useNativeDriver: true,
       }).start(() => {
         setCurrentIndex((prevIndex) => {
-          const nextIndex = (prevIndex + 1) % bannerImages.length;
+          const nextIndex = (prevIndex + 1) % displayBanners.length;
           scrollViewRef.current?.scrollTo({
             x: nextIndex * (width - 48),
             animated: true,
@@ -157,7 +196,7 @@ const BannerSlider = () => {
     }, 4000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [displayBanners.length]);
 
   return (
     <View style={styles.bannerContainer}>
@@ -171,20 +210,20 @@ const BannerSlider = () => {
           decelerationRate="fast"
           snapToInterval={width - 48}
         >
-          {bannerImages.map((image, index) => (
-            <AnimatedCard key={index} delay={index * 100}>
+          {displayBanners.map((item, index) => (
+            <AnimatedCard key={item.id || index} delay={index * 100}>
               <View style={styles.bannerItem}>
-                <Image source={{ uri: image }} style={styles.bannerImage} />
+                <Image source={{ uri: item.image_url }} style={styles.bannerImage} />
                 <View style={styles.bannerOverlay}>
-                  <Text style={styles.bannerTitle}>Grow your influence</Text>
-                  <Text style={styles.bannerSubtitle}>Access Top Campaigns</Text>
-                  <TouchableOpacity style={styles.bannerButton}>
-                    <Text style={styles.bannerButtonText}>Join Now</Text>
+                  <Text style={styles.bannerTitle}>{item.title}</Text>
+                  <Text style={styles.bannerSubtitle}>{item.subtitle}</Text>
+                  <TouchableOpacity style={styles.bannerButton} onPress={() => router.push('/campaigns')}>
+                    <Text style={styles.bannerButtonText}>Explore Deals</Text>
                     <Ionicons name="arrow-forward" size={18} color={THEME.primary} />
                   </TouchableOpacity>
                   <View style={styles.discountBadge}>
-                    <Text style={styles.discountText}>New</Text>
-                    <Text style={styles.discountSubText}>DROP</Text>
+                    <Text style={styles.discountText}>HOT</Text>
+                    <Text style={styles.discountSubText}>DEAL</Text>
                   </View>
                 </View>
               </View>
@@ -195,7 +234,7 @@ const BannerSlider = () => {
       
       {/* Pagination Dots */}
       <View style={styles.paginationContainer}>
-        {bannerImages.map((_, index) => (
+        {displayBanners.map((_, index) => (
           <Animated.View
             key={index}
             style={[

@@ -93,6 +93,7 @@ export const API = {
     APPROVE_WITHDRAWAL: '/api/admin/withdrawals/:id/approve',
     REJECT_WITHDRAWAL: '/api/admin/withdrawals/:id/reject',
   },
+  BANNERS: '/api/banners',
 };
 
 // Helper function to get full URL
