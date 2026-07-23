@@ -23,9 +23,10 @@ import { saveAuth } from '../../utils/storage';
 const VerifyOTP = () => {
   const params = useLocalSearchParams();
   const router = useRouter();
-  const { email, role } = params;
+  const { email, role, initialOtp } = params;
 
-  const [otp, setOtp] = useState('');
+  const [otp, setOtp] = useState(initialOtp || '');
+  const [displayOtp, setDisplayOtp] = useState(initialOtp || '');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -146,7 +147,14 @@ const VerifyOTP = () => {
       });
       const data = await response.json();
       if (response.ok && data.success) {
-        Alert.alert('Success', 'New OTP sent to your email!');
+        const newOtp = data.otp || '';
+        if (newOtp) {
+          setOtp(newOtp);
+          setDisplayOtp(newOtp);
+          Alert.alert('🔑 New Verification OTP', `Your new OTP is: ${newOtp}`);
+        } else {
+          Alert.alert('Success', 'New OTP sent to your email!');
+        }
         setTimer(300);
       } else {
         Alert.alert('Resend Failed', data.message || 'Could not resend OTP.');
@@ -208,6 +216,14 @@ const VerifyOTP = () => {
 
               {/* Form */}
               <View style={styles.card}>
+                {!!displayOtp && (
+                  <View style={styles.otpBannerCard}>
+                    <MaterialCommunityIcons name="key-wireless" size={22} color="#059669" />
+                    <Text style={styles.otpBannerLabel}>Your OTP Code: </Text>
+                    <Text style={styles.otpBannerCode}>{displayOtp}</Text>
+                  </View>
+                )}
+
                 {/* OTP Input */}
                 <View style={styles.inputGroup}>
                   <Text style={styles.label}>Enter OTP</Text>
@@ -497,6 +513,30 @@ const styles = StyleSheet.create({
   resendLink: {
     fontWeight: '700',
     color: COLORS.primary,
+  },
+  otpBannerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ECFDF5',
+    borderColor: '#6EE7B7',
+    borderWidth: 1.5,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    marginBottom: 20,
+  },
+  otpBannerLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#065F46',
+    marginLeft: 6,
+  },
+  otpBannerCode: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#047857',
+    letterSpacing: 3,
   },
 });
 

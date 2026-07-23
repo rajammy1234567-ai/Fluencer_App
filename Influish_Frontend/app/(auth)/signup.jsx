@@ -58,11 +58,19 @@ const Signup = () => {
 
       const data = await response.json();
 
-      if (response.ok) {
-        Alert.alert('Success', 'OTP sent to your email!');
+      if (response.ok && data.success) {
+        const generatedOtp = data.otp || '';
+        if (generatedOtp) {
+          Alert.alert(
+            '🔑 Verification OTP',
+            `Your OTP is: ${generatedOtp}\n\n(This code will be auto-filled on the next screen)`
+          );
+        } else {
+          Alert.alert('Success', 'OTP sent to your email!');
+        }
         router.push({
           pathname: '/(auth)/verify-otp',
-          params: { email, role: isBrand ? 'brand' : 'influencer' },
+          params: { email, role: isBrand ? 'brand' : 'influencer', initialOtp: generatedOtp },
         });
       } else {
         // Specific error handling for cross-role registration

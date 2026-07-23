@@ -171,24 +171,16 @@ router.post('/signup-request', async (req, res) => {
       { upsert: true, new: true }
     );
 
-    // Send OTP email
+    // Send OTP email (async attempt)
     console.log(`🔑 Generated OTP for ${cleanEmail}: ${otp}`);
-    const emailSent = await sendOTPEmail(cleanEmail, otp);
+    sendOTPEmail(cleanEmail, otp).catch(err => console.warn('Email send error:', err.message));
 
-    if (!emailSent) {
-      console.warn(`⚠️ Could not send email to ${cleanEmail}. OTP is ${otp}`);
-      return res.status(200).json({ 
-        success: true, 
-        message: 'OTP generated. Check server log or email.',
-        email: cleanEmail,
-        otp: otp // Included as fallback when SMTP transport is restricted
-      });
-    }
-
+    // Always return OTP in response for instant on-screen display & testing
     res.status(200).json({ 
       success: true, 
-      message: 'OTP sent to email',
-      email: cleanEmail
+      message: `OTP generated successfully: ${otp}`,
+      email: cleanEmail,
+      otp: otp
     });
   } catch (error) {
     console.error('Signup request error:', error);
@@ -481,25 +473,15 @@ router.post('/forgot-password-request', async (req, res) => {
       { upsert: true, new: true }
     );
 
-    // Send OTP email
+    // Send OTP email (async attempt)
     console.log(`🔑 Generated Password Reset OTP for ${cleanEmail}: ${otp}`);
-    const emailSent = await sendOTPEmail(cleanEmail, otp);
-    if (!emailSent) {
-      console.warn(`⚠️ Could not send reset email to ${cleanEmail}. OTP is ${otp}`);
-      return res.status(200).json({ 
-        success: true, 
-        message: 'Password reset OTP generated.',
-        email: cleanEmail,
-        otp: otp
-      });
-    }
-
-    console.log('✅ Password reset OTP sent to:', cleanEmail);
+    sendOTPEmail(cleanEmail, otp).catch(err => console.warn('Email send error:', err.message));
 
     res.status(200).json({ 
       success: true, 
-      message: 'OTP sent to your email',
-      email: cleanEmail
+      message: `Password reset OTP generated: ${otp}`,
+      email: cleanEmail,
+      otp: otp
     });
   } catch (error) {
     console.error('❌ Forgot password request error:', error);
