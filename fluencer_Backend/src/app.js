@@ -32,8 +32,13 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// CRITICAL: Ensure all responses are JSON by default
-app.use((req, res, next) => {
+// Serve Web Admin Dashboard HTML
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/admin.html'));
+});
+
+// CRITICAL: Ensure API responses are JSON by default
+app.use('/api', (req, res, next) => {
   res.setHeader('Content-Type', 'application/json');
   next();
 });
