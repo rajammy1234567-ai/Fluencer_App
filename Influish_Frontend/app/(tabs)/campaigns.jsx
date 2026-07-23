@@ -108,6 +108,10 @@ export default function InfluencerCampaigns() {
     // Extra data for display
     cost: item.campaign_type === 'paid' ? `₹${item.cost_per_influencer}` : 'Barter',
     seats: item.number_of_seats,
+    shooting_location_guide: item.shooting_location_guide || '',
+    sample_reel_url: item.sample_reel_url || '',
+    guidelines: item.guidelines || '',
+    reference_images: item.reference_images || []
   }));
 
   const handleSwipeRight = async (cardData) => {
@@ -517,6 +521,20 @@ export default function InfluencerCampaigns() {
                   
                   <Text style={styles.detailSectionTitle}>Description</Text>
                   <Text style={styles.detailDescription}>{selectedCampaign.description}</Text>
+
+                  {!!selectedCampaign.shooting_location_guide && (
+                    <View style={{ marginTop: 12, backgroundColor: '#F0F9FF', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#BAE6FD' }}>
+                      <Text style={{ fontWeight: '700', color: '#0369A1', marginBottom: 4 }}>📍 Shooting Location & Concept Guide:</Text>
+                      <Text style={{ color: '#0C4A6E', fontSize: 13 }}>{selectedCampaign.shooting_location_guide}</Text>
+                    </View>
+                  )}
+
+                  {!!selectedCampaign.guidelines && (
+                    <View style={{ marginTop: 10, backgroundColor: '#FEF3C7', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#FDE68A' }}>
+                      <Text style={{ fontWeight: '700', color: '#92400E', marginBottom: 4 }}>📋 Brand Guidelines & Do's/Don'ts:</Text>
+                      <Text style={{ color: '#78350F', fontSize: 13 }}>{selectedCampaign.guidelines}</Text>
+                    </View>
+                  )}
                   
                   <Text style={styles.modalSubtitle}>Why are you interested? (Optional)</Text>
                   <TextInput
