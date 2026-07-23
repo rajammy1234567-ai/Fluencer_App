@@ -122,12 +122,6 @@ const CompleteProfile = () => {
       end={{ x: 1, y: 1 }}
       style={styles.container}
     >
-      start={{ x: 1, y: 0 }}
-      end={{ x: 0, y: 1 }}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.container}
-    >
       {/* Floating organic shapes */}
       <View style={styles.floatingShape1} />
       <View style={styles.floatingShape2} />
