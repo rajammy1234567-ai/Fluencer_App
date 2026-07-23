@@ -128,6 +128,37 @@ const VerifyOTP = () => {
     }
   };
 
+  const handleResendOTP = async () => {
+    if (!email) {
+      Alert.alert('Error', 'Missing email address.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const apiUrl = `${API_CONFIG.BASE_URL}${API.AUTH.SIGNUP_REQUEST}`;
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          role: role || 'influencer',
+        }),
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        Alert.alert('Success', 'New OTP sent to your email!');
+        setTimer(300);
+      } else {
+        Alert.alert('Resend Failed', data.message || 'Could not resend OTP.');
+      }
+    } catch (error) {
+      console.error('Resend OTP error:', error);
+      Alert.alert('Error', 'Failed to connect to server.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -279,7 +310,11 @@ const VerifyOTP = () => {
                   </LinearGradient>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.resendButton}>
+                <TouchableOpacity 
+                  style={styles.resendButton}
+                  onPress={handleResendOTP}
+                  disabled={loading}
+                >
                   <Text style={styles.resendText}>
                     Didn't receive the code?{' '}
                     <Text style={styles.resendLink}>Resend</Text>

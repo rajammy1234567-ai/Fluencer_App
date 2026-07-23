@@ -126,16 +126,17 @@ router.post('/google-login', async (req, res) => {
 // Signup - Request OTP
 router.post('/signup-request', async (req, res) => {
   try {
-    const { email, role } = req.body;
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanRole = (role || '').trim();
 
-    if (!email || !role) {
+    if (!cleanEmail || !cleanRole) {
       return res.status(400).json({ 
         success: false, 
         message: 'Email and role are required' 
       });
     }
 
-    if (!['influencer', 'brand'].includes(role)) {
+    if (!['influencer', 'brand'].includes(cleanRole)) {
       return res.status(400).json({ 
         success: false, 
         message: 'Invalid role. Must be influencer or brand' 
@@ -143,10 +144,10 @@ router.post('/signup-request', async (req, res) => {
     }
 
     // Check if user already exists
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: cleanEmail });
     if (user) {
       // Strict Role Check
-      if (user.role !== role) {
+      if (user.role !== cleanRole) {
         return res.status(400).json({ 
           success: false, 
           message: `This email is already registered as a ${user.role}. Please login.`
@@ -165,21 +166,21 @@ router.post('/signup-request', async (req, res) => {
 
     // Save/Update OTP to temporary verification
     await OTP.findOneAndUpdate(
-      { email },
-      { otp, otp_expiry: otpExpiry, role },
+      { email: cleanEmail },
+      { otp, otp_expiry: otpExpiry, role: cleanRole },
       { upsert: true, new: true }
     );
 
     // Send OTP email
-    console.log(`🔑 Generated OTP for ${email}: ${otp}`);
-    const emailSent = await sendOTPEmail(email, otp);
+    console.log(`🔑 Generated OTP for ${cleanEmail}: ${otp}`);
+    const emailSent = await sendOTPEmail(cleanEmail, otp);
 
     if (!emailSent) {
-      console.warn(`⚠️ Could not send email to ${email}. OTP is ${otp}`);
+      console.warn(`⚠️ Could not send email to ${cleanEmail}. OTP is ${otp}`);
       return res.status(200).json({ 
         success: true, 
         message: 'OTP generated. Check server log or email.',
-        email: email,
+        email: cleanEmail,
         otp: otp // Included as fallback when SMTP transport is restricted
       });
     }
@@ -187,7 +188,7 @@ router.post('/signup-request', async (req, res) => {
     res.status(200).json({ 
       success: true, 
       message: 'OTP sent to email',
-      email: email
+      email: cleanEmail
     });
   } catch (error) {
     console.error('Signup request error:', error);
@@ -203,8 +204,10 @@ router.post('/signup-request', async (req, res) => {
 router.post('/verify-otp', async (req, res) => {
   try {
     const { email, otp, password } = req.body;
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanOtp = String(otp || '').trim();
 
-    if (!email || !otp || !password) {
+    if (!cleanEmail || !cleanOtp || !password) {
       return res.status(400).json({ 
         success: false, 
         message: 'Email, OTP, and password are required' 
@@ -219,7 +222,7 @@ router.post('/verify-otp', async (req, res) => {
     }
 
     // Verify OTP
-    const otpRecord = await OTP.findOne({ email, otp });
+    const otpRecord = await OTP.findOne({ email: cleanEmail, otp: cleanOtp });
 
     if (!otpRecord) {
       return res.status(400).json({ 
@@ -242,7 +245,7 @@ router.post('/verify-otp', async (req, res) => {
 
     // Create user
     const newUser = await User.create({
-      email,
+      email: cleanEmail,
       password: hashedPassword,
       role
     });
@@ -265,7 +268,7 @@ router.post('/verify-otp', async (req, res) => {
     }
 
     // Delete OTP record
-    await OTP.deleteOne({ email });
+    await OTP.deleteOne({ email: cleanEmail });
 
     const token = generateToken(userId, role);
 
@@ -438,8 +441,9 @@ router.get('/me', authMiddleware, async (req, res) => {
 router.post('/forgot-password-request', async (req, res) => {
   try {
     const { email, role } = req.body;
+    const cleanEmail = (email || '').trim().toLowerCase();
 
-    if (!email) {
+    if (!cleanEmail) {
       return res.status(400).json({ 
         success: false, 
         message: 'Email is required' 
@@ -447,7 +451,7 @@ router.post('/forgot-password-request', async (req, res) => {
     }
 
     // Check if user exists
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: cleanEmail });
     if (!user) {
       return res.status(404).json({ 
         success: false, 
@@ -472,30 +476,30 @@ router.post('/forgot-password-request', async (req, res) => {
 
     // Save OTP for password reset
     await OTP.findOneAndUpdate(
-      { email },
+      { email: cleanEmail },
       { otp, otp_expiry: otpExpiry, role: user.role },
       { upsert: true, new: true }
     );
 
     // Send OTP email
-    console.log(`🔑 Generated Password Reset OTP for ${email}: ${otp}`);
-    const emailSent = await sendOTPEmail(email, otp);
+    console.log(`🔑 Generated Password Reset OTP for ${cleanEmail}: ${otp}`);
+    const emailSent = await sendOTPEmail(cleanEmail, otp);
     if (!emailSent) {
-      console.warn(`⚠️ Could not send reset email to ${email}. OTP is ${otp}`);
+      console.warn(`⚠️ Could not send reset email to ${cleanEmail}. OTP is ${otp}`);
       return res.status(200).json({ 
         success: true, 
         message: 'Password reset OTP generated.',
-        email: email,
+        email: cleanEmail,
         otp: otp
       });
     }
 
-    console.log('✅ Password reset OTP sent to:', email);
+    console.log('✅ Password reset OTP sent to:', cleanEmail);
 
     res.status(200).json({ 
       success: true, 
       message: 'OTP sent to your email',
-      email: email
+      email: cleanEmail
     });
   } catch (error) {
     console.error('❌ Forgot password request error:', error);
@@ -511,8 +515,10 @@ router.post('/forgot-password-request', async (req, res) => {
 router.post('/reset-password', async (req, res) => {
   try {
     const { email, otp, newPassword } = req.body;
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanOtp = String(otp || '').trim();
 
-    if (!email || !otp || !newPassword) {
+    if (!cleanEmail || !cleanOtp || !newPassword) {
       return res.status(400).json({ 
         success: false, 
         message: 'Email, OTP, and new password are required' 
@@ -527,7 +533,7 @@ router.post('/reset-password', async (req, res) => {
     }
 
     // Verify OTP
-    const otpRecord = await OTP.findOne({ email, otp });
+    const otpRecord = await OTP.findOne({ email: cleanEmail, otp: cleanOtp });
 
     if (!otpRecord) {
       return res.status(400).json({ 
@@ -544,17 +550,17 @@ router.post('/reset-password', async (req, res) => {
     }
 
     // Get user role before updating password
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: cleanEmail });
     const userRole = user ? user.role : null;
 
     // Hash new password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     // Update password
-    await User.updateOne({ email }, { password: hashedPassword });
+    await User.updateOne({ email: cleanEmail }, { password: hashedPassword });
 
     // Delete OTP record
-    await OTP.deleteOne({ email });
+    await OTP.deleteOne({ email: cleanEmail });
 
     console.log('✅ Password reset successful for:', email);
 
