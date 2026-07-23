@@ -126,6 +126,7 @@ router.post('/google-login', async (req, res) => {
 // Signup - Request OTP
 router.post('/signup-request', async (req, res) => {
   try {
+    const { email, role } = req.body;
     const cleanEmail = (email || '').trim().toLowerCase();
     const cleanRole = (role || '').trim();
 
