@@ -1,10 +1,19 @@
-import React from 'react';
-import { Tabs } from 'expo-router';
+import React, { useEffect } from 'react';
+import { Tabs, router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
 import BrandTabBar from '../../components/BrandTabBar';
+import { storage } from '../../utils/storage';
 
 export default function BrandTabLayout() {
+  useEffect(() => {
+    storage.getRole().then(role => {
+      if (role === 'influencer') {
+        router.replace('/(tabs)/home');
+      }
+    });
+  }, []);
+
   return (
     <Tabs
       screenOptions={{

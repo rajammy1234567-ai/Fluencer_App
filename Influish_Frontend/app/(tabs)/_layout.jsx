@@ -12,10 +12,20 @@
 // - Badge shows unread count and updates dynamically
 // - No extra/hidden tabs registered
 
-import { Tabs } from "expo-router";
+import React, { useEffect } from "react";
+import { Tabs, router } from "expo-router";
 import FloatingTabBar from "../../components/bar";
+import { storage } from "../../utils/storage";
 
 export default function TabsLayout() {
+  useEffect(() => {
+    storage.getRole().then(role => {
+      if (role === 'brand' || role === 'business') {
+        router.replace('/(brand-tabs)/home');
+      }
+    });
+  }, []);
+
   return (
     <Tabs
       screenOptions={{ headerShown: false }}
