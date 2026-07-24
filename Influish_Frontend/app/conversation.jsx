@@ -277,6 +277,10 @@ export default function ConversationScreen() {
     primaryDark: '#2563EB',
   };
 
+  const messagesRemaining = chatInfo
+    ? (chatInfo.max_messages || 10) - (chatInfo.message_count || 0)
+    : 10;
+
   if (loading) {
     return (
       <View style={styles.container}>
