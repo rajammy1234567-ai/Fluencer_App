@@ -21,48 +21,40 @@ export default function Wallet() {
   const [balance, setBalance] = useState({ total: 0, pending: 0, available: 0 });
   const [transactions, setTransactions] = useState([]);
 
-  useEffect(() => {
-    let isMounted = true;
+  const fetchWalletData = async () => {
+    try {
+      setLoading(true);
+      const headers = await getAuthHeader();
+      const apiBase = API_CONFIG.BASE_URL;
 
-    const fetchWalletData = async () => {
-      try {
-        setLoading(true);
-        const headers = await getAuthHeader();
-        const apiBase = API_CONFIG.BASE_URL;
+      // Fetch Balance
+      const balRes = await fetch(`${apiBase}/api/wallet/balance`, { headers });
+      const balData = await balRes.json();
 
-        // Fetch Balance
-        const balRes = await fetch(`${apiBase}/api/wallet/balance`, { headers });
-        const balData = await balRes.json();
+      // Fetch Transactions
+      const txRes = await fetch(`${apiBase}/api/wallet/transactions`, { headers });
+      const txData = await txRes.json();
 
-        // Fetch Transactions
-        const txRes = await fetch(`${apiBase}/api/wallet/transactions`, { headers });
-        const txData = await txRes.json();
-
-        if (isMounted) {
-          if (balData.success) {
-            setBalance({
-              total: (balData.data.wallet_balance || 0) + (balData.data.escrow_balance || 0),
-              pending: balData.data.escrow_balance || 0,
-              available: balData.data.wallet_balance || 0,
-              role: balData.data.role || 'influencer'
-            });
-          }
-          if (txData.success) {
-            setTransactions(txData.data || []);
-          }
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error('Wallet fetch error:', error);
-        if (isMounted) setLoading(false);
+      if (balData.success) {
+        setBalance({
+          total: (balData.data.wallet_balance || 0) + (balData.data.escrow_balance || 0),
+          pending: balData.data.escrow_balance || 0,
+          available: balData.data.wallet_balance || 0,
+          role: balData.data.role || 'influencer'
+        });
       }
-    };
+      if (txData.success) {
+        setTransactions(txData.data || []);
+      }
+    } catch (error) {
+      console.error('Wallet fetch error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchWalletData();
-
-    return () => {
-      isMounted = false;
-    };
   }, []);
 
 
