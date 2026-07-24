@@ -104,7 +104,9 @@ router.get('/:chatId/messages', authMiddleware, async (req, res) => {
     const campaign = await Campaign.findById(chat.campaign_id).select('campaign_name').lean();
     campaignName = campaign ? campaign.campaign_name : '';
 
-    if (userId.toString() === chat.brand_id.toString()) {
+    const isBrandUser = req.user.role === 'brand';
+
+    if (isBrandUser) {
       const ip = await InfluencerProfile.findOne({ user_id: chat.influencer_id }).select('name').lean();
       otherUserName = ip ? ip.name : 'Influencer';
     } else {
@@ -157,8 +159,8 @@ router.get('/:chatId/messages', authMiddleware, async (req, res) => {
         other_user_name: otherUserName,
         campaign_name: campaignName,
         current_user_role: req.user.role,
-        is_brand_owner: userId.toString() === chat.brand_id.toString(),
-        is_influencer: userId.toString() === chat.influencer_id.toString()
+        is_brand_owner: isBrandUser,
+        is_influencer: !isBrandUser
       },
       messages: messages
     });

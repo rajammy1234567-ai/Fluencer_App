@@ -313,6 +313,15 @@ export default function ConversationScreen() {
     );
   }
 
+  const handleBackNav = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      const isBrand = (chatInfo?.is_brand_owner || currentUserRole === 'brand');
+      router.replace(isBrand ? '/(brand-tabs)/home' : '/(tabs)/home');
+    }
+  };
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -322,7 +331,7 @@ export default function ConversationScreen() {
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity onPress={handleBackNav} style={styles.backButton}>
           <MaterialCommunityIcons name="arrow-left" size={28} color="#fff" />
         </TouchableOpacity>
         <View style={styles.headerContent}>
