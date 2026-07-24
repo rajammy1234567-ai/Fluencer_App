@@ -151,6 +151,17 @@ router.get('/:chatId/messages', authMiddleware, async (req, res) => {
       { is_read: true }
     );
 
+    const Application = (await import('../models/Application.js')).default;
+    const application = await Application.findOne({
+      $or: [
+        { campaign_id: chat.campaign_id, influencer_id: chat.influencer_id },
+        { _id: chat.application_id }
+      ]
+    }).select('status deliverable_status escrow_amount submission_url').lean();
+
+    const isDealLocked = chat.deal_locked || chat.status === 'accepted' || chat.status === 'locked' || chat.status === 'escrow_locked' || (application && application.status === 'accepted') || !!chat.escrow_amount;
+    const submissionUrl = chat.submission_url || (application ? application.submission_url : null);
+
     res.status(200).json({ 
       success: true, 
       chat: {
@@ -161,7 +172,9 @@ router.get('/:chatId/messages', authMiddleware, async (req, res) => {
         current_user_role: req.user.role,
         is_brand_owner: isBrandUser,
         is_influencer: !isBrandUser,
-        deal_locked: chat.status === 'accepted' || chat.status === 'locked' || chat.status === 'escrow_locked' || !!chat.escrow_amount
+        deal_locked: isDealLocked,
+        submission_url: submissionUrl,
+        deliverable_status: chat.deliverable_status || (application ? application.deliverable_status : 'pending')
       },
       messages: messages
     });
@@ -338,6 +351,11 @@ router.post('/:chatId/lock-deal', authMiddleware, async (req, res) => {
     application.status = 'accepted';
     application.escrow_amount = dealAmount;
     await application.save();
+
+    chat.status = 'accepted';
+    chat.deal_locked = true;
+    chat.escrow_amount = dealAmount;
+    await chat.save();
 
     // Post system message into Chat
     await ChatMessage.create({
