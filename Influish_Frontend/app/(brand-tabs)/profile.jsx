@@ -467,6 +467,14 @@ export default function BrandProfile() {
             </TouchableOpacity>
 
             <TouchableOpacity 
+              style={[styles.actionButton, { backgroundColor: '#F0FDFA', borderColor: '#CCFBF1', borderWidth: 1 }]} 
+              onPress={() => router.push('/wallet')}
+            >
+              <MaterialCommunityIcons name="wallet" size={24} color="#0D9488" />
+              <Text style={[styles.actionButtonText, { color: '#0F766E', fontWeight: '700' }]}>💳 Brand Wallet & Deposits</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
               style={styles.actionButton} 
               onPress={handleSettings}
             >
