@@ -350,7 +350,7 @@ export default function ConversationScreen() {
       </LinearGradient>
 
       {/* IN-CHAT ACTION BAR - STRICT ROLE BASED RENDERING */}
-      {(chatInfo?.is_brand_owner || currentUserRole === 'brand' || (chatInfo && String(currentUserId) === String(chatInfo.brand_id))) ? (
+      {(chatInfo ? chatInfo.is_brand_owner : (currentUserRole === 'brand')) ? (
         // BRAND OWNER VIEW ONLY
         <View style={{ backgroundColor: '#1E293B', padding: 12, borderBottomWidth: 1, borderBottomColor: '#334155', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <TouchableOpacity 
