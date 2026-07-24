@@ -174,7 +174,9 @@ router.get('/:chatId/messages', authMiddleware, async (req, res) => {
         is_influencer: !isBrandUser,
         deal_locked: isDealLocked,
         submission_url: submissionUrl,
-        deliverable_status: chat.deliverable_status || (application ? application.deliverable_status : 'pending')
+        deliverable_status: chat.deliverable_status || (application ? application.deliverable_status : 'pending'),
+        cost_per_influencer: campaign ? campaign.cost_per_influencer : 5000,
+        deal_amount: (application ? application.escrow_amount : null) || chat.escrow_amount || (campaign ? campaign.cost_per_influencer : 5000)
       },
       messages: messages
     });

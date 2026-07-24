@@ -351,13 +351,14 @@ export default function ConversationScreen() {
   const isBrandOwnerView = chatInfo ? chatInfo.is_brand_owner : (currentUserRole === 'brand');
 
   const handleLockDeal = async () => {
+    const amount = chatInfo?.deal_amount || chatInfo?.cost_per_influencer || 5000;
     const runLock = async () => {
       try {
         const headers = await getAuthHeader();
         const res = await fetch(getApiUrl(`/api/chats/${chatId}/lock-deal`), { method: 'POST', headers });
         const data = await res.json();
         if (Platform.OS === 'web') {
-          window.alert(data.success ? '🔒 Success: ' + (data.message || 'Deal locked!') : 'Error: ' + (data.message || data.error));
+          window.alert(data.success ? `🔒 Success: Deal locked and ₹${data.dealAmount || amount} deposited into Escrow!` : 'Error: ' + (data.message || data.error));
         } else {
           Alert.alert(data.success ? 'Success' : 'Error', data.message || data.error);
         }
@@ -370,11 +371,11 @@ export default function ConversationScreen() {
     };
 
     if (Platform.OS === 'web') {
-      if (typeof window !== 'undefined' && window.confirm('Lock deal with this creator and deposit ₹5,000 into Escrow?')) {
+      if (typeof window !== 'undefined' && window.confirm(`Lock deal with this creator and deposit ₹${amount} into Escrow?`)) {
         await runLock();
       }
     } else {
-      Alert.alert('🔒 Lock Deal & Deposit Escrow', 'Lock deal with this creator and deposit ₹5,000 into Escrow?', [
+      Alert.alert('🔒 Lock Deal & Deposit Escrow', `Lock deal with this creator and deposit ₹${amount} into Escrow?`, [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Lock Deal', onPress: runLock }
       ]);
@@ -439,8 +440,8 @@ export default function ConversationScreen() {
         </View>
       </LinearGradient>
 
-      {/* PROMINENT SUBMITTED REEL BANNER FOR BRAND REVIEW */}
-      {chatInfo?.submission_url && (
+      {/* PROMINENT SUBMITTED REEL BANNER FOR BRAND REVIEW ONLY */}
+      {isBrandOwnerView && chatInfo?.submission_url && (
         <TouchableOpacity
           style={{ backgroundColor: '#7C3AED', paddingVertical: 10, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}
           onPress={() => Linking.openURL(chatInfo.submission_url)}
@@ -487,7 +488,9 @@ export default function ConversationScreen() {
           ) : (
             <View style={[styles.actionBtn, { backgroundColor: '#334155', flex: 1, opacity: 0.85 }]}>
               <MaterialCommunityIcons name="lock-clock" size={18} color="#CBD5E1" />
-              <Text style={[styles.actionBtnText, { color: '#CBD5E1' }]}>🔒 Waiting for Brand to Lock Deal & Deposit Escrow</Text>
+              <Text style={[styles.actionBtnText, { color: '#CBD5E1' }]}>
+                🔒 Waiting for Brand to Lock Deal & Deposit Escrow (₹{chatInfo?.cost_per_influencer || 5000})
+              </Text>
             </View>
           )}
         </View>
