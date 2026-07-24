@@ -16,7 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS } from '../constants/colors';
 import { FONTS } from '../constants/fonts';
-import { getAuthHeader, getUserId } from '../utils/storage';
+import { getAuthHeader, getUserId, getRole } from '../utils/storage';
 import { API, getApiUrl } from '../constants/api';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -36,24 +36,27 @@ export default function ConversationScreen() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [currentUserId, setCurrentUserId] = useState(null);
+  const [currentUserRole, setCurrentUserRole] = useState(null);
   const flatListRef = useRef(null);
 
   // APK SAFETY: Proper async cleanup to prevent memory leaks in Hermes engine
   useEffect(() => {
     let isMounted = true;
 
-    const loadUserId = async () => {
+    const loadUserData = async () => {
       try {
         const userId = await getUserId();
+        const role = await getRole();
         if (isMounted) {
           setCurrentUserId(userId);
+          setCurrentUserRole(role);
         }
       } catch (error) {
-        console.error('Error loading userId:', error);
+        console.error('Error loading userData:', error);
       }
     };
 
-    loadUserId();
+    loadUserData();
 
     return () => {
       isMounted = false;
@@ -337,62 +340,95 @@ export default function ConversationScreen() {
         </View>
       </LinearGradient>
 
-      {/* IN-CHAT ACTION BAR FOR DEAL LOCK, REEL SUBMISSION & WORK APPROVAL */}
-      <View style={{ backgroundColor: '#1E293B', padding: 12, borderBottomWidth: 1, borderBottomColor: '#334155', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <TouchableOpacity 
-          style={{ backgroundColor: '#0284C7', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, marginRight: 8, justifyContent: 'center' }}
-          onPress={async () => {
-            Alert.alert(
-              '🔒 Lock Deal & Deposit Escrow',
-              'Lock deal with this creator and deposit ₹5,000 into Escrow?',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                  text: 'Lock Deal',
-                  onPress: async () => {
-                    try {
-                      const headers = await getAuthHeader();
-                      const res = await fetch(getApiUrl(`/api/chats/${chatId}/lock-deal`), { method: 'POST', headers });
-                      const data = await res.json();
-                      Alert.alert(data.success ? 'Success' : 'Error', data.message || data.error);
-                    } catch (err) { Alert.alert('Error', 'Failed to lock deal'); }
+      {/* IN-CHAT ACTION BAR - STRICT ROLE BASED RENDERING */}
+      {currentUserRole === 'brand' || (chatInfo && String(currentUserId) === String(chatInfo.brand_id)) ? (
+        // BRAND OWNER VIEW ONLY
+        <View style={{ backgroundColor: '#1E293B', padding: 12, borderBottomWidth: 1, borderBottomColor: '#334155', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <TouchableOpacity 
+            style={{ backgroundColor: '#0284C7', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, marginRight: 8, justifyContent: 'center' }}
+            onPress={async () => {
+              Alert.alert(
+                '🔒 Lock Deal & Deposit Escrow',
+                'Lock deal with this creator and deposit ₹5,000 into Escrow?',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Lock Deal',
+                    onPress: async () => {
+                      try {
+                        const headers = await getAuthHeader();
+                        const res = await fetch(getApiUrl(`/api/chats/${chatId}/lock-deal`), { method: 'POST', headers });
+                        const data = await res.json();
+                        Alert.alert(data.success ? 'Success' : 'Error', data.message || data.error);
+                      } catch (err) { Alert.alert('Error', 'Failed to lock deal'); }
+                    }
                   }
-                }
-              ]
-            );
-          }}
-        >
-          <MaterialCommunityIcons name="lock-check" size={18} color="#FFF" />
-          <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 13 }}>Lock Deal & Pay Escrow</Text>
-        </TouchableOpacity>
+                ]
+              );
+            }}
+          >
+            <MaterialCommunityIcons name="lock-check" size={18} color="#FFF" />
+            <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 13 }}>Lock Deal & Pay Escrow</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={{ backgroundColor: '#16A34A', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, justifyContent: 'center' }}
-          onPress={async () => {
-            Alert.prompt(
-              '🎬 Submit Reel Proof',
-              'Enter your Instagram Reel URL:',
-              async (url) => {
-                if (!url) return;
-                try {
-                  const headers = await getAuthHeader();
-                  headers['Content-Type'] = 'application/json';
-                  const res = await fetch(getApiUrl(`/api/chats/${chatId}/submit-work`), {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify({ submission_url: url })
-                  });
-                  const data = await res.json();
-                  Alert.alert(data.success ? 'Success' : 'Error', data.message || data.error);
-                } catch (err) { Alert.alert('Error', 'Failed to submit reel proof'); }
-              }
-            );
-          }}
-        >
-          <MaterialCommunityIcons name="video-check" size={18} color="#FFF" />
-          <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 13 }}>Submit Reel Proof</Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity 
+            style={{ backgroundColor: '#16A34A', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, justifyContent: 'center' }}
+            onPress={async () => {
+              Alert.alert(
+                '✅ Confirm & Approve Work',
+                'Confirm creator work quality and approve for admin escrow payout?',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Approve Work',
+                    onPress: async () => {
+                      try {
+                        const headers = await getAuthHeader();
+                        const res = await fetch(getApiUrl(`/api/chats/${chatId}/approve-work`), { method: 'POST', headers });
+                        const data = await res.json();
+                        Alert.alert(data.success ? 'Success' : 'Error', data.message || data.error);
+                      } catch (err) { Alert.alert('Error', 'Failed to approve work'); }
+                    }
+                  }
+                ]
+              );
+            }}
+          >
+            <MaterialCommunityIcons name="check-circle" size={18} color="#FFF" />
+            <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 13 }}>Approve Work</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        // INFLUENCER / CREATOR VIEW ONLY
+        <View style={{ backgroundColor: '#1E293B', padding: 12, borderBottomWidth: 1, borderBottomColor: '#334155', flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+          <TouchableOpacity 
+            style={{ backgroundColor: '#16A34A', paddingVertical: 10, paddingHorizontal: 24, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, justifyContent: 'center' }}
+            onPress={async () => {
+              Alert.prompt(
+                '🎬 Submit Reel Proof',
+                'Enter your Instagram Reel URL:',
+                async (url) => {
+                  if (!url) return;
+                  try {
+                    const headers = await getAuthHeader();
+                    headers['Content-Type'] = 'application/json';
+                    const res = await fetch(getApiUrl(`/api/chats/${chatId}/submit-work`), {
+                      method: 'POST',
+                      headers,
+                      body: JSON.stringify({ submission_url: url })
+                    });
+                    const data = await res.json();
+                    Alert.alert(data.success ? 'Success' : 'Error', data.message || data.error);
+                  } catch (err) { Alert.alert('Error', 'Failed to submit reel proof'); }
+                }
+              );
+            }}
+          >
+            <MaterialCommunityIcons name="video-check" size={20} color="#FFF" />
+            <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 14 }}>Submit Reel Proof</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
