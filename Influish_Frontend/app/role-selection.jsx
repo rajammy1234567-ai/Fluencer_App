@@ -113,21 +113,10 @@ const RoleSelection = () => {
   });
 
   const handleRoleSelect = (role) => {
-    if (role === 'admin') {
-      const { Alert } = require('react-native');
-      Alert.alert(
-        '🚫 Web-Only Admin Access',
-        'The Admin Control Panel is strictly restricted to Desktop Web Browsers. Please open a web browser to access the Admin Dashboard.'
-      );
-      return;
-    }
-
     const targetPath = (mode === 'signup' || (Array.isArray(mode) && mode[0] === 'signup')) 
       ? '/(auth)/signup' 
       : '/(auth)/login';
     
-    console.log('Role Selection Navigation:', { mode, role, targetPath });
-
     router.push({
       pathname: targetPath,
       params: { role }
@@ -188,17 +177,6 @@ const RoleSelection = () => {
               onPress={() => handleRoleSelect('brand')}
             />
           </View>
-
-          {/* Footer / Admin Access */}
-          <Animated.View style={[styles.footer, textStyle]}>
-            <TouchableOpacity 
-              onPress={() => handleRoleSelect('admin')}
-              style={styles.adminLink}
-            >
-              <MaterialCommunityIcons name="shield-lock-outline" size={16} color={COLORS.textLight} />
-              <Text style={styles.adminText}>Admin Access</Text>
-            </TouchableOpacity>
-          </Animated.View>
 
         </View>
       </SafeAreaView>
