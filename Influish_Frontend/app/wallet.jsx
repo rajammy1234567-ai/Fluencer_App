@@ -99,46 +99,76 @@ export default function Wallet() {
 
   const handleWithdraw = async () => {
     if (balance.available <= 0) {
-      return Alert.alert('Notice', 'You have no available balance to withdraw.');
+      if (Platform.OS === 'web') window.alert('Notice: You have no available balance to withdraw.');
+      else Alert.alert('Notice', 'You have no available balance to withdraw.');
+      return;
     }
-    Alert.prompt(
-      'Withdraw Funds',
-      `Enter amount to withdraw to UPI (Max: ₹${balance.available}):`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Submit Request',
-          onPress: async (amountStr) => {
-            const amount = parseFloat(amountStr);
-            if (!amount || amount <= 0 || amount > balance.available) {
-              return Alert.alert('Invalid Amount', 'Please enter a valid amount.');
-            }
-            try {
-              setLoading(true);
-              const headers = await getAuthHeader();
-              const res = await fetch(`${API_CONFIG.BASE_URL}/api/wallet/withdraw-request`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', ...headers },
-                body: JSON.stringify({ amount, payout_method: 'UPI' })
-              });
-              const data = await res.json();
-              if (data.success) {
-                Alert.alert('Success', 'Withdrawal request submitted! Admin will process your payout.');
-                fetchWalletData();
-              } else {
-                Alert.alert('Error', data.message || 'Withdrawal failed');
+
+    if (Platform.OS === 'web') {
+      const amountStr = window.prompt(`Enter amount to withdraw to UPI (Max Available: ₹${balance.available}):`, String(balance.available));
+      if (!amountStr) return;
+      const upiId = window.prompt(`Enter your UPI ID for payout (e.g. name@upi):`, 'ananya@okicici');
+      if (!upiId) return;
+
+      const amount = parseFloat(amountStr);
+      if (!amount || amount <= 0 || amount > balance.available) {
+        return window.alert('Invalid Amount: Please enter a valid amount within your available balance.');
+      }
+      try {
+        setLoading(true);
+        const headers = await getAuthHeader();
+        const res = await fetch(`${API_CONFIG.BASE_URL}/api/wallet/withdraw-request`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...headers },
+          body: JSON.stringify({ amount, upi_id: upiId, payout_method: 'UPI' })
+        });
+        const data = await res.json();
+        if (data.success) {
+          window.alert('✅ Success: Cash withdrawal request submitted! Admin will process your payout.');
+          fetchWalletData();
+        } else {
+          window.alert('Error: ' + (data.message || 'Withdrawal failed'));
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error(err);
+        window.alert('Error: Withdrawal request failed');
+        setLoading(false);
+      }
+    } else {
+      Alert.alert(
+        'Withdraw Cash to UPI',
+        `Request payout of ₹${balance.available} to your UPI account? Admin will process your payment.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Submit Request',
+            onPress: async () => {
+              try {
+                setLoading(true);
+                const headers = await getAuthHeader();
+                const res = await fetch(`${API_CONFIG.BASE_URL}/api/wallet/withdraw-request`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', ...headers },
+                  body: JSON.stringify({ amount: balance.available, upi_id: 'ananya@okicici', payout_method: 'UPI' })
+                });
+                const data = await res.json();
+                if (data.success) {
+                  Alert.alert('Success', 'Withdrawal request submitted! Admin will process your payout.');
+                  fetchWalletData();
+                } else {
+                  Alert.alert('Error', data.message || 'Withdrawal failed');
+                  setLoading(false);
+                }
+              } catch (err) {
+                console.error(err);
                 setLoading(false);
               }
-            } catch (err) {
-              console.error(err);
-              setLoading(false);
             }
           }
-        }
-      ],
-      'plain-text',
-      String(balance.available)
-    );
+        ]
+      );
+    }
   };
 
   return (
