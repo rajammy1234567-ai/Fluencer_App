@@ -35,7 +35,7 @@ export const storage = {
   async getUserId() {
     try {
       const id = await AsyncStorage.getItem('userId');
-      return id ? parseInt(id) : null;
+      return id ? String(id).trim() : null;
     } catch (error) {
       console.error('❌ Error getting user ID:', error);
       return null;
@@ -79,17 +79,10 @@ export const storage = {
     }
   },
 
-// Get auth header for API requests
   async getAuthHeader() {
     try {
       const token = await this.getToken();
-      
-      if (!token) {
-        console.log('⚠️ No token found in storage');
-        return {};
-      }
-      
-      console.log('🔑 Token retrieved:', token.substring(0, 20) + '...');
+      if (!token) return {};
       return { Authorization: `Bearer ${token}` };
     } catch (error) {
       console.error('❌ Error getting auth header:', error);

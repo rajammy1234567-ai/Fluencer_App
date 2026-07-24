@@ -28,7 +28,6 @@ const BLUE_LIGHT = '#60a5fa';
 export default function ConversationScreen() {
   const { chatId } = useLocalSearchParams();
   const insets = useSafeAreaInsets();
-  console.log('🚀 ConversationScreen component loaded! chatId:', chatId);
   
   const [messages, setMessages] = useState([]);
   const [chatInfo, setChatInfo] = useState(null);
@@ -272,12 +271,6 @@ export default function ConversationScreen() {
       </View>
     );
   };
-
-  const messagesRemaining = chatInfo
-    ? chatInfo.max_messages - chatInfo.message_count
-    : 0;
-
-  console.log('📊 Conversation state:', { loading, chatId, messagesCount: messages.length, chatInfo: !!chatInfo });
 
   const THEME = {
     primary: '#3b82f6',
@@ -559,9 +552,10 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 55,
-    paddingBottom: 18,
-    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 55 : 45,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+    gap: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
@@ -569,15 +563,19 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   backButton: {
-    position: 'absolute',
-    top: 30,
-    left: 10,
-    zIndex: 10,
-    padding: 8,
-    borderRadius: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerContent: {
+    flex: 1,
     flexDirection: 'row',
+    alignItems: 'center',
+    justify: 'space-between',
+  },
     justifyContent: 'space-between',
     alignItems: 'center',
   },
