@@ -11,6 +11,8 @@ import {
   Alert,
   ActivityIndicator,
   Keyboard,
+  Modal,
+  Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -36,17 +38,25 @@ export default function ConversationScreen() {
   const [sending, setSending] = useState(false);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [currentUserRole, setCurrentUserRole] = useState(null);
-  const flatListRef = useRef(null);
+  
+  // Reel Proof Modal State
+  const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [reelUrlInput, setReelUrlInput] = useState('');
+  const [reelNotesInput, setReelNotesInput] = useState('');
+  const [submittingWork, setSubmittingWork] = useState(false);
 
-  // APK SAFETY: Proper async cleanup to prevent memory leaks in Hermes engine
+  const flatListRef = useRef(null);
+  const isMountedRef = useRef(true);
+
+  // Load User Info
   useEffect(() => {
-    let isMounted = true;
+    isMountedRef.current = true;
 
     const loadUserData = async () => {
       try {
         const userId = await getUserId();
         const role = await getRole();
-        if (isMounted) {
+        if (isMountedRef.current) {
           setCurrentUserId(userId);
           setCurrentUserRole(role);
         }
@@ -58,99 +68,80 @@ export default function ConversationScreen() {
     loadUserData();
 
     return () => {
-      isMounted = false;
+      isMountedRef.current = false;
     };
   }, []);
 
-  // APK SAFETY: Validate chatId and add proper cleanup with isMounted flag
-  useEffect(() => {
-    let isMounted = true;
-    let interval = null;
-
-    // APK SAFETY: Validate chatId exists and is not undefined before proceeding
+  // Top-Level Fetch Messages Function (Scope-Safe)
+  const fetchMessages = async () => {
     if (!chatId || chatId === 'undefined') {
-      console.log('⚠️ Invalid or missing chatId, blocking fetch');
-      setLoading(false);
+      if (isMountedRef.current) setLoading(false);
       return;
     }
 
-    const fetchMessages = async () => {
-      // APK SAFETY: Add timeout to prevent hanging on poor network
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-      try {
-        // APK SAFETY: Validate token before API call
-        const headers = await getAuthHeader();
-        if (!headers || !headers.Authorization) {
-          console.warn('No auth token, cannot fetch messages');
-          if (isMounted) setLoading(false);
-          return;
-        }
-
-        const response = await fetch(
-          getApiUrl(`/api/chats/${chatId}/messages`),
-          { 
-            headers,
-            signal: controller.signal
-          }
-        );
-
-        clearTimeout(timeoutId);
-
-        // APK SAFETY: Handle 401 unauthorized
-        if (response.status === 401) {
-          console.warn('Unauthorized, redirecting to login');
-          if (isMounted) {
-            setTimeout(() => router.replace('/role-selection'), 100);
-          }
-          return;
-        }
-
-        const data = await response.json();
-
-        if (isMounted && response.ok && data.success) {
-          // APK SAFETY: Validate arrays before setting state
-          setMessages(Array.isArray(data.messages) ? data.messages : []);
-          setChatInfo(data.chat || null);
-        }
-      } catch (error) {
-        if (error.name === 'AbortError') {
-          console.warn('Message fetch timed out');
-        } else {
-          console.error('Error fetching messages:', error);
-        }
-      } finally {
-        clearTimeout(timeoutId);
-        if (isMounted) setLoading(false);
+    try {
+      const headers = await getAuthHeader();
+      if (!headers || !headers.Authorization) {
+        if (isMountedRef.current) setLoading(false);
+        return;
       }
-    };
 
-    console.log('💬 Conversation screen opened with chatId:', chatId);
+      const response = await fetch(
+        getApiUrl(`/api/chats/${chatId}/messages`),
+        { 
+          headers,
+          signal: controller.signal
+        }
+      );
+
+      clearTimeout(timeoutId);
+
+      if (response.status === 401) {
+        if (isMountedRef.current) {
+          setTimeout(() => router.replace('/role-selection'), 100);
+        }
+        return;
+      }
+
+      const data = await response.json();
+
+      if (isMountedRef.current && response.ok && data.success) {
+        setMessages(Array.isArray(data.messages) ? data.messages : []);
+        setChatInfo(data.chat || null);
+      }
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        console.error('Error fetching messages:', error);
+      }
+    } finally {
+      clearTimeout(timeoutId);
+      if (isMountedRef.current) setLoading(false);
+    }
+  };
+
+  // Poll for Messages
+  useEffect(() => {
+    let interval = null;
     fetchMessages();
-    
-    // Poll for new messages every 5 seconds
+
     interval = setInterval(() => {
-      if (isMounted) fetchMessages();
-    }, 5000);
+      if (isMountedRef.current) fetchMessages();
+    }, 4000);
 
     return () => {
-      isMounted = false;
       if (interval) clearInterval(interval);
     };
   }, [chatId]);
 
+  // Send Normal Message
   const handleSend = async () => {
     if (!newMessage.trim() || sending) return;
 
-    // Check for phone numbers (10 digits, +91, or written in words)
-    // Matches:
-    // 1. 10 digits (\b\d{10}\b)
-    // 2. +91
-    // 3. Number words sequence (at least 3 consecutive number words to avoid false positives on normal sentences)
     const numberWords = 'one|two|three|four|five|six|seven|eight|nine|zero';
     const numberWordRegex = new RegExp(`\\b(${numberWords})\\s+(${numberWords})\\s+(${numberWords})`, 'i');
-    
     const phoneRegex = /\b\d{10}\b|\+91/g;
     
     if (phoneRegex.test(newMessage) || numberWordRegex.test(newMessage)) {
@@ -200,21 +191,80 @@ export default function ConversationScreen() {
     }
   };
 
+  // Submit Work Reel Proof Handler
+  const handleWorkSubmission = async () => {
+    if (!reelUrlInput.trim()) {
+      Alert.alert('Missing URL', 'Please enter your Instagram Reel URL.');
+      return;
+    }
+
+    setSubmittingWork(true);
+    try {
+      const headers = await getAuthHeader();
+      headers['Content-Type'] = 'application/json';
+
+      const res = await fetch(getApiUrl(`/api/chats/${chatId}/submit-work`), {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          submission_url: reelUrlInput.trim(),
+          submission_notes: reelNotesInput.trim()
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setShowSubmitModal(false);
+        setReelUrlInput('');
+        setReelNotesInput('');
+        Alert.alert('🎬 Success!', 'Your Reel proof has been submitted to the Brand for review!');
+        fetchMessages();
+      } else {
+        Alert.alert('Submission Error', data.message || data.error || 'Failed to submit work proof');
+      }
+    } catch (err) {
+      console.error('Submit work error:', err);
+      Alert.alert('Error', 'Failed to submit work proof');
+    } finally {
+      setSubmittingWork(false);
+    }
+  };
+
+  // Render Message Item with Reel Links & Click Support
   const renderMessage = ({ item }) => {
-    // Check if message is from current user
-    const isMe = item.sender_id === currentUserId;
+    const isMe = String(item.sender_id) === String(currentUserId);
+    const isSystem = item.message_type === 'system' || item.message.startsWith('🔒') || item.message.startsWith('🎬') || item.message.startsWith('✅');
     
-    // Check if message contains phone number (10 digits)
-    const phoneRegex = /\b\d{10}\b/g;
-    const hasPhoneNumber = phoneRegex.test(item.message);
+    // Detect URLs in message
+    const urlMatch = item.message.match(/https?:\/\/[^\s]+/g);
+    const foundUrl = urlMatch ? urlMatch[0] : null;
+
+    if (isSystem) {
+      return (
+        <View style={styles.systemMessageContainer}>
+          <LinearGradient
+            colors={item.message.startsWith('🔒') ? ['#0284C7', '#0369A1'] : item.message.startsWith('🎬') ? ['#7C3AED', '#6D28D9'] : ['#16A34A', '#15803D']}
+            style={styles.systemCard}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <Text style={styles.systemMessageText}>{item.message}</Text>
+            {foundUrl && (
+              <TouchableOpacity
+                style={styles.openUrlButton}
+                onPress={() => Linking.openURL(foundUrl)}
+              >
+                <MaterialCommunityIcons name="open-in-new" size={16} color="#FFF" />
+                <Text style={styles.openUrlButtonText}>Watch Submitted Reel 🎬</Text>
+              </TouchableOpacity>
+            )}
+          </LinearGradient>
+        </View>
+      );
+    }
 
     return (
-      <View
-        style={[
-          styles.messageContainer,
-          isMe ? styles.myMessage : styles.theirMessage,
-        ]}
-      >
+      <View style={[styles.messageContainer, isMe ? styles.myMessage : styles.theirMessage]}>
         {!isMe && (
           <View style={styles.senderHeader}>
             <LinearGradient
@@ -230,38 +280,20 @@ export default function ConversationScreen() {
             <Text style={styles.senderName}>{item.sender_name || 'User'}</Text>
           </View>
         )}
-        <View
-          style={[
-            styles.messageBubble,
-            isMe ? styles.myBubble : styles.theirBubble,
-          ]}
-        >
-          <Text
-            style={[
-              styles.messageText,
-              isMe ? styles.myMessageText : styles.theirMessageText,
-            ]}
-          >
+        <View style={[styles.messageBubble, isMe ? styles.myBubble : styles.theirBubble]}>
+          <Text style={[styles.messageText, isMe ? styles.myMessageText : styles.theirMessageText]}>
             {item.message}
           </Text>
-          {hasPhoneNumber && (
-            <View style={styles.phoneTag}>
-              <MaterialCommunityIcons 
-                name="phone" 
-                size={14} 
-                color={isMe ? COLORS.white : BLUE} 
-              />
-              <Text style={[styles.phoneTagText, isMe && { color: COLORS.white }]}>
-                Contact Info
-              </Text>
-            </View>
+          {foundUrl && (
+            <TouchableOpacity
+              style={[styles.linkBadge, isMe ? { backgroundColor: 'rgba(255,255,255,0.2)' } : { backgroundColor: '#EFF6FF' }]}
+              onPress={() => Linking.openURL(foundUrl)}
+            >
+              <MaterialCommunityIcons name="link-variant" size={16} color={isMe ? '#FFF' : BLUE} />
+              <Text style={[styles.linkBadgeText, isMe && { color: '#FFF' }]}>Open Link: {foundUrl}</Text>
+            </TouchableOpacity>
           )}
-          <Text
-            style={[
-              styles.timeText,
-              isMe ? styles.myTimeText : styles.theirTimeText,
-            ]}
-          >
+          <Text style={[styles.timeText, isMe ? styles.myTimeText : styles.theirTimeText]}>
             {new Date(item.created_at).toLocaleTimeString('en-US', {
               hour: '2-digit',
               minute: '2-digit',
@@ -270,11 +302,6 @@ export default function ConversationScreen() {
         </View>
       </View>
     );
-  };
-
-  const THEME = {
-    primary: '#3b82f6',
-    primaryDark: '#2563EB',
   };
 
   const messagesRemaining = chatInfo
@@ -297,9 +324,6 @@ export default function ConversationScreen() {
             <View style={styles.headerInfo}>
               <Text style={styles.headerTitle}>Loading...</Text>
             </View>
-            <View style={styles.headerIconContainer}>
-              <MaterialCommunityIcons name="chat" size={40} color="rgba(255,255,255,0.2)" />
-            </View>
           </View>
         </LinearGradient>
         <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -319,6 +343,8 @@ export default function ConversationScreen() {
     }
   };
 
+  const isBrandOwnerView = chatInfo ? chatInfo.is_brand_owner : (currentUserRole === 'brand');
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -329,7 +355,7 @@ export default function ConversationScreen() {
         end={{ x: 1, y: 1 }}
       >
         <TouchableOpacity onPress={handleBackNav} style={styles.backButton}>
-          <MaterialCommunityIcons name="arrow-left" size={28} color="#fff" />
+          <MaterialCommunityIcons name="arrow-left" size={24} color="#fff" />
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <View style={styles.headerInfo}>
@@ -341,17 +367,17 @@ export default function ConversationScreen() {
             </Text>
           </View>
           <View style={styles.headerIconContainer}>
-            <MaterialCommunityIcons name="chat" size={40} color="rgba(255,255,255,0.2)" />
+            <MaterialCommunityIcons name="chat" size={32} color="rgba(255,255,255,0.25)" />
           </View>
         </View>
       </LinearGradient>
 
-      {/* IN-CHAT ACTION BAR - STRICT ROLE BASED RENDERING */}
-      {(chatInfo ? chatInfo.is_brand_owner : (currentUserRole === 'brand')) ? (
+      {/* IN-CHAT ACTION BAR */}
+      {isBrandOwnerView ? (
         // BRAND OWNER VIEW ONLY
-        <View style={{ backgroundColor: '#1E293B', padding: 12, borderBottomWidth: 1, borderBottomColor: '#334155', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View style={styles.actionBarContainer}>
           <TouchableOpacity 
-            style={{ backgroundColor: '#0284C7', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, marginRight: 8, justifyContent: 'center' }}
+            style={[styles.actionBtn, { backgroundColor: '#0284C7' }]}
             onPress={async () => {
               Alert.alert(
                 '🔒 Lock Deal & Deposit Escrow',
@@ -366,6 +392,7 @@ export default function ConversationScreen() {
                         const res = await fetch(getApiUrl(`/api/chats/${chatId}/lock-deal`), { method: 'POST', headers });
                         const data = await res.json();
                         Alert.alert(data.success ? 'Success' : 'Error', data.message || data.error);
+                        fetchMessages();
                       } catch (err) { Alert.alert('Error', 'Failed to lock deal'); }
                     }
                   }
@@ -374,11 +401,11 @@ export default function ConversationScreen() {
             }}
           >
             <MaterialCommunityIcons name="lock-check" size={18} color="#FFF" />
-            <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 13 }}>Lock Deal & Pay Escrow</Text>
+            <Text style={styles.actionBtnText}>Lock Deal & Pay Escrow</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={{ backgroundColor: '#16A34A', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, justifyContent: 'center' }}
+            style={[styles.actionBtn, { backgroundColor: '#16A34A' }]}
             onPress={async () => {
               Alert.alert(
                 '✅ Confirm & Approve Work',
@@ -393,6 +420,7 @@ export default function ConversationScreen() {
                         const res = await fetch(getApiUrl(`/api/chats/${chatId}/approve-work`), { method: 'POST', headers });
                         const data = await res.json();
                         Alert.alert(data.success ? 'Success' : 'Error', data.message || data.error);
+                        fetchMessages();
                       } catch (err) { Alert.alert('Error', 'Failed to approve work'); }
                     }
                   }
@@ -401,37 +429,18 @@ export default function ConversationScreen() {
             }}
           >
             <MaterialCommunityIcons name="check-circle" size={18} color="#FFF" />
-            <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 13 }}>Approve Work</Text>
+            <Text style={styles.actionBtnText}>Approve Work</Text>
           </TouchableOpacity>
         </View>
       ) : (
         // INFLUENCER / CREATOR VIEW ONLY
-        <View style={{ backgroundColor: '#1E293B', padding: 12, borderBottomWidth: 1, borderBottomColor: '#334155', flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+        <View style={styles.actionBarContainer}>
           <TouchableOpacity 
-            style={{ backgroundColor: '#16A34A', paddingVertical: 10, paddingHorizontal: 24, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, justifyContent: 'center' }}
-            onPress={async () => {
-              Alert.prompt(
-                '🎬 Submit Reel Proof',
-                'Enter your Instagram Reel URL:',
-                async (url) => {
-                  if (!url) return;
-                  try {
-                    const headers = await getAuthHeader();
-                    headers['Content-Type'] = 'application/json';
-                    const res = await fetch(getApiUrl(`/api/chats/${chatId}/submit-work`), {
-                      method: 'POST',
-                      headers,
-                      body: JSON.stringify({ submission_url: url })
-                    });
-                    const data = await res.json();
-                    Alert.alert(data.success ? 'Success' : 'Error', data.message || data.error);
-                  } catch (err) { Alert.alert('Error', 'Failed to submit reel proof'); }
-                }
-              );
-            }}
+            style={[styles.actionBtn, { backgroundColor: '#16A34A', flex: 1 }]}
+            onPress={() => setShowSubmitModal(true)}
           >
             <MaterialCommunityIcons name="video-check" size={20} color="#FFF" />
-            <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 14 }}>Submit Reel Proof</Text>
+            <Text style={styles.actionBtnText}>🎬 Submit Reel Proof</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -482,7 +491,7 @@ export default function ConversationScreen() {
           <View style={styles.inputWrapper}>
             <TextInput
               style={styles.input}
-              placeholder="Type your message..."
+              placeholder="Type your message or deal offer..."
               placeholderTextColor="#94a3b8"
               value={newMessage}
               onChangeText={setNewMessage}
@@ -527,32 +536,82 @@ export default function ConversationScreen() {
               {sending ? (
                 <ActivityIndicator size="small" color={COLORS.white} />
               ) : (
-                <MaterialCommunityIcons name="send" size={22} color={COLORS.white} />
+                <MaterialCommunityIcons name="send" size={20} color={COLORS.white} />
               )}
             </LinearGradient>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      {/* REEL SUBMISSION MODAL DIALOG (CROSS PLATFORM WEB & NATIVE) */}
+      <Modal visible={showSubmitModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <MaterialCommunityIcons name="movie-play-outline" size={28} color={BLUE} />
+              <Text style={styles.modalTitle}>Submit Deliverable Reel</Text>
+            </View>
+
+            <Text style={styles.modalSub}>
+              Enter the published Instagram Reel link for brand review and payout release:
+            </Text>
+
+            <Text style={styles.inputLabel}>Instagram Reel URL *</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={reelUrlInput}
+              onChangeText={setReelUrlInput}
+              placeholder="e.g. https://instagram.com/p/C_sample_reel"
+              placeholderTextColor="#94A3B8"
+              autoCapitalize="none"
+              keyboardType="url"
+            />
+
+            <Text style={[styles.inputLabel, { marginTop: 12 }]}>Special Notes (Optional)</Text>
+            <TextInput
+              style={[styles.modalInput, { height: 70 }]}
+              value={reelNotesInput}
+              onChangeText={setReelNotesInput}
+              placeholder="e.g. Tagged @brand, used hashtag #SummerVibes"
+              placeholderTextColor="#94A3B8"
+              multiline
+            />
+
+            <View style={styles.modalBtnRow}>
+              <TouchableOpacity
+                style={styles.cancelBtn}
+                onPress={() => setShowSubmitModal(false)}
+                disabled={submittingWork}
+              >
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.submitModalBtn}
+                onPress={handleWorkSubmission}
+                disabled={submittingWork}
+              >
+                {submittingWork ? (
+                  <ActivityIndicator size="small" color="#FFF" />
+                ) : (
+                  <>
+                    <MaterialCommunityIcons name="check-circle" size={18} color="#FFF" />
+                    <Text style={styles.submitModalBtnText}>Submit Reel</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f8fafc',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
-    fontFamily: FONTS.regular,
-    color: '#64748b',
-    marginTop: 16,
-  },
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { fontSize: 16, fontFamily: FONTS.regular, color: '#64748b', marginTop: 16 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -580,244 +639,78 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  headerInfo: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontFamily: FONTS.bold,
-    color: COLORS.white,
-    letterSpacing: -0.3,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    fontFamily: FONTS.regular,
-    color: 'rgba(255,255,255,0.95)',
-    marginTop: 2,
-  },
-  headerRight: {
+  headerInfo: { flex: 1 },
+  headerTitle: { fontSize: 18, fontFamily: FONTS.bold, color: COLORS.white, letterSpacing: -0.3 },
+  headerSubtitle: { fontSize: 13, fontFamily: FONTS.regular, color: 'rgba(255,255,255,0.9)', marginTop: 2 },
+  headerIconContainer: { padding: 4 },
+  actionBarContainer: {
+    backgroundColor: '#0F172A',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1E293B',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-  },
-  messageCountBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-    gap: 4,
-  },
-  messageCountText: {
-    fontSize: 12,
-    fontFamily: FONTS.bold,
-    color: COLORS.white,
-  },
-  infoButton: {
-    padding: 8,
-  },
-  messagesList: {
-    padding: 20,
-    flexGrow: 1,
-  },
-  messageContainer: {
-    marginBottom: 16,
-    maxWidth: '80%',
-  },
-  myMessage: {
-    alignSelf: 'flex-end',
-  },
-  theirMessage: {
-    alignSelf: 'flex-start',
-  },
-  senderHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-    marginLeft: 4,
-  },
-  avatarSmall: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  avatarText: {
-    fontSize: 12,
-    fontFamily: FONTS.bold,
-    color: COLORS.white,
-  },
-  senderName: {
-    fontSize: 13,
-    fontFamily: FONTS.bold,
-    color: '#64748b',
-  },
-  messageBubble: {
-    borderRadius: 20,
-    padding: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  myBubble: {
-    backgroundColor: BLUE,
-    borderBottomRightRadius: 6,
-  },
-  theirBubble: {
-    backgroundColor: COLORS.white,
-    borderBottomLeftRadius: 6,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  messageText: {
-    fontSize: 16,
-    fontFamily: FONTS.regular,
-    lineHeight: 22,
-  },
-  myMessageText: {
-    color: COLORS.white,
-  },
-  theirMessageText: {
-    color: '#1e293b',
-  },
-  timeText: {
-    fontSize: 11,
-    fontFamily: FONTS.regular,
-    marginTop: 6,
-  },
-  myTimeText: {
-    color: 'rgba(255,255,255,0.8)',
-    textAlign: 'right',
-  },
-  theirTimeText: {
-    color: '#94a3b8',
-  },
-  phoneTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.25)',
-    gap: 6,
-  },
-  phoneTagText: {
-    fontSize: 12,
-    fontFamily: FONTS.bold,
-    color: BLUE,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 80,
-    paddingHorizontal: 32,
-  },
-  emptyIconContainer: {
-    marginBottom: 20,
-  },
-  emptyIconGradient: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: BLUE,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  emptyText: {
-    fontSize: 22,
-    fontFamily: FONTS.bold,
-    color: '#1e293b',
-    marginTop: 8,
-  },
-  emptySubtext: {
-    fontSize: 15,
-    fontFamily: FONTS.regular,
-    color: '#64748b',
-    marginTop: 8,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    padding: 16,
-    backgroundColor: COLORS.white,
-    borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
     gap: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 4,
+    justifyContent: 'space-between',
   },
-  inputWrapper: {
-    flex: 1,
-    position: 'relative',
-  },
-  input: {
-    flex: 1,
-    backgroundColor: '#f1f5f9',
-    borderRadius: 24,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    fontSize: 16,
-    fontFamily: FONTS.regular,
-    maxHeight: 110,
-    color: '#1e293b',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  warningBadge: {
-    position: 'absolute',
-    top: -8,
-    right: 12,
+  actionBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fef3c7',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    gap: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  warningText: {
-    fontSize: 11,
-    fontFamily: FONTS.bold,
-    color: '#f59e0b',
-  },
-  sendButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    overflow: 'hidden',
-    shadowColor: BLUE,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  sendButtonDisabled: {
-    opacity: 0.5,
-    shadowOpacity: 0.1,
-  },
-  sendGradient: {
-    width: '100%',
-    height: '100%',
+    gap: 6,
+    flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
   },
+  actionBtnText: { color: '#FFF', fontWeight: '700', fontSize: 13 },
+  messagesList: { padding: 16, flexGrow: 1 },
+  messageContainer: { marginBottom: 14, maxWidth: '82%' },
+  myMessage: { alignSelf: 'flex-end' },
+  theirMessage: { alignSelf: 'flex-start' },
+  senderHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 6, marginLeft: 4 },
+  avatarSmall: { width: 26, height: 26, borderRadius: 13, justifyContent: 'center', alignItems: 'center', marginRight: 6 },
+  avatarText: { fontSize: 12, fontFamily: FONTS.bold, color: COLORS.white },
+  senderName: { fontSize: 12, fontFamily: FONTS.bold, color: '#64748b' },
+  messageBubble: { borderRadius: 18, padding: 12 },
+  myBubble: { backgroundColor: BLUE, borderBottomRightRadius: 4 },
+  theirBubble: { backgroundColor: COLORS.white, borderBottomLeftRadius: 4, borderWidth: 1, borderColor: '#e2e8f0' },
+  messageText: { fontSize: 15, fontFamily: FONTS.regular, lineHeight: 21 },
+  myMessageText: { color: COLORS.white },
+  theirMessageText: { color: '#1e293b' },
+  timeText: { fontSize: 10, fontFamily: FONTS.regular, marginTop: 4 },
+  myTimeText: { color: 'rgba(255,255,255,0.85)', textAlign: 'right' },
+  theirTimeText: { color: '#94a3b8' },
+  systemMessageContainer: { marginVertical: 10, alignItems: 'center' },
+  systemCard: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12, width: '92%', alignItems: 'center' },
+  systemMessageText: { color: '#FFF', fontSize: 13, fontWeight: '700', textAlign: 'center', lineHeight: 19 },
+  openUrlButton: { marginTop: 8, backgroundColor: 'rgba(255,255,255,0.25)', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 6, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  openUrlButtonText: { color: '#FFF', fontWeight: '700', fontSize: 12 },
+  linkBadge: { marginTop: 8, padding: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  linkBadgeText: { fontSize: 12, fontWeight: '600', color: BLUE },
+  emptyContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: 80, paddingHorizontal: 32 },
+  emptyIconContainer: { marginBottom: 20 },
+  emptyIconGradient: { width: 90, height: 90, borderRadius: 45, justifyContent: 'center', alignItems: 'center' },
+  emptyText: { fontSize: 20, fontFamily: FONTS.bold, color: '#1e293b', marginTop: 8 },
+  emptySubtext: { fontSize: 14, fontFamily: FONTS.regular, color: '#64748b', marginTop: 6, textAlign: 'center' },
+  inputContainer: { flexDirection: 'row', alignItems: 'flex-end', padding: 14, backgroundColor: COLORS.white, borderTopWidth: 1, borderTopColor: '#e2e8f0', gap: 10 },
+  inputWrapper: { flex: 1, position: 'relative' },
+  input: { flex: 1, backgroundColor: '#f1f5f9', borderRadius: 24, paddingHorizontal: 18, paddingVertical: 12, fontSize: 15, fontFamily: FONTS.regular, maxHeight: 100, color: '#1e293b', borderWidth: 1, borderColor: '#e2e8f0' },
+  warningBadge: { position: 'absolute', top: -8, right: 12, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fef3c7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, gap: 4 },
+  warningText: { fontSize: 11, fontFamily: FONTS.bold, color: '#f59e0b' },
+  sendButton: { width: 46, height: 46, borderRadius: 23, overflow: 'hidden' },
+  sendButtonDisabled: { opacity: 0.5 },
+  sendGradient: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.75)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  modalCard: { backgroundColor: '#FFF', width: '100%', maxWidth: 450, borderRadius: 20, padding: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.2, shadowRadius: 20, elevation: 10 },
+  modalHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: '#0F172A' },
+  modalSub: { fontSize: 13, color: '#64748B', marginBottom: 18, lineHeight: 18 },
+  inputLabel: { fontSize: 13, fontWeight: '700', color: '#334155', marginBottom: 6 },
+  modalInput: { backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: '#0F172A' },
+  modalBtnRow: { flexDirection: 'row', gap: 12, marginTop: 20 },
+  cancelBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, backgroundColor: '#F1F5F9', alignItems: 'center' },
+  cancelBtnText: { color: '#64748B', fontWeight: '700', fontSize: 14 },
+  submitModalBtn: { flex: 1.5, paddingVertical: 12, borderRadius: 10, backgroundColor: '#16A34A', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6 },
+  submitModalBtnText: { color: '#FFF', fontWeight: '700', fontSize: 14 },
 });
