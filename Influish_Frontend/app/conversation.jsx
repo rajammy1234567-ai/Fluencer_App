@@ -350,6 +350,68 @@ export default function ConversationScreen() {
 
   const isBrandOwnerView = chatInfo ? chatInfo.is_brand_owner : (currentUserRole === 'brand');
 
+  const handleLockDeal = async () => {
+    const runLock = async () => {
+      try {
+        const headers = await getAuthHeader();
+        const res = await fetch(getApiUrl(`/api/chats/${chatId}/lock-deal`), { method: 'POST', headers });
+        const data = await res.json();
+        if (Platform.OS === 'web') {
+          window.alert(data.success ? '🔒 Success: ' + (data.message || 'Deal locked!') : 'Error: ' + (data.message || data.error));
+        } else {
+          Alert.alert(data.success ? 'Success' : 'Error', data.message || data.error);
+        }
+        fetchMessages();
+      } catch (err) {
+        console.error('Lock deal error:', err);
+        if (Platform.OS === 'web') window.alert('Error: Failed to lock deal');
+        else Alert.alert('Error', 'Failed to lock deal');
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm('Lock deal with this creator and deposit ₹5,000 into Escrow?')) {
+        await runLock();
+      }
+    } else {
+      Alert.alert('🔒 Lock Deal & Deposit Escrow', 'Lock deal with this creator and deposit ₹5,000 into Escrow?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Lock Deal', onPress: runLock }
+      ]);
+    }
+  };
+
+  const handleApproveWork = async () => {
+    const runApprove = async () => {
+      try {
+        const headers = await getAuthHeader();
+        const res = await fetch(getApiUrl(`/api/chats/${chatId}/approve-work`), { method: 'POST', headers });
+        const data = await res.json();
+        if (Platform.OS === 'web') {
+          window.alert(data.success ? '✅ Success: Creator work deliverable approved successfully!' : 'Error: ' + (data.message || data.error));
+        } else {
+          Alert.alert(data.success ? 'Success' : 'Error', data.message || data.error);
+        }
+        fetchMessages();
+      } catch (err) {
+        console.error('Approve work error:', err);
+        if (Platform.OS === 'web') window.alert('Error: Failed to approve work');
+        else Alert.alert('Error', 'Failed to approve work');
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm('Confirm creator work quality and approve for admin escrow payout?')) {
+        await runApprove();
+      }
+    } else {
+      Alert.alert('✅ Confirm & Approve Work', 'Confirm creator work quality and approve for admin escrow payout?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Approve Work', onPress: runApprove }
+      ]);
+    }
+  };
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -397,27 +459,7 @@ export default function ConversationScreen() {
         <View style={styles.actionBarContainer}>
           <TouchableOpacity 
             style={[styles.actionBtn, { backgroundColor: '#0284C7' }]}
-            onPress={async () => {
-              Alert.alert(
-                '🔒 Lock Deal & Deposit Escrow',
-                'Lock deal with this creator and deposit ₹5,000 into Escrow?',
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  {
-                    text: 'Lock Deal',
-                    onPress: async () => {
-                      try {
-                        const headers = await getAuthHeader();
-                        const res = await fetch(getApiUrl(`/api/chats/${chatId}/lock-deal`), { method: 'POST', headers });
-                        const data = await res.json();
-                        Alert.alert(data.success ? 'Success' : 'Error', data.message || data.error);
-                        fetchMessages();
-                      } catch (err) { Alert.alert('Error', 'Failed to lock deal'); }
-                    }
-                  }
-                ]
-              );
-            }}
+            onPress={handleLockDeal}
           >
             <MaterialCommunityIcons name="lock-check" size={18} color="#FFF" />
             <Text style={styles.actionBtnText}>Lock Deal & Pay Escrow</Text>
@@ -425,27 +467,7 @@ export default function ConversationScreen() {
 
           <TouchableOpacity 
             style={[styles.actionBtn, { backgroundColor: '#16A34A' }]}
-            onPress={async () => {
-              Alert.alert(
-                '✅ Confirm & Approve Work',
-                'Confirm creator work quality and approve for admin escrow payout?',
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  {
-                    text: 'Approve Work',
-                    onPress: async () => {
-                      try {
-                        const headers = await getAuthHeader();
-                        const res = await fetch(getApiUrl(`/api/chats/${chatId}/approve-work`), { method: 'POST', headers });
-                        const data = await res.json();
-                        Alert.alert(data.success ? 'Success' : 'Error', data.message || data.error);
-                        fetchMessages();
-                      } catch (err) { Alert.alert('Error', 'Failed to approve work'); }
-                    }
-                  }
-                ]
-              );
-            }}
+            onPress={handleApproveWork}
           >
             <MaterialCommunityIcons name="check-circle" size={18} color="#FFF" />
             <Text style={styles.actionBtnText}>Approve Work</Text>

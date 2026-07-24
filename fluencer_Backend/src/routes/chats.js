@@ -424,28 +424,50 @@ router.post('/:chatId/approve-work', authMiddleware, async (req, res) => {
 
     const chat = await Chat.findById(chatId);
     if (!chat) return res.status(404).json({ success: false, message: 'Chat not found' });
-    if (chat.brand_id.toString() !== userId.toString()) {
+
+    const isBrandUser = req.user.role === 'brand' || chat.brand_id.toString() === userId.toString();
+    if (!isBrandUser) {
       return res.status(403).json({ success: false, message: 'Only brand owner can approve work' });
     }
 
     const Application = (await import('../models/Application.js')).default;
-    const application = await Application.findOne({ campaign_id: chat.campaign_id, influencer_id: chat.influencer_id });
+    let application = null;
 
-    if (!application) return res.status(404).json({ success: false, message: 'Application not found' });
+    if (chat.application_id) {
+      application = await Application.findById(chat.application_id);
+    }
 
-    application.deliverable_status = 'brand_approved';
-    await application.save();
+    if (!application) {
+      application = await Application.findOne({
+        $or: [
+          { campaign_id: chat.campaign_id, influencer_id: chat.influencer_id },
+          { campaign_id: chat.campaign_id }
+        ]
+      });
+    }
+
+    if (application) {
+      application.deliverable_status = 'brand_approved';
+      application.approved_at = new Date();
+      await application.save();
+    }
+
+    chat.deliverable_status = 'brand_approved';
+    await chat.save();
 
     // Post system message into Chat
     await ChatMessage.create({
       chat_id: chatId,
       sender_id: userId,
-      message: `✅ DELIVERABLE APPROVED! Brand confirmed work quality. Web Admin can now release 18% escrow payout.`,
+      message: `✅ WORK APPROVED! Brand verified content quality. Escrow payout ready for Admin release!`,
       message_type: 'system',
       is_read: false
     });
 
-    res.json({ success: true, message: 'Deliverable approved! Ready for Admin escrow payout.' });
+    res.json({
+      success: true,
+      message: 'Creator work deliverable approved successfully!'
+    });
   } catch (error) {
     console.error('In-chat approve work error:', error);
     res.status(500).json({ success: false, error: error.message });
