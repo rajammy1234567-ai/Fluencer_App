@@ -30,6 +30,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -180,48 +181,37 @@ export default function Profile() {
 
   /**
    * Safe logout with proper sequence (admin pattern):
-   * 1. Clear auth FIRST
-   * 2. Wait briefly for storage sync
-   * 3. Navigate AFTER
+   * Works on both Native App (iOS/Android) and Web Preview.
    */
   const handleLogout = async () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              console.log('🚪 Influencer logging out...');
-              
-              // Clear auth FIRST (admin pattern)
-              await storage.clearAuth();
-              console.log('✅ Auth cleared');
-              
-              // Small delay to ensure storage is synced
-              await new Promise(resolve => setTimeout(resolve, 300));
-              
-              // Navigate after clearing auth
-              if (isMountedRef.current) {
-                router.replace('/role-selection');
-              }
-            } catch (err) {
-              console.error('❌ Logout error:', err);
-              // Still try to navigate on error
-              if (isMountedRef.current) {
-                router.replace('/role-selection');
-              }
-            }
-          },
-        },
-      ]
-    );
+    const executeLogout = async () => {
+      try {
+        console.log('🚪 Influencer logging out...');
+        await storage.clearAuth();
+        console.log('✅ Auth cleared');
+        router.replace('/role-selection');
+      } catch (err) {
+        console.error('❌ Logout error:', err);
+        router.replace('/role-selection');
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm('Are you sure you want to logout?')) {
+        await executeLogout();
+      } else {
+        await executeLogout();
+      }
+    } else {
+      Alert.alert(
+        'Logout',
+        'Are you sure you want to logout?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Logout', style: 'destructive', onPress: executeLogout },
+        ]
+      );
+    }
   };
 
   /**
