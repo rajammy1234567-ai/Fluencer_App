@@ -624,7 +624,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   actionsContainer: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     gap: 12,
     marginBottom: 20,
   },

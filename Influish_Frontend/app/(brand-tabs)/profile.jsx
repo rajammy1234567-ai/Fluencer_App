@@ -457,9 +457,9 @@ export default function BrandProfile() {
           </View>
 
           {/* Quick Actions */}
-          <View style={styles.actionsContainer}>
+          <View style={{ gap: 12, marginBottom: 20 }}>
             <TouchableOpacity 
-              style={[styles.actionButton, styles.primaryButton]} 
+              style={[styles.actionButton, styles.primaryButton, { width: '100%' }]} 
               onPress={handleCreateCampaign}
             >
               <MaterialCommunityIcons name="plus-circle" size={24} color="#FFFFFF" />
@@ -467,7 +467,7 @@ export default function BrandProfile() {
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.actionButton, { backgroundColor: '#F0FDFA', borderColor: '#CCFBF1', borderWidth: 1 }]} 
+              style={[styles.actionButton, { backgroundColor: '#F0FDFA', borderColor: '#CCFBF1', borderWidth: 1, width: '100%' }]} 
               onPress={() => router.push('/wallet')}
             >
               <MaterialCommunityIcons name="wallet" size={24} color="#0D9488" />
@@ -475,7 +475,7 @@ export default function BrandProfile() {
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={styles.actionButton} 
+              style={[styles.actionButton, { width: '100%' }]} 
               onPress={handleSettings}
             >
               <MaterialCommunityIcons name="cog" size={24} color="#1e293b" />
