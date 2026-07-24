@@ -377,6 +377,20 @@ export default function ConversationScreen() {
         </View>
       </LinearGradient>
 
+      {/* PROMINENT SUBMITTED REEL BANNER FOR BRAND REVIEW */}
+      {chatInfo?.submission_url && (
+        <TouchableOpacity
+          style={{ backgroundColor: '#7C3AED', paddingVertical: 10, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+          onPress={() => Linking.openURL(chatInfo.submission_url)}
+        >
+          <MaterialCommunityIcons name="play-circle-outline" size={20} color="#FFF" />
+          <Text style={{ color: '#FFF', fontWeight: '800', fontSize: 13 }}>
+            🎬 Creator Reel Submitted! Tap to Watch & Review Video
+          </Text>
+          <MaterialCommunityIcons name="open-in-new" size={16} color="#FFF" />
+        </TouchableOpacity>
+      )}
+
       {/* IN-CHAT ACTION BAR */}
       {isBrandOwnerView ? (
         // BRAND OWNER VIEW ONLY
