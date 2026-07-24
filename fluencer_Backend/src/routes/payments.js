@@ -3,6 +3,7 @@ import { authenticateToken } from '../middleware/auth.js';
 import { createOrder, verifyPaymentSignature } from '../config/razorpay.js';
 import Payment from '../models/Payment.js';
 import Campaign from '../models/Campaign.js';
+import BrandProfile from '../models/BrandProfile.js';
 
 const router = express.Router();
 
@@ -66,15 +67,24 @@ router.post('/verify-payment', authenticateToken, async (req, res) => {
     }
 
     // Update payment status in database
-    await Payment.findOneAndUpdate(
+    const payment = await Payment.findOneAndUpdate(
       { order_id: orderId, user_id: userId },
-      { payment_id: paymentId, status: 'completed', completed_at: new Date() }
+      { payment_id: paymentId, status: 'completed', completed_at: new Date() },
+      { new: true }
     );
+
+    // Credit Brand Wallet Balance upon successful Razorpay Payment
+    const brandProfile = await BrandProfile.findOne({ user_id: userId });
+    if (brandProfile && payment && payment.amount) {
+      brandProfile.wallet_balance = (brandProfile.wallet_balance || 0) + payment.amount;
+      await brandProfile.save();
+    }
 
     res.json({
       success: true,
-      message: 'Payment verified successfully',
-      paymentId
+      message: 'Payment verified and wallet credited successfully',
+      paymentId,
+      newWalletBalance: brandProfile ? brandProfile.wallet_balance : null
     });
   } catch (error) {
     console.error('Verify payment error:', error);
