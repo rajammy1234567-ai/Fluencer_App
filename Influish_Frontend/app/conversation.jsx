@@ -238,32 +238,29 @@ export default function ConversationScreen() {
   // Render Message Item with Reel Links & Click Support
   const renderMessage = ({ item }) => {
     const isMe = String(item.sender_id) === String(currentUserId);
-    const isSystem = item.message_type === 'system' || item.message.startsWith('🔒') || item.message.startsWith('🎬') || item.message.startsWith('✅');
+    const isSystem = item.message_type === 'system' || item.message.startsWith('🔒') || item.message.startsWith('🎬') || item.message.startsWith('✅') || item.message.startsWith('💳');
     
     // Detect URLs in message
     const urlMatch = item.message.match(/https?:\/\/[^\s]+/g);
     const foundUrl = urlMatch ? urlMatch[0] : null;
 
     if (isSystem) {
+      const cleanText = item.message.replace(/🔒|🎬|✅|💳/g, '').trim();
       return (
-        <View style={styles.systemMessageContainer}>
-          <LinearGradient
-            colors={item.message.startsWith('🔒') ? ['#0284C7', '#0369A1'] : item.message.startsWith('🎬') ? ['#7C3AED', '#6D28D9'] : ['#16A34A', '#15803D']}
-            style={styles.systemCard}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          >
-            <Text style={styles.systemMessageText}>{item.message}</Text>
-            {foundUrl && (
-              <TouchableOpacity
-                style={styles.openUrlButton}
-                onPress={() => Linking.openURL(foundUrl)}
-              >
-                <MaterialCommunityIcons name="open-in-new" size={16} color="#FFF" />
-                <Text style={styles.openUrlButtonText}>Watch Submitted Reel 🎬</Text>
-              </TouchableOpacity>
-            )}
-          </LinearGradient>
+        <View style={styles.cleanSystemContainer}>
+          <View style={styles.cleanSystemCard}>
+            <MaterialCommunityIcons name="shield-check-outline" size={15} color="#0284C7" />
+            <Text style={styles.cleanSystemText}>{cleanText}</Text>
+          </View>
+          {foundUrl && (
+            <TouchableOpacity
+              style={styles.openUrlButtonInline}
+              onPress={() => Linking.openURL(foundUrl)}
+            >
+              <MaterialCommunityIcons name="open-in-new" size={14} color="#7C3AED" />
+              <Text style={styles.openUrlButtonTextInline}>Watch Submitted Reel 🎬</Text>
+            </TouchableOpacity>
+          )}
         </View>
       );
     }
@@ -413,6 +410,15 @@ export default function ConversationScreen() {
     }
   };
 
+  const dedupedMessages = messages.filter((msg, index, self) => {
+    const isSys = msg.message_type === 'system' || msg.message.startsWith('🔒') || msg.message.startsWith('🎬') || msg.message.startsWith('✅') || msg.message.startsWith('💳');
+    if (isSys) {
+      const firstIdx = self.findIndex(m => m.message === msg.message);
+      return index === firstIdx;
+    }
+    return true;
+  });
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -514,7 +520,7 @@ export default function ConversationScreen() {
         {/* Messages List */}
         <FlatList
           ref={flatListRef}
-          data={messages}
+          data={dedupedMessages}
           renderItem={renderMessage}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.messagesList}
@@ -742,11 +748,11 @@ const styles = StyleSheet.create({
   timeText: { fontSize: 10, fontFamily: FONTS.regular, marginTop: 4 },
   myTimeText: { color: 'rgba(255,255,255,0.85)', textAlign: 'right' },
   theirTimeText: { color: '#94a3b8' },
-  systemMessageContainer: { marginVertical: 10, alignItems: 'center' },
-  systemCard: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12, width: '92%', alignItems: 'center' },
-  systemMessageText: { color: '#FFF', fontSize: 13, fontWeight: '700', textAlign: 'center', lineHeight: 19 },
-  openUrlButton: { marginTop: 8, backgroundColor: 'rgba(255,255,255,0.25)', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 6, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  openUrlButtonText: { color: '#FFF', fontWeight: '700', fontSize: 12 },
+  cleanSystemContainer: { marginVertical: 10, alignItems: 'center' },
+  cleanSystemCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F5F9', borderHeight: 1, borderColor: '#CBD5E1', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, gap: 6, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 1 },
+  cleanSystemText: { color: '#334155', fontSize: 12, fontWeight: '700', textAlign: 'center' },
+  openUrlButtonInline: { marginTop: 6, backgroundColor: '#F3E8FF', paddingVertical: 5, paddingHorizontal: 12, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 4 },
+  openUrlButtonTextInline: { color: '#7C3AED', fontWeight: '700', fontSize: 12 },
   linkBadge: { marginTop: 8, padding: 8, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 6 },
   linkBadgeText: { fontSize: 12, fontWeight: '600', color: BLUE },
   emptyContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: 80, paddingHorizontal: 32 },
