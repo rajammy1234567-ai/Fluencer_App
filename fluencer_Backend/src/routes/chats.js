@@ -155,7 +155,10 @@ router.get('/:chatId/messages', authMiddleware, async (req, res) => {
         ...chat,
         id: chat._id.toString(),
         other_user_name: otherUserName,
-        campaign_name: campaignName
+        campaign_name: campaignName,
+        current_user_role: req.user.role,
+        is_brand_owner: userId.toString() === chat.brand_id.toString(),
+        is_influencer: userId.toString() === chat.influencer_id.toString()
       },
       messages: messages
     });
