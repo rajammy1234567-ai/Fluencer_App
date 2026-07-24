@@ -369,15 +369,32 @@ router.post('/:chatId/submit-work', authMiddleware, async (req, res) => {
     if (!chat) return res.status(404).json({ success: false, message: 'Chat not found' });
 
     const Application = (await import('../models/Application.js')).default;
-    const application = await Application.findOne({ campaign_id: chat.campaign_id, influencer_id: chat.influencer_id });
+    let application = null;
 
-    if (!application) return res.status(404).json({ success: false, message: 'Application not found' });
+    if (chat.application_id) {
+      application = await Application.findById(chat.application_id);
+    }
 
-    application.deliverable_status = 'submitted';
-    application.submission_url = submission_url;
-    application.submission_notes = submission_notes || '';
-    application.submitted_at = new Date();
-    await application.save();
+    if (!application) {
+      application = await Application.findOne({
+        $or: [
+          { campaign_id: chat.campaign_id, influencer_id: chat.influencer_id },
+          { campaign_id: chat.campaign_id, influencer_id: userId }
+        ]
+      });
+    }
+
+    if (application) {
+      application.deliverable_status = 'submitted';
+      application.submission_url = submission_url;
+      application.submission_notes = submission_notes || '';
+      application.submitted_at = new Date();
+      await application.save();
+    }
+
+    chat.submission_url = submission_url;
+    chat.deliverable_status = 'submitted';
+    await chat.save();
 
     // Post system message into Chat
     await ChatMessage.create({
@@ -388,7 +405,11 @@ router.post('/:chatId/submit-work', authMiddleware, async (req, res) => {
       is_read: false
     });
 
-    res.json({ success: true, message: 'Reel work proof submitted successfully!' });
+    res.json({
+      success: true,
+      message: 'Work Reel proof submitted successfully!',
+      submission_url
+    });
   } catch (error) {
     console.error('In-chat submit work error:', error);
     res.status(500).json({ success: false, error: error.message });

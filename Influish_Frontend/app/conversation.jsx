@@ -198,6 +198,11 @@ export default function ConversationScreen() {
       return;
     }
 
+    let formattedUrl = reelUrlInput.trim();
+    if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
+      formattedUrl = 'https://' + formattedUrl;
+    }
+
     setSubmittingWork(true);
     try {
       const headers = await getAuthHeader();
@@ -207,7 +212,7 @@ export default function ConversationScreen() {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          submission_url: reelUrlInput.trim(),
+          submission_url: formattedUrl,
           submission_notes: reelNotesInput.trim()
         })
       });
