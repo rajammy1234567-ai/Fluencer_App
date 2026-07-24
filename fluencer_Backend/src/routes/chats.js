@@ -160,7 +160,8 @@ router.get('/:chatId/messages', authMiddleware, async (req, res) => {
         campaign_name: campaignName,
         current_user_role: req.user.role,
         is_brand_owner: isBrandUser,
-        is_influencer: !isBrandUser
+        is_influencer: !isBrandUser,
+        deal_locked: chat.status === 'accepted' || chat.status === 'locked' || chat.status === 'escrow_locked' || !!chat.escrow_amount
       },
       messages: messages
     });

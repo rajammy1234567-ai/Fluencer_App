@@ -476,13 +476,20 @@ export default function ConversationScreen() {
       ) : (
         // INFLUENCER / CREATOR VIEW ONLY
         <View style={styles.actionBarContainer}>
-          <TouchableOpacity 
-            style={[styles.actionBtn, { backgroundColor: '#16A34A', flex: 1 }]}
-            onPress={() => setShowSubmitModal(true)}
-          >
-            <MaterialCommunityIcons name="video-check" size={20} color="#FFF" />
-            <Text style={styles.actionBtnText}>🎬 Submit Reel Proof</Text>
-          </TouchableOpacity>
+          {(chatInfo?.status === 'accepted' || chatInfo?.status === 'locked' || chatInfo?.status === 'escrow_locked' || chatInfo?.deal_locked) ? (
+            <TouchableOpacity 
+              style={[styles.actionBtn, { backgroundColor: '#16A34A', flex: 1 }]}
+              onPress={() => setShowSubmitModal(true)}
+            >
+              <MaterialCommunityIcons name="video-check" size={20} color="#FFF" />
+              <Text style={styles.actionBtnText}>🎬 Submit Reel Proof</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={[styles.actionBtn, { backgroundColor: '#334155', flex: 1, opacity: 0.85 }]}>
+              <MaterialCommunityIcons name="lock-clock" size={18} color="#CBD5E1" />
+              <Text style={[styles.actionBtnText, { color: '#CBD5E1' }]}>🔒 Waiting for Brand to Lock Deal & Deposit Escrow</Text>
+            </View>
+          )}
         </View>
       )}
 
