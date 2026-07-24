@@ -337,10 +337,10 @@ export default function BrandProfile() {
   const brandPhone = profile.phone || 'Not set';
   const brandWebsite = profile.website || 'Not set';
   
-  // Brand-specific stats (safe conversion)
-  const campaigns = getSafeStatValue(profile.campaigns || profile.campaigns_count || profile.totalCampaigns, 0);
-  const activeCampaigns = getSafeStatValue(profile.active_campaigns || profile.activeCampaigns, 0);
-  const collaborations = getSafeStatValue(profile.collaborations || profile.collaborations_count || profile.totalInfluencers, 0);
+  // Brand-specific stats (live database counts)
+  const campaigns = getSafeStatValue(profile.total_campaigns ?? profile.campaigns ?? profile.campaigns_count ?? profile.totalCampaigns, 0);
+  const activeCampaigns = getSafeStatValue(profile.active_campaigns ?? profile.activeCampaigns, 0);
+  const collaborations = getSafeStatValue(profile.total_collabs ?? profile.collabs_count ?? profile.collaborations ?? profile.collaborations_count, 0);
 
   return (
     <SafeAreaView style={styles.container}>

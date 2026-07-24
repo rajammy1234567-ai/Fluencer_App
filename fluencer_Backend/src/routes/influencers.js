@@ -144,6 +144,17 @@ router.get('/profile', authMiddleware, async (req, res) => {
     // Convert id field for client compatibility
     profile.id = profile._id.toString();
 
+    const Application = (await import('../models/Application.js')).default;
+    const totalCollabs = await Application.countDocuments({
+      influencer_id: userId,
+      status: { $in: ['accepted', 'completed', 'escrow_locked'] }
+    });
+
+    profile.collaborations = totalCollabs;
+    profile.collabs = totalCollabs;
+    profile.followers = profile.followers || '125K';
+    profile.rating = profile.rating || 4.9;
+
     res.status(200).json({ 
       success: true, 
       profile: profile

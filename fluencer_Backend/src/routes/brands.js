@@ -164,10 +164,21 @@ router.get('/profile', authMiddleware, async (req, res) => {
 
     const user = await User.findById(userId).select('email').lean();
     
+    const Campaign = (await import('../models/Campaign.js')).default;
+    const Application = (await import('../models/Application.js')).default;
+
+    const totalCampaigns = await Campaign.countDocuments({ brand_id: userId });
+    const activeCampaigns = await Campaign.countDocuments({ brand_id: userId, status: 'active' });
+    const totalCollabs = await Application.countDocuments({ brand_id: userId, status: { $in: ['accepted', 'completed', 'escrow_locked'] } });
+
     res.status(200).json({
       ...profile,
       id: profile._id.toString(),
-      email: user ? user.email : ''
+      email: user ? user.email : '',
+      total_campaigns: totalCampaigns,
+      active_campaigns: activeCampaigns,
+      collabs_count: totalCollabs,
+      total_collabs: totalCollabs
     });
   } catch (error) {
     console.error('Brand profile fetch error:', error);
