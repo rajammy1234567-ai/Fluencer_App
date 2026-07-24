@@ -574,10 +574,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    justify: 'space-between',
-  },
     justifyContent: 'space-between',
-    alignItems: 'center',
   },
   headerInfo: {
     flex: 1,
