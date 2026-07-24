@@ -464,21 +464,37 @@ export default function ConversationScreen() {
       {isBrandOwnerView ? (
         // BRAND OWNER VIEW ONLY
         <View style={styles.actionBarContainer}>
-          <TouchableOpacity 
-            style={[styles.actionBtn, { backgroundColor: '#0284C7' }]}
-            onPress={handleLockDeal}
-          >
-            <MaterialCommunityIcons name="lock-check" size={18} color="#FFF" />
-            <Text style={styles.actionBtnText}>Lock Deal & Pay Escrow</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={[styles.actionBtn, { backgroundColor: '#16A34A' }]}
-            onPress={handleApproveWork}
-          >
-            <MaterialCommunityIcons name="check-circle" size={18} color="#FFF" />
-            <Text style={styles.actionBtnText}>Approve Work</Text>
-          </TouchableOpacity>
+          {chatInfo?.deliverable_status === 'brand_approved' ? (
+            <View style={[styles.actionBtn, { backgroundColor: '#15803D', flex: 1 }]}>
+              <MaterialCommunityIcons name="check-decagram" size={18} color="#FFF" />
+              <Text style={styles.actionBtnText}>✅ Work Approved · Escrow Payout Ready for Admin Release</Text>
+            </View>
+          ) : chatInfo?.deal_locked ? (
+            <>
+              {chatInfo?.submission_url || chatInfo?.deliverable_status === 'submitted' ? (
+                <TouchableOpacity 
+                  style={[styles.actionBtn, { backgroundColor: '#16A34A', flex: 1 }]}
+                  onPress={handleApproveWork}
+                >
+                  <MaterialCommunityIcons name="check-circle" size={18} color="#FFF" />
+                  <Text style={styles.actionBtnText}>✅ Review & Approve Work</Text>
+                </TouchableOpacity>
+              ) : (
+                <View style={[styles.actionBtn, { backgroundColor: '#0284C7', flex: 1 }]}>
+                  <MaterialCommunityIcons name="shield-check" size={18} color="#FFF" />
+                  <Text style={styles.actionBtnText}>🔒 Escrow Paid & Locked · Waiting for Creator Reel Proof</Text>
+                </View>
+              )}
+            </>
+          ) : (
+            <TouchableOpacity 
+              style={[styles.actionBtn, { backgroundColor: '#0284C7', flex: 1 }]}
+              onPress={handleLockDeal}
+            >
+              <MaterialCommunityIcons name="lock-check" size={18} color="#FFF" />
+              <Text style={styles.actionBtnText}>🔒 Lock Deal & Pay Escrow (₹{chatInfo?.cost_per_influencer || 5000})</Text>
+            </TouchableOpacity>
+          )}
         </View>
       ) : (
         // INFLUENCER / CREATOR VIEW ONLY
