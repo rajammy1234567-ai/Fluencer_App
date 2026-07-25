@@ -66,10 +66,13 @@ const StatCard = ({ icon, value, label }) => {
 export default function Profile() {
   const router = useRouter();
   
-  // State management
+  // State management (ALL HOOKS AT TOP OF COMPONENT)
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [followerModalVisible, setFollowerModalVisible] = useState(false);
+  const [customFollowers, setCustomFollowers] = useState('');
+  const [updatingFollowers, setUpdatingFollowers] = useState(false);
   
   // Lifecycle safety
   const isMountedRef = useRef(true);
@@ -311,10 +314,6 @@ export default function Profile() {
       </SafeAreaView>
     );
   }
-
-  const [followerModalVisible, setFollowerModalVisible] = useState(false);
-  const [customFollowers, setCustomFollowers] = useState('');
-  const [updatingFollowers, setUpdatingFollowers] = useState(false);
 
   const handleUpdateFollowers = async () => {
     if (!customFollowers.trim()) {
