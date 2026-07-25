@@ -409,96 +409,6 @@ const ProductCategories = () => {
   );
 };
 
-// Routes Section Component (Trending renamed)
-const RoutesSection = () => {
-  const scrollViewRef = useRef(null);
-
-  return (
-    <View style={styles.section}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Routes</Text>
-      </View>
-      
-      <ScrollView 
-        ref={scrollViewRef}
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.routesContent}
-      >
-        {trendingProducts.map((product, index) => (
-          <AnimatedCard key={product.id} delay={index * 80}>
-            <TouchableOpacity style={styles.routeCard}>
-              <View style={styles.routeGradient}>
-                <Image source={{ uri: product.image }} style={styles.routeImage} />
-                
-                <View style={styles.routeContent}>
-                  <View style={styles.routeFlag}>
-                    <View style={styles.flagIcon}>
-                      <Ionicons name="flag" size={16} color={THEME.white} />
-                    </View>
-                  </View>
-                  
-                  <View style={styles.routeInfo}>
-                    <Text style={styles.routeTitle}>{product.name}</Text>
-                    <View style={styles.routeDetails}>
-                      <Ionicons name="location-outline" size={14} color={THEME.white} />
-                      <Text style={styles.routePrice}>$1,500</Text>
-                      <Ionicons name="calendar-outline" size={14} color={THEME.white} style={{ marginLeft: 8 }} />
-                      <Text style={styles.routeDuration}>Jan 10-15</Text>
-                    </View>
-                    
-                    <View style={styles.routeAuthor}>
-                      <View style={styles.authorAvatar}>
-                        <Ionicons name="person" size={12} color={THEME.primary} />
-                      </View>
-                      <Text style={styles.authorName}>by {index % 2 === 0 ? 'Brent' : 'Adam'}</Text>
-                    </View>
-                  </View>
-                </View>
-              </View>
-            </TouchableOpacity>
-          </AnimatedCard>
-        ))}
-      </ScrollView>
-    </View>
-  );
-};
-
-// Rent a Car Section Component (For You renamed)
-const RentCarSection = () => {
-  return (
-    <View style={styles.section}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Rent a car</Text>
-      </View>
-      
-      <View style={styles.rentCarContainer}>
-        {forYouProducts.slice(0, 2).map((product, index) => (
-          <AnimatedCard key={product.id} delay={index * 70}>
-            <TouchableOpacity style={styles.rentCarCard}>
-              <View style={styles.rentCarLeft}>
-                <Ionicons name="calendar-outline" size={20} color={THEME.gray} />
-                <View style={styles.rentCarInfo}>
-                  <Text style={styles.rentCarDate}>
-                    {index === 0 ? 'Feb 10, Friday' : 'Feb 21, Saturday'}
-                  </Text>
-                  <Text style={styles.rentCarDetails}>
-                    {index === 0 ? '$$ • 2 places • BMW • Children ok' : '$$ • 1 place • Audi • Children ok'}
-                  </Text>
-                </View>
-              </View>
-              
-              <TouchableOpacity style={styles.rentCarButton}>
-                <Ionicons name="call" size={20} color={THEME.primary} />
-              </TouchableOpacity>
-            </TouchableOpacity>
-          </AnimatedCard>
-        ))}
-      </View>
-    </View>
-  );
-};
-
 // Business Hack Section Component - Redesigned with Video and Text Below
 const BusinessHackSection = () => {
   return (
@@ -614,8 +524,6 @@ const BrandHome = () => {
             <BannerSlider />
           </Navbar>
           <ProductCategories />
-          <RoutesSection />
-          <RentCarSection />
           <BusinessHackSection />
           <MetaFooter />
         </ScrollView>
