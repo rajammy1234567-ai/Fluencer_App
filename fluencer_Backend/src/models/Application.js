@@ -17,7 +17,7 @@ const applicationSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'accepted', 'rejected'],
+    enum: ['pending', 'accepted', 'rejected', 'escrow_locked', 'completed'],
     default: 'pending'
   },
   submission_url: {
@@ -34,7 +34,7 @@ const applicationSchema = new mongoose.Schema({
   },
   deliverable_status: {
     type: String,
-    enum: ['pending', 'submitted', 'brand_approved', 'payout_released', 'disputed'],
+    enum: ['pending', 'submitted', 'approved', 'brand_approved', 'payout_released', 'disputed'],
     default: 'pending'
   },
   escrow_amount: {
