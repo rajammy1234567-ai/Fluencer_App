@@ -183,15 +183,17 @@ export default function Wallet() {
           </View>
 
           <View style={styles.subBalanceRow}>
-            <View style={[styles.subBalanceCard, { backgroundColor: '#FFF7ED' }]}>
-              <MaterialCommunityIcons name="clock-outline" size={20} color="#F59E0B" />
-              <Text style={styles.subBalanceLabel}>Escrow / Pending</Text>
-              <Text style={[styles.subBalanceAmount, { color: '#F59E0B' }]}>
-                ₹{balance.pending.toLocaleString()}
-              </Text>
-            </View>
+            {balance.role === 'brand' || balance.role === 'business' ? (
+              <View style={[styles.subBalanceCard, { backgroundColor: '#FFF7ED' }]}>
+                <MaterialCommunityIcons name="clock-outline" size={20} color="#F59E0B" />
+                <Text style={styles.subBalanceLabel}>Escrow / Pending</Text>
+                <Text style={[styles.subBalanceAmount, { color: '#F59E0B' }]}>
+                  ₹{balance.pending.toLocaleString()}
+                </Text>
+              </View>
+            ) : null}
 
-            <View style={[styles.subBalanceCard, { backgroundColor: '#ECFDF5' }]}>
+            <View style={[styles.subBalanceCard, { backgroundColor: '#ECFDF5', flex: 1 }]}>
               <MaterialCommunityIcons name="check-circle" size={20} color="#10B981" />
               <Text style={styles.subBalanceLabel}>Available Wallet</Text>
               <Text style={[styles.subBalanceAmount, { color: '#10B981' }]}>
