@@ -472,16 +472,15 @@ router.post('/applications/:applicationId/reject', authMiddleware, async (req, r
   }
 });
 
-// ==================== INFLUENCER ROUTES ====================
-
-// Get all active campaigns (Visible to every single user)
+// Get all active campaigns (Filtered for influencers to hide already-applied campaigns)
 router.get('/active/all', authMiddleware, async (req, res) => {
   try {
-    const userId = req.user?.userId;
+    const userId = req.user?.userId || req.user?.id;
+    const userRole = req.user?.role;
 
     const campaignsList = await Campaign.find({ is_deleted: false }).sort({ created_at: -1 }).lean();
 
-    const campaigns = await Promise.all(campaignsList.map(async (c) => {
+    let campaigns = await Promise.all(campaignsList.map(async (c) => {
       let bp = null;
       let app = null;
       
@@ -504,8 +503,15 @@ router.get('/active/all', authMiddleware, async (req, res) => {
       c.brand_category = bp ? bp.category : 'Fashion & Apparel';
       c.brand_description = bp ? bp.description : '';
       c.application_status = app ? app.status : null;
+      c.already_applied = !!app;
       return c;
     }));
+
+    // If Influencer is logged in, filter out campaigns they have already applied to
+    // (So 1 creator can apply to 1 campaign only once, and applied campaigns won't clutter discovery feed)
+    if (userRole === 'influencer' && req.query.show_all !== 'true') {
+      campaigns = campaigns.filter(c => !c.already_applied);
+    }
 
     res.status(200).json({ 
       success: true, 
