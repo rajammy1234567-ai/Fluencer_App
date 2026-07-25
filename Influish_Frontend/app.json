@@ -64,11 +64,11 @@
       "**/*"
     ],
     "extra": {
+      "router": {},
       "eas": {
-        "projectId": "4ea6c4a8-8374-4969-a3c4-15ca2d6c90d3"
-      },
-      "router": {}
+        "projectId": "6733504a-450b-4bb8-b7c4-3f5e0fe567e1"
+      }
     },
-    "owner": "rjstore9097"
+    "owner": "krishna7323"
   }
 }

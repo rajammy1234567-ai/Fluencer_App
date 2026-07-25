@@ -190,4 +190,27 @@ router.get('/profile-exists', authMiddleware, async (req, res) => {
   }
 });
 
+// Update follower count manually
+router.post('/update-followers', authMiddleware, async (req, res) => {
+  try {
+    const { followers } = req.body;
+    const userId = req.user.userId || req.user.id;
+
+    if (!followers) {
+      return res.status(400).json({ success: false, message: 'Followers count string is required' });
+    }
+
+    const profile = await InfluencerProfile.findOneAndUpdate(
+      { user_id: userId },
+      { followers: String(followers).trim() },
+      { new: true, upsert: true }
+    );
+
+    res.json({ success: true, message: 'Follower count updated successfully!', followers: profile.followers });
+  } catch (error) {
+    console.error('Follower update error:', error);
+    res.status(500).json({ success: false, message: 'Failed to update follower count', error: error.message });
+  }
+});
+
 export default router;

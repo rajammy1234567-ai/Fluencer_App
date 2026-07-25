@@ -31,6 +31,8 @@ import {
   Alert,
   Image,
   Platform,
+  Modal,
+  TextInput,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -310,6 +312,38 @@ export default function Profile() {
     );
   }
 
+  const [followerModalVisible, setFollowerModalVisible] = useState(false);
+  const [customFollowers, setCustomFollowers] = useState('');
+  const [updatingFollowers, setUpdatingFollowers] = useState(false);
+
+  const handleUpdateFollowers = async () => {
+    if (!customFollowers.trim()) {
+      Alert.alert('Error', 'Please enter follower count (e.g. 125K, 45,000)');
+      return;
+    }
+    setUpdatingFollowers(true);
+    try {
+      const token = await storage.getToken();
+      const res = await fetch(`${API_CONFIG.BASE_URL}/api/influencers/update-followers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ followers: customFollowers.trim() })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setProfile(prev => ({ ...prev, followers: data.followers }));
+        setFollowerModalVisible(false);
+        Alert.alert('Success', 'Follower count updated!');
+      } else {
+        Alert.alert('Error', data.message || 'Failed to update followers');
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Failed to save follower count');
+    } finally {
+      setUpdatingFollowers(false);
+    }
+  };
+
   /* ================= MAIN RENDER (PROFILE LOADED) ================= */
   // Safe field extraction with defaults
   const influencerName = profile.name || profile.username || 'Influencer';
@@ -357,11 +391,13 @@ export default function Profile() {
 
           {/* Stats Section */}
           <View style={styles.statsContainer}>
-            <StatCard
-              icon="account-group"
-              value={followers}
-              label="Followers"
-            />
+            <TouchableOpacity onPress={() => { setCustomFollowers(followers); setFollowerModalVisible(true); }}>
+              <StatCard
+                icon="account-group"
+                value={followers}
+                label="Followers (Edit ✏️)"
+              />
+            </TouchableOpacity>
             <StatCard
               icon="handshake"
               value={collaborations}
@@ -369,7 +405,7 @@ export default function Profile() {
             />
             <StatCard
               icon="star"
-              value={rating.toFixed(1)}
+              value={typeof rating === 'number' ? rating.toFixed(1) : rating}
               label="Rating"
             />
           </View>
@@ -405,6 +441,14 @@ export default function Profile() {
           {/* Action Buttons */}
           <View style={styles.actionsContainer}>
             <TouchableOpacity 
+              style={[styles.actionButton, { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE', borderWidth: 1, marginBottom: 12 }]} 
+              onPress={() => { setCustomFollowers(followers); setFollowerModalVisible(true); }}
+            >
+              <MaterialCommunityIcons name="account-edit" size={24} color="#1D4ED8" />
+              <Text style={[styles.actionButtonText, { color: '#1E40AF', fontWeight: '700' }]}>👥 Edit Follower Count ({followers})</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
               style={[styles.actionButton, { backgroundColor: '#F0FDFA', borderColor: '#CCFBF1', borderWidth: 1, marginBottom: 12 }]} 
               onPress={() => router.push('/wallet')}
             >
@@ -431,6 +475,54 @@ export default function Profile() {
           </TouchableOpacity>
         </ScrollView>
       </LinearGradient>
+
+      {/* MANUAL FOLLOWER EDIT MODAL */}
+      <Modal
+        visible={followerModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setFollowerModalVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <View style={{ width: '100%', backgroundColor: '#FFFFFF', borderRadius: 20, padding: 24, elevation: 5 }}>
+            <Text style={{ fontSize: 20, fontWeight: '700', color: '#1E293B', marginBottom: 8, textAlign: 'center' }}>
+              👥 Edit Follower Count
+            </Text>
+            <Text style={{ fontSize: 14, color: '#64748B', marginBottom: 20, textAlign: 'center' }}>
+              Enter your manual follower count to display on your Creator Profile
+            </Text>
+
+            <TextInput
+              style={{ width: '100%', backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontSize: 16, color: '#1E293B', marginBottom: 20 }}
+              placeholder="e.g. 125K, 45,000, 500K"
+              placeholderTextColor="#94A3B8"
+              value={customFollowers}
+              onChangeText={setCustomFollowers}
+            />
+
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <TouchableOpacity
+                style={{ flex: 1, paddingVertical: 14, borderRadius: 12, borderWidth: 1, borderColor: '#CBD5E1', alignItems: 'center' }}
+                onPress={() => setFollowerModalVisible(false)}
+              >
+                <Text style={{ fontSize: 16, fontWeight: '600', color: '#64748B' }}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{ flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: '#2563EB', alignItems: 'center' }}
+                onPress={handleUpdateFollowers}
+                disabled={updatingFollowers}
+              >
+                {updatingFollowers ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={{ fontSize: 16, fontWeight: '700', color: '#FFFFFF' }}>Save</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
