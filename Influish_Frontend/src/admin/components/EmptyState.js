@@ -1,10 +1,3 @@
-/**
- * Empty State Component
- * 
- * Displays when lists or data are empty.
- * Provides clear messaging and optional action.
- */
-
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';

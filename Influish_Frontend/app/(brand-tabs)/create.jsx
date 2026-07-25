@@ -25,6 +25,7 @@ import { initiatePayment, calculateCampaignCost, formatCurrency } from '../../ut
 
 import { getAuthHeader } from '../../utils/storage';
 import { API, getApiUrl } from '../../constants/api';
+import * as ImagePicker from 'expo-image-picker';
 
 const { width: WIDTH, height: HEIGHT } = Dimensions.get('window');
 
@@ -99,6 +100,47 @@ export default function CreateCampaign() {
     }, 4000);
     return () => clearInterval(timer);
   }, [showForm]);
+
+  const handlePickGalleryImage = async () => {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Permission Needed', 'Please grant gallery access permission to upload product photos.');
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        setProductImage(result.assets[0].uri);
+      }
+    } catch (err) {
+      console.error('Gallery pick error:', err);
+      Alert.alert('Error', 'Failed to pick image from gallery');
+    }
+  };
+
+  const handleTakePhotoCamera = async () => {
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Permission Needed', 'Please grant camera access permission to capture product photos.');
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        setProductImage(result.assets[0].uri);
+      }
+    } catch (err) {
+      console.error('Camera capture error:', err);
+      Alert.alert('Error', 'Failed to capture photo from camera');
+    }
+  };
 
   const validateStep1 = () => {
     if (!campaignName.trim()) { Alert.alert('Error', 'Please enter campaign name'); return false; }
@@ -427,14 +469,48 @@ export default function CreateCampaign() {
                   </View>
 
                   <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Product Image / Photo Link (Optional)</Text>
+                    <Text style={styles.label}>Product Image / Photo</Text>
+                    
+                    {/* Selected Image Preview */}
+                    {productImage ? (
+                      <View style={{ marginBottom: 12, borderRadius: 16, overflow: 'hidden', position: 'relative' }}>
+                        <Image source={{ uri: productImage }} style={{ width: '100%', height: 180, resizeMode: 'cover' }} />
+                        <TouchableOpacity 
+                          style={{ position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(0,0,0,0.6)', padding: 6, borderRadius: 20 }}
+                          onPress={() => setProductImage('')}
+                        >
+                          <MaterialCommunityIcons name="close" size={20} color="#FFFFFF" />
+                        </TouchableOpacity>
+                      </View>
+                    ) : null}
+
+                    {/* Dual Action Buttons: Gallery & Camera */}
+                    <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
+                      <TouchableOpacity 
+                        style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#EFF6FF', borderColor: '#BFDBFE', borderWidth: 1, borderRadius: 14, paddingVertical: 12 }}
+                        onPress={handlePickGalleryImage}
+                      >
+                        <MaterialCommunityIcons name="image-multiple-outline" size={20} color="#2563EB" />
+                        <Text style={{ color: '#2563EB', fontWeight: '700', fontSize: 13 }}>Choose Gallery</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity 
+                        style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: '#F0FDF4', borderColor: '#BBF7D0', borderWidth: 1, borderRadius: 14, paddingVertical: 12 }}
+                        onPress={handleTakePhotoCamera}
+                      >
+                        <MaterialCommunityIcons name="camera-outline" size={20} color="#16A34A" />
+                        <Text style={{ color: '#16A34A', fontWeight: '700', fontSize: 13 }}>Take Photo</Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* Optional URL Input */}
                     <View style={styles.inputWrapper}>
-                      <MaterialCommunityIcons name="image-outline" size={22} color={THEME.textMuted} />
+                      <MaterialCommunityIcons name="link-variant" size={20} color={THEME.textMuted} />
                       <TextInput 
                         style={styles.input} 
                         value={productImage} 
                         onChangeText={setProductImage} 
-                        placeholder="https://images.unsplash.com/photo-..." 
+                        placeholder="Or paste image URL link..." 
                         placeholderTextColor={THEME.textMuted} 
                       />
                     </View>

@@ -57,7 +57,7 @@ const campaignSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['open', 'closed', 'paused'],
+    enum: ['open', 'active', 'closed', 'paused'],
     default: 'open'
   },
   is_deleted: {
