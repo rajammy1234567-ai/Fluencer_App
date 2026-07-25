@@ -138,13 +138,20 @@ const BannerSlider = () => {
   useEffect(() => {
     const fetchBanners = async () => {
       try {
-        const response = await fetch(getApiUrl(API.BANNERS));
+        const response = await fetch(getApiUrl(API.CAMPAIGNS.ACTIVE_ALL));
         const data = await response.json();
-        if (data.success && data.banners && data.banners.length > 0) {
-          setBanners(data.banners);
+        const activeList = data.campaigns || data.data || [];
+        if (activeList.length > 0) {
+          const mappedBanners = activeList.map(c => ({
+            id: c.id || c._id,
+            title: c.campaign_name || c.name || 'Active Campaign Drop',
+            subtitle: `${c.company_name || 'Krishna Private Limited'} • ₹${c.cost_per_influencer || 5000} Payout`,
+            image_url: c.product_image || (c.reference_images && c.reference_images[0]) || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=800'
+          }));
+          setBanners(mappedBanners);
         }
       } catch (err) {
-        console.warn('Failed to fetch banners:', err);
+        console.warn('Failed to fetch active campaign banners:', err);
       }
     };
     fetchBanners();
@@ -152,22 +159,22 @@ const BannerSlider = () => {
 
   const displayBanners = banners.length > 0 ? banners : [
     {
-      id: 'default_1',
-      title: 'Monetize Your Influence',
-      subtitle: 'Connect with Top Fashion & Lifestyle Brands',
-      image_url: 'https://images.unsplash.com/photo-1511556532299-8f662fc26c06?w=800&auto=format&fit=crop&q=80',
+      id: 'active_1',
+      title: 'Banarasi Silk Saree Campaign 2026',
+      subtitle: 'Krishna Private Limited • ₹8,500 Payout per Reel',
+      image_url: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=800&auto=format&fit=crop&q=80',
     },
     {
-      id: 'default_2',
-      title: 'Summer Campaign Drop 2026',
-      subtitle: 'Paid Reel Deals starting at ₹5,000 / Creator',
-      image_url: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&auto=format&fit=crop&q=80',
+      id: 'active_2',
+      title: 'Bridal Designer Lehenga Collection',
+      subtitle: 'Krishna Private Limited • ₹12,000 Payout per Reel',
+      image_url: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=800&auto=format&fit=crop&q=80',
     },
     {
-      id: 'default_3',
-      title: 'Zero Commission Deduction on First Deal',
-      subtitle: 'Grow, Learn & Earn with Fluencer',
-      image_url: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&auto=format&fit=crop&q=80',
+      id: 'active_3',
+      title: 'Summer Linen Kurta & Ethnic Sets',
+      subtitle: 'Krishna Private Limited • ₹6,500 Payout per Reel',
+      image_url: 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?w=800&auto=format&fit=crop&q=80',
     }
   ];
 
@@ -218,7 +225,7 @@ const BannerSlider = () => {
                   <Text style={styles.bannerTitle}>{item.title}</Text>
                   <Text style={styles.bannerSubtitle}>{item.subtitle}</Text>
                   <TouchableOpacity style={styles.bannerButton} onPress={() => router.push('/campaigns')}>
-                    <Text style={styles.bannerButtonText}>Explore Deals</Text>
+                    <Text style={styles.bannerButtonText}>Apply Now</Text>
                     <Ionicons name="arrow-forward" size={18} color={THEME.primary} />
                   </TouchableOpacity>
                   <View style={styles.discountBadge}>
