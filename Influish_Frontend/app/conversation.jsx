@@ -588,60 +588,50 @@ export default function ConversationScreen() {
         />
 
         {/* Input Box */}
-        <View style={[styles.inputContainer, { paddingBottom: insets.bottom || 10 }]}>
-          <View style={styles.inputWrapper}>
-            <TextInput
-              style={styles.input}
-              placeholder="Type your message or deal offer..."
-              placeholderTextColor="#94a3b8"
-              value={newMessage}
-              onChangeText={setNewMessage}
-              multiline
-              maxLength={1000}
-              editable={!sending}
-            />
-            {messagesRemaining <= 3 && (
-              <View style={styles.warningBadge}>
-                <MaterialCommunityIcons 
-                  name="alert" 
-                  size={12} 
-                  color={messagesRemaining === 0 ? '#ef4444' : '#f59e0b'} 
+        {(() => {
+          const isCompletedDeal = chatInfo?.status === 'completed' || chatInfo?.deliverable_status === 'approved' || chatInfo?.deliverable_status === 'brand_approved';
+          return (
+            <View style={[styles.inputContainer, { paddingBottom: insets.bottom || 10 }, isCompletedDeal && { backgroundColor: '#F8FAFC', borderTopColor: '#E2E8F0' }]}>
+              <View style={[styles.inputWrapper, isCompletedDeal && { backgroundColor: '#F1F5F9', borderColor: '#CBD5E1' }]}>
+                <TextInput
+                  style={[styles.input, isCompletedDeal && { color: '#475569', fontWeight: '600' }]}
+                  placeholder={isCompletedDeal ? "🔒 Deal completed & approved! Chat is closed." : "Type your message or deal offer..."}
+                  placeholderTextColor={isCompletedDeal ? "#64748B" : "#94a3b8"}
+                  value={isCompletedDeal ? "🔒 Deal Completed · Work Approved (Chat Closed)" : newMessage}
+                  onChangeText={setNewMessage}
+                  multiline={!isCompletedDeal}
+                  editable={!isCompletedDeal && !sending}
+                  maxLength={1000}
                 />
-                <Text style={[
-                  styles.warningText,
-                  messagesRemaining === 0 && { color: '#ef4444' }
-                ]}>
-                  {messagesRemaining} left
-                </Text>
               </View>
-            )}
-          </View>
-          <TouchableOpacity
-            style={[
-              styles.sendButton,
-              (!newMessage.trim() || sending) && styles.sendButtonDisabled,
-            ]}
-            onPress={handleSend}
-            disabled={!newMessage.trim() || sending}
-          >
-            <LinearGradient
-              colors={
-                !newMessage.trim() || sending
-                  ? ['#cbd5e1', '#94a3b8']
-                  : [BLUE, BLUE_DARK]
-              }
-              style={styles.sendGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              {sending ? (
-                <ActivityIndicator size="small" color={COLORS.white} />
-              ) : (
-                <MaterialCommunityIcons name="send" size={20} color={COLORS.white} />
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
+              <TouchableOpacity
+                style={[
+                  styles.sendButton,
+                  (!newMessage.trim() || sending || isCompletedDeal) && styles.sendButtonDisabled,
+                ]}
+                onPress={handleSend}
+                disabled={!newMessage.trim() || sending || isCompletedDeal}
+              >
+                <LinearGradient
+                  colors={
+                    !newMessage.trim() || sending || isCompletedDeal
+                      ? ['#cbd5e1', '#94a3b8']
+                      : [BLUE, BLUE_DARK]
+                  }
+                  style={styles.sendGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  {sending ? (
+                    <ActivityIndicator size="small" color={COLORS.white} />
+                  ) : (
+                    <MaterialCommunityIcons name={isCompletedDeal ? "lock" : "send"} size={20} color={COLORS.white} />
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          );
+        })()}
       </KeyboardAvoidingView>
 
       {/* REEL SUBMISSION MODAL DIALOG (CROSS PLATFORM WEB & NATIVE) */}

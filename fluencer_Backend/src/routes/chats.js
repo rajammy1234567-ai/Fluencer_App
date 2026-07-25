@@ -273,6 +273,14 @@ router.post('/:chatId/messages', authMiddleware, async (req, res) => {
 
     const isPaid = application && (application.status === 'escrow_locked' || application.status === 'completed');
 
+    if (chatDoc.status === 'completed' || (application && (application.status === 'completed' || application.deliverable_status === 'approved'))) {
+      return res.status(403).json({
+        success: false,
+        chat_completed: true,
+        message: '🔒 This deal chat has been marked as COMPLETED. Work deliverable approved! No further messages can be sent.'
+      });
+    }
+
     if (!isPaid) {
       const userMessageCount = await ChatMessage.countDocuments({
         chat_id: actualChatId,
