@@ -86,6 +86,7 @@ export default function CreateCampaign() {
   const [minFollowers, setMinFollowers] = useState('');
   const [costPerInfluencer, setCostPerInfluencer] = useState('');
   const [description, setDescription] = useState('');
+  const [productImage, setProductImage] = useState('');
 
   useEffect(() => {
     if (showForm) return;
@@ -174,6 +175,8 @@ export default function CreateCampaign() {
         min_followers: Number(minFollowers ?? 0),
         cost_per_influencer: campaignType === 'paid' ? Number(costPerInfluencer ?? 0) : 0,
         description,
+        product_image: productImage.trim() || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80',
+        reference_images: [productImage.trim() || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80']
       };
       const res = await fetch(getApiUrl(API.CAMPAIGNS.CREATE), {
         method: 'POST',
@@ -420,6 +423,20 @@ export default function CreateCampaign() {
                         <Text style={[styles.typeLabel, campaignType === 'barter' && styles.typeLabelActiveBarter]}>Barter</Text>
                         <Text style={styles.typeDesc}>Product exchange</Text>
                       </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Product Image / Photo Link (Optional)</Text>
+                    <View style={styles.inputWrapper}>
+                      <MaterialCommunityIcons name="image-outline" size={22} color={THEME.textMuted} />
+                      <TextInput 
+                        style={styles.input} 
+                        value={productImage} 
+                        onChangeText={setProductImage} 
+                        placeholder="https://images.unsplash.com/photo-..." 
+                        placeholderTextColor={THEME.textMuted} 
+                      />
                     </View>
                   </View>
 

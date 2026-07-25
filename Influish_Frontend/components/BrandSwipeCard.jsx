@@ -148,6 +148,10 @@ const BrandSwipeCard = ({ brand, onSwipeRight, onSwipeLeft, index = 0, isTop = f
 
         {/* Brand Info at Bottom */}
         <View style={styles.infoOverlay}>
+          <View style={styles.companyRow}>
+            <MaterialIcons name="business" size={15} color="#38BDF8" />
+            <Text style={styles.companyNameText}>{brand.company_name || 'Brand Company'}</Text>
+          </View>
           <View style={styles.brandHeader}>
             <View style={styles.nameRow}>
               <Text style={styles.name}>{brand.name}</Text>
@@ -229,6 +233,8 @@ const styles = StyleSheet.create({
     padding: 12,
     paddingBottom: 16,
   },
+  companyRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 2 },
+  companyNameText: { color: '#38BDF8', fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
   brandHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
