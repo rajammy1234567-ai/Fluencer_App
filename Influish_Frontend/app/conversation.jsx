@@ -492,7 +492,7 @@ export default function ConversationScreen() {
               onPress={handleLockDeal}
             >
               <MaterialCommunityIcons name="lock-check" size={18} color="#FFF" />
-              <Text style={styles.actionBtnText}>🔒 Lock Deal & Pay Escrow (₹{chatInfo?.cost_per_influencer || 5000})</Text>
+              <Text style={styles.actionBtnText}>🔒 Lock Deal & Pay Escrow (₹{(chatInfo?.deal_amount || chatInfo?.cost_per_influencer || 5000).toLocaleString('en-IN')})</Text>
             </TouchableOpacity>
           )}
         </View>

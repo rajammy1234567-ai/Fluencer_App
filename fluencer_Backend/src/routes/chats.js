@@ -215,8 +215,8 @@ router.get('/:chatId/messages', authMiddleware, async (req, res) => {
         deal_locked: isDealLocked,
         submission_url: submissionUrl,
         deliverable_status: chat.deliverable_status || (application ? application.deliverable_status : 'pending'),
-        cost_per_influencer: campaign ? campaign.cost_per_influencer : 5000,
-        deal_amount: (application ? application.escrow_amount : null) || chat.escrow_amount || (campaign ? campaign.cost_per_influencer : 5000)
+        cost_per_influencer: (campaign ? campaign.cost_per_influencer : null) || (application ? application.escrow_amount : 5000) || 5000,
+        deal_amount: (campaign ? campaign.cost_per_influencer : null) || (application ? application.escrow_amount : null) || chat.escrow_amount || 5000
       },
       messages: messages
     });
@@ -402,7 +402,7 @@ router.post('/:chatId/lock-deal', authMiddleware, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Application not found for this chat' });
     }
 
-    const dealAmount = application.escrow_amount || (campaign ? campaign.cost_per_influencer : 5000) || 5000;
+    const dealAmount = (campaign ? campaign.cost_per_influencer : null) || (application ? application.escrow_amount : null) || 5000;
 
     // Deduct Brand Wallet & Add to Escrow
     const brandProfile = await BrandProfile.findOne({ user_id: userId });
