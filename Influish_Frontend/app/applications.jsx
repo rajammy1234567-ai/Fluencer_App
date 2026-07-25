@@ -360,8 +360,10 @@ export default function ApplicationsScreen() {
           <TouchableOpacity
             style={styles.chatButton}
             onPress={() => {
-              if (item.chat_id) {
-                router.push(`/conversation?chatId=${item.chat_id}`);
+              const targetChatId = item.chat_id || item.id || item._id;
+              console.log('Opening chat with targetChatId:', targetChatId);
+              if (targetChatId) {
+                router.push(`/conversation?chatId=${targetChatId}`);
               } else {
                 Alert.alert('Info', 'Chat will be available soon');
               }

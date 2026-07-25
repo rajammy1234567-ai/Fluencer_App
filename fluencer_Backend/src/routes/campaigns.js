@@ -291,15 +291,26 @@ router.get('/:id/applications', authMiddleware, async (req, res) => {
     const Application = (await import('../models/Application.js')).default;
     const InfluencerProfile = (await import('../models/InfluencerProfile.js')).default;
     const User = (await import('../models/User.js')).default;
+    const Chat = (await import('../models/Chat.js')).default;
 
     const apps = await Application.find({ campaign_id: campaignId }).lean();
     
     const applications = await Promise.all(apps.map(async (app) => {
       const ip = await InfluencerProfile.findOne({ user_id: app.influencer_id }).lean();
       const user = await User.findById(app.influencer_id).lean();
+      const chatDoc = await Chat.findOne({ 
+        $or: [
+          { application_id: app._id },
+          { campaign_id: app.campaign_id, influencer_id: app.influencer_id }
+        ]
+      }).lean();
+
+      const chatId = chatDoc ? chatDoc._id.toString() : app._id.toString();
+
       return {
         ...app,
         id: app._id.toString(),
+        chat_id: chatId,
         influencer_name: ip ? (ip.name || 'Ananya Sharma') : 'Influencer',
         location: ip ? ip.location : 'Mumbai, MH',
         categories: ip ? ip.categories : ['Fashion'],
