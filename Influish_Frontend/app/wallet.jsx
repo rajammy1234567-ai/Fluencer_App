@@ -228,15 +228,27 @@ export default function Wallet() {
         {/* Quick Actions */}
         <View style={styles.actionsSection}>
           {balance.role === 'brand' || balance.role === 'business' ? (
-            <TouchableOpacity style={styles.actionButton} onPress={handleTopUp}>
-              <LinearGradient
-                colors={['#10B981', '#059669']}
-                style={styles.actionGradient}
-              >
-                <MaterialCommunityIcons name="plus-circle" size={24} color="#FFFFFF" />
-                <Text style={styles.actionText}>Top-Up +₹10,000</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity style={styles.actionButton} onPress={handleTopUp}>
+                <LinearGradient
+                  colors={['#10B981', '#059669']}
+                  style={styles.actionGradient}
+                >
+                  <MaterialCommunityIcons name="plus-circle" size={22} color="#FFFFFF" />
+                  <Text style={styles.actionText}>Add Funds / Top Up</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.actionButton} onPress={handleWithdraw}>
+                <LinearGradient
+                  colors={[COLORS.primary, COLORS.primaryDark]}
+                  style={styles.actionGradient}
+                >
+                  <MaterialCommunityIcons name="bank-transfer-out" size={22} color="#FFFFFF" />
+                  <Text style={styles.actionText}>Withdraw / Refund</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </>
           ) : (
             <TouchableOpacity style={styles.actionButton} onPress={handleWithdraw}>
               <LinearGradient
