@@ -471,7 +471,7 @@ export default function BrandProfile() {
               onPress={() => router.push('/wallet')}
             >
               <MaterialCommunityIcons name="wallet" size={24} color="#0D9488" />
-              <Text style={[styles.actionButtonText, { color: '#0F766E', fontWeight: '700' }]}>💳 Brand Wallet & Deposits</Text>
+              <Text style={[styles.actionButtonText, { color: '#0F766E', fontWeight: '700' }]}>💳 Brand Wallet & Escrow Funds (Available: ₹{(brandProfile?.wallet_balance || 0).toLocaleString('en-IN')})</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 

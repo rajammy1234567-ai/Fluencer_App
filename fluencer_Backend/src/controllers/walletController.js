@@ -121,20 +121,27 @@ export const updateBankDetails = async (req, res) => {
   }
 };
 
-// 4. Request Withdrawal (Influencer Payout)
+// 4. Request Withdrawal (Brand Refund / Influencer Payout)
 export const requestWithdrawal = async (req, res) => {
   try {
     const userId = req.user.userId || req.user.id;
-    const { amount, payout_method } = req.body;
+    const role = req.user.role;
+    const { amount, payout_method, upi_id } = req.body;
 
     const withdrawAmount = parseFloat(amount);
     if (!withdrawAmount || withdrawAmount <= 0) {
       return res.status(400).json({ success: false, message: 'Invalid withdrawal amount' });
     }
 
-    const profile = await InfluencerProfile.findOne({ user_id: userId });
+    let profile;
+    if (role === 'brand' || role === 'business') {
+      profile = await BrandProfile.findOne({ user_id: userId });
+    } else {
+      profile = await InfluencerProfile.findOne({ user_id: userId });
+    }
+
     if (!profile) {
-      return res.status(404).json({ success: false, message: 'Influencer profile not found' });
+      return res.status(404).json({ success: false, message: 'User profile not found' });
     }
 
     if ((profile.wallet_balance || 0) < withdrawAmount) {
@@ -152,13 +159,14 @@ export const requestWithdrawal = async (req, res) => {
     const withdrawal = await Withdrawal.create({
       user_id: userId,
       influencer_id: userId,
+      user_role: role,
       amount: withdrawAmount,
       bank_details: {
         method: payout_method || 'UPI',
-        upi_id: profile.upi_id,
+        upi_id: upi_id || profile.upi_id || 'brand@upi',
         account_number: profile.bank_account_number,
         ifsc: profile.ifsc_code,
-        holder_name: profile.account_holder_name
+        holder_name: profile.account_holder_name || profile.company_name || profile.name
       },
       status: 'pending'
     });
@@ -166,17 +174,17 @@ export const requestWithdrawal = async (req, res) => {
     // Create transaction record
     await WalletTransaction.create({
       user_id: userId,
-      user_role: 'influencer',
+      user_role: role,
       type: 'withdrawal',
       amount: withdrawAmount,
       status: 'pending',
-      description: `Withdrawal Request to ${payout_method || 'Bank'}`,
+      description: role === 'brand' ? `Brand Wallet Withdrawal / Refund to ${upi_id || 'UPI'}` : `Creator Payout Withdrawal to ${upi_id || 'UPI'}`,
       reference_id: withdrawal._id.toString()
     });
 
     res.json({
       success: true,
-      message: 'Withdrawal request submitted! Admin will process your payout.',
+      message: 'Withdrawal request submitted successfully! Admin will process your payout.',
       wallet_balance: profile.wallet_balance
     });
   } catch (error) {

@@ -259,9 +259,22 @@ export const releaseEscrowPayout = async (req, res) => {
   try {
     const { applicationId } = req.params;
 
-    const application = await Application.findById(applicationId);
+    let application = await Application.findById(applicationId).catch(() => null);
     if (!application) {
-      return res.status(404).json({ success: false, message: 'Application not found' });
+      const Chat = (await import('../models/Chat.js')).default;
+      const chat = await Chat.findById(applicationId).catch(() => null);
+      if (chat) {
+        application = await Application.findOne({
+          $or: [
+            { _id: chat.application_id },
+            { campaign_id: chat.campaign_id, influencer_id: chat.influencer_id }
+          ]
+        });
+      }
+    }
+
+    if (!application) {
+      return res.status(404).json({ success: false, message: 'Application not found for escrow release' });
     }
 
     const campaign = await Campaign.findById(application.campaign_id);

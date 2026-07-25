@@ -409,7 +409,7 @@ export default function Profile() {
               onPress={() => router.push('/wallet')}
             >
               <MaterialCommunityIcons name="wallet" size={24} color="#0D9488" />
-              <Text style={[styles.actionButtonText, { color: '#0F766E', fontWeight: '700' }]}>💳 My Wallet & Withdrawals</Text>
+              <Text style={[styles.actionButtonText, { color: '#0F766E', fontWeight: '700' }]}>💳 My Wallet & Withdrawals (₹{(profile?.wallet_balance || 0).toLocaleString('en-IN')})</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 

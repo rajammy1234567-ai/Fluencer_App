@@ -74,7 +74,7 @@ const SLIDES = [
 
 export default function CreateCampaign() {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(true);
   const flatListRef = useRef(null);
   
   const [step, setStep] = useState(1);
