@@ -290,11 +290,18 @@ export const releaseEscrowPayout = async (req, res) => {
     influencerProfile.wallet_balance = (influencerProfile.wallet_balance || 0) + finalPayout;
     await influencerProfile.save();
 
-    // Update Application Status
+    // Update Application & Chat Status
     application.deliverable_status = 'payout_released';
+    application.status = 'completed';
     application.commission_amount = commissionAmount;
     application.final_influencer_amount = finalPayout;
     await application.save();
+
+    const Chat = (await import('../models/Chat.js')).default;
+    await Chat.updateOne(
+      { $or: [{ application_id: application._id }, { campaign_id: application.campaign_id, influencer_id: application.influencer_id }] },
+      { deliverable_status: 'payout_released', status: 'completed' }
+    );
 
     // Create Wallet Transaction for Influencer (Credit)
     const WalletTransaction = (await import('../models/WalletTransaction.js')).default;

@@ -482,7 +482,7 @@ export default function ConversationScreen() {
       {isBrandOwnerView ? (
         // BRAND OWNER VIEW ONLY
         <View style={styles.actionBarContainer}>
-          {chatInfo?.deliverable_status === 'brand_approved' ? (
+          {(chatInfo?.deliverable_status === 'approved' || chatInfo?.deliverable_status === 'brand_approved' || chatInfo?.deliverable_status === 'payout_released') ? (
             <View style={[styles.actionBtn, { backgroundColor: '#15803D', flex: 1 }]}>
               <MaterialCommunityIcons name="check-decagram" size={18} color="#FFF" />
               <Text style={styles.actionBtnText}>✅ Work Approved · Escrow Payout Ready for Admin Release</Text>
@@ -517,7 +517,7 @@ export default function ConversationScreen() {
       ) : (
         // INFLUENCER / CREATOR VIEW ONLY
         <View style={styles.actionBarContainer}>
-          {chatInfo?.deliverable_status === 'brand_approved' ? (
+          {(chatInfo?.deliverable_status === 'approved' || chatInfo?.deliverable_status === 'brand_approved' || chatInfo?.deliverable_status === 'payout_released') ? (
             <View style={[styles.actionBtn, { backgroundColor: '#15803D', flex: 1 }]}>
               <MaterialCommunityIcons name="check-decagram" size={18} color="#FFF" />
               <Text style={styles.actionBtnText}>✅ Work Approved by Brand · Escrow Payout Ready</Text>
