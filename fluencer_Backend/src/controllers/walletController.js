@@ -23,6 +23,7 @@ export const getWalletBalance = async (req, res) => {
     res.json({
       success: true,
       data: {
+        role: role,
         wallet_balance: profile.wallet_balance || 0,
         escrow_balance: profile.escrow_balance || 0,
         upi_id: profile.upi_id || '',

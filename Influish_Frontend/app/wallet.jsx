@@ -69,17 +69,31 @@ export default function Wallet() {
   }
 
   const handleTopUp = async () => {
+    let topUpAmount = 10000;
+    if (Platform.OS === 'web') {
+      const amountStr = window.prompt('💳 Enter amount to Top Up your Brand Wallet (₹):', '10000');
+      if (!amountStr) return;
+      topUpAmount = parseFloat(amountStr);
+      if (!topUpAmount || topUpAmount <= 0) {
+        return window.alert('Invalid Amount: Please enter a valid top-up amount.');
+      }
+    }
+
     try {
       setLoading(true);
       const headers = await getAuthHeader();
       const res = await fetch(`${API_CONFIG.BASE_URL}/api/wallet/deposit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...headers },
-        body: JSON.stringify({ amount: 10000, is_simulation: true })
+        body: JSON.stringify({ amount: topUpAmount, is_simulation: true })
       });
       const data = await res.json();
       if (data.success) {
-        Alert.alert('Success', '₹10,000 added to your Brand Wallet (Simulation Mode)!');
+        if (Platform.OS === 'web') {
+          window.alert(`🎉 Success: ₹${topUpAmount.toLocaleString('en-IN')} credited to your Brand Wallet!`);
+        } else {
+          Alert.alert('🎉 Success', `₹${topUpAmount.toLocaleString('en-IN')} credited to your Brand Wallet!`);
+        }
         fetchWalletData();
       } else {
         Alert.alert('Error', data.message || 'Failed to top-up wallet');
