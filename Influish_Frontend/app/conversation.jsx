@@ -354,6 +354,24 @@ export default function ConversationScreen() {
         const headers = await getAuthHeader();
         const res = await fetch(getApiUrl(`/api/chats/${chatId}/lock-deal`), { method: 'POST', headers });
         const data = await res.json();
+        if (!data.success && (data.message?.toLowerCase().includes('insufficient') || res.status === 400)) {
+          if (Platform.OS === 'web') {
+            if (window.confirm(`⚠️ Insufficient Wallet Balance!\n\nRequired: ₹${amount.toLocaleString('en-IN')}.\nWould you like to Top Up your Brand Wallet now?`)) {
+              router.push('/wallet');
+            }
+          } else {
+            Alert.alert(
+              '⚠️ Insufficient Balance',
+              `Required: ₹${amount.toLocaleString('en-IN')}.\nWould you like to Top Up your Brand Wallet now?`,
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: '💳 Top Up Wallet', onPress: () => router.push('/wallet') }
+              ]
+            );
+          }
+          return;
+        }
+
         if (Platform.OS === 'web') {
           window.alert(data.success ? `🔒 Success: Deal locked and ₹${data.dealAmount || amount} deposited into Escrow!` : 'Error: ' + (data.message || data.error));
         } else {
