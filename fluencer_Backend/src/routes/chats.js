@@ -1,4 +1,5 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import Chat from '../models/Chat.js';
 import ChatMessage from '../models/ChatMessage.js';
 import Campaign from '../models/Campaign.js';
@@ -8,6 +9,50 @@ import User from '../models/User.js';
 import authMiddleware from '../middleware/auth.js';
 
 const router = express.Router();
+
+// Helper function to resolve or auto-create single unique chat thread
+async function resolveChatDoc(paramId, userId) {
+  let chat = null;
+  const isValidObject = mongoose.Types.ObjectId.isValid(paramId);
+  
+  if (isValidObject) {
+    chat = await Chat.findOne({
+      _id: paramId,
+      $or: [{ brand_id: userId }, { influencer_id: userId }]
+    });
+  }
+
+  if (!chat && isValidObject) {
+    chat = await Chat.findOne({
+      application_id: paramId,
+      $or: [{ brand_id: userId }, { influencer_id: userId }]
+    });
+  }
+
+  if (!chat && isValidObject) {
+    const Application = (await import('../models/Application.js')).default;
+    const appDoc = await Application.findById(paramId).lean();
+    if (appDoc) {
+      let existing = await Chat.findOne({
+        campaign_id: appDoc.campaign_id,
+        influencer_id: appDoc.influencer_id
+      });
+      if (!existing) {
+        const Campaign = (await import('../models/Campaign.js')).default;
+        const camp = await Campaign.findById(appDoc.campaign_id).lean();
+        existing = await Chat.create({
+          application_id: appDoc._id,
+          campaign_id: appDoc.campaign_id,
+          brand_id: camp ? camp.brand_id : userId,
+          influencer_id: appDoc.influencer_id,
+          status: appDoc.status === 'accepted' ? 'accepted' : 'pending'
+        });
+      }
+      chat = existing;
+    }
+  }
+  return chat;
+}
 
 // Get all chats for current user (both brand and influencer)
 router.get('/', authMiddleware, async (req, res) => {
@@ -61,7 +106,6 @@ router.get('/', authMiddleware, async (req, res) => {
       return ch;
     }));
 
-    // Sort by last message time
     chats.sort((a, b) => new Date(b.last_message_time || 0) - new Date(a.last_message_time || 0));
 
     res.status(200).json({ 
@@ -84,20 +128,18 @@ router.get('/:chatId/messages', authMiddleware, async (req, res) => {
     const chatId = req.params.chatId;
     const userId = req.user.userId;
 
-    // Verify user is part of this chat
-    const chat = await Chat.findOne({
-      _id: chatId,
-      $or: [{ brand_id: userId }, { influencer_id: userId }]
-    }).lean();
+    const chatDoc = await resolveChatDoc(chatId, userId);
 
-    if (!chat) {
+    if (!chatDoc) {
       return res.status(404).json({ 
         success: false, 
         message: 'Chat not found or unauthorized' 
       });
     }
 
-    // Get other user's info for header
+    const chat = chatDoc.toObject ? chatDoc.toObject() : chatDoc;
+    const actualChatId = chat._id.toString();
+
     let otherUserName = '';
     let campaignName = '';
     
@@ -114,8 +156,7 @@ router.get('/:chatId/messages', authMiddleware, async (req, res) => {
       otherUserName = bp ? bp.company_name : 'Brand';
     }
 
-    // Get messages
-    const msgs = await ChatMessage.find({ chat_id: chatId }).sort({ created_at: 1 }).lean();
+    const msgs = await ChatMessage.find({ chat_id: actualChatId }).sort({ created_at: 1 }).lean();
 
     const messages = await Promise.all(msgs.map(async (cm) => {
       const sender = await User.findById(cm.sender_id).select('role').lean();
@@ -145,9 +186,8 @@ router.get('/:chatId/messages', authMiddleware, async (req, res) => {
       return cm;
     }));
 
-    // Mark messages as read
     await ChatMessage.updateMany(
-      { chat_id: chatId, sender_id: { $ne: userId } },
+      { chat_id: actualChatId, sender_id: { $ne: userId } },
       { is_read: true }
     );
 
@@ -159,14 +199,14 @@ router.get('/:chatId/messages', authMiddleware, async (req, res) => {
       ]
     }).select('status deliverable_status escrow_amount submission_url').lean();
 
-    const isDealLocked = chat.deal_locked || chat.status === 'accepted' || chat.status === 'locked' || chat.status === 'escrow_locked' || (application && application.status === 'accepted') || !!chat.escrow_amount;
+    const isDealLocked = chat.deal_locked || chat.status === 'accepted' || chat.status === 'locked' || chat.status === 'escrow_locked' || (application && (application.status === 'escrow_locked' || application.status === 'completed')) || !!chat.escrow_amount;
     const submissionUrl = chat.submission_url || (application ? application.submission_url : null);
 
     res.status(200).json({ 
       success: true, 
       chat: {
         ...chat,
-        id: chat._id.toString(),
+        id: actualChatId,
         other_user_name: otherUserName,
         campaign_name: campaignName,
         current_user_role: req.user.role,
@@ -190,7 +230,7 @@ router.get('/:chatId/messages', authMiddleware, async (req, res) => {
   }
 });
 
-// Send a message (with 10 message limit)
+// Send a message (with 10 message free limit)
 router.post('/:chatId/messages', authMiddleware, async (req, res) => {
   try {
     const chatId = req.params.chatId;
@@ -204,39 +244,60 @@ router.post('/:chatId/messages', authMiddleware, async (req, res) => {
       });
     }
 
-    // Verify user is part of this chat
-    const chat = await Chat.findOne({
-      _id: chatId,
-      $or: [{ brand_id: userId }, { influencer_id: userId }]
-    });
+    const chatDoc = await resolveChatDoc(chatId, userId);
 
-    if (!chat) {
+    if (!chatDoc) {
       return res.status(404).json({ 
         success: false, 
         message: 'Chat not found or unauthorized' 
       });
     }
 
-    // Check if chat is active
-    if (!chat.is_active) {
+    const actualChatId = chatDoc._id.toString();
+
+    if (!chatDoc.is_active) {
       return res.status(403).json({ 
         success: false, 
         message: 'Chat is no longer active' 
       });
     }
 
-    // Insert message
+    // Check deal escrow payment status
+    const Application = (await import('../models/Application.js')).default;
+    const application = await Application.findOne({
+      $or: [
+        { campaign_id: chatDoc.campaign_id, influencer_id: chatDoc.influencer_id },
+        { _id: chatDoc.application_id }
+      ]
+    }).lean();
+
+    const isPaid = application && (application.status === 'escrow_locked' || application.status === 'completed');
+
+    if (!isPaid) {
+      const userMessageCount = await ChatMessage.countDocuments({
+        chat_id: actualChatId,
+        message_type: { $ne: 'system' }
+      });
+
+      if (userMessageCount >= 10) {
+        return res.status(403).json({
+          success: false,
+          free_limit_reached: true,
+          message: '🔒 Free limit reached (10/10 messages). Brand must lock deal & deposit escrow to unlock unlimited chat!'
+        });
+      }
+    }
+
     const result = await ChatMessage.create({
-      chat_id: chatId,
+      chat_id: actualChatId,
       sender_id: userId,
       message: message.trim(),
       message_type: message_type || 'text',
       is_read: false
     });
 
-    // Update message count
-    chat.message_count += 1;
-    await chat.save();
+    chatDoc.message_count += 1;
+    await chatDoc.save();
 
     res.status(201).json({ 
       success: true, 
@@ -318,15 +379,24 @@ router.post('/:chatId/lock-deal', authMiddleware, async (req, res) => {
     const chatId = req.params.chatId;
     const userId = req.user.userId;
 
-    const chat = await Chat.findById(chatId);
-    if (!chat) return res.status(404).json({ success: false, message: 'Chat not found' });
+    const chatDoc = await resolveChatDoc(chatId, userId);
+    if (!chatDoc) return res.status(404).json({ success: false, message: 'Chat not found' });
+    
+    const actualChatId = chatDoc._id.toString();
+    const chat = chatDoc;
+
     if (chat.brand_id.toString() !== userId.toString()) {
       return res.status(403).json({ success: false, message: 'Only brand owner can lock deal' });
     }
 
     const Application = (await import('../models/Application.js')).default;
     const campaign = await Campaign.findById(chat.campaign_id);
-    const application = await Application.findOne({ campaign_id: chat.campaign_id, influencer_id: chat.influencer_id });
+    const application = await Application.findOne({
+      $or: [
+        { campaign_id: chat.campaign_id, influencer_id: chat.influencer_id },
+        { _id: chat.application_id }
+      ]
+    });
 
     if (!application) {
       return res.status(404).json({ success: false, message: 'Application not found for this chat' });
@@ -350,20 +420,20 @@ router.post('/:chatId/lock-deal', authMiddleware, async (req, res) => {
       await influencerProfile.save();
     }
 
-    application.status = 'accepted';
+    application.status = 'escrow_locked';
     application.escrow_amount = dealAmount;
     await application.save();
 
-    chat.status = 'accepted';
+    chat.status = 'escrow_locked';
     chat.deal_locked = true;
     chat.escrow_amount = dealAmount;
     await chat.save();
 
     // Post system message into Chat
     await ChatMessage.create({
-      chat_id: chatId,
+      chat_id: actualChatId,
       sender_id: userId,
-      message: `🔒 DEAL LOCKED! Brand deposited ₹${dealAmount} into Escrow. Creator can now shoot and submit the reel.`,
+      message: `🛡️ Brand deposited ₹${dealAmount} into Escrow. Creator can now shoot and submit the reel.`,
       message_type: 'system',
       is_read: false
     });
@@ -386,8 +456,11 @@ router.post('/:chatId/submit-work', authMiddleware, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Instagram Reel URL is required' });
     }
 
-    const chat = await Chat.findById(chatId);
-    if (!chat) return res.status(404).json({ success: false, message: 'Chat not found' });
+    const chatDoc = await resolveChatDoc(chatId, userId);
+    if (!chatDoc) return res.status(404).json({ success: false, message: 'Chat not found' });
+    
+    const actualChatId = chatDoc._id.toString();
+    const chat = chatDoc;
 
     const Application = (await import('../models/Application.js')).default;
     let application = null;
@@ -419,9 +492,9 @@ router.post('/:chatId/submit-work', authMiddleware, async (req, res) => {
 
     // Post system message into Chat
     await ChatMessage.create({
-      chat_id: chatId,
+      chat_id: actualChatId,
       sender_id: userId,
-      message: `🎬 WORK SUBMITTED! Creator submitted Reel proof: ${submission_url}`,
+      message: `🎬 Creator submitted Reel proof for brand review.`,
       message_type: 'system',
       is_read: false
     });
@@ -443,12 +516,15 @@ router.post('/:chatId/approve-work', authMiddleware, async (req, res) => {
     const chatId = req.params.chatId;
     const userId = req.user.userId;
 
-    const chat = await Chat.findById(chatId);
-    if (!chat) return res.status(404).json({ success: false, message: 'Chat not found' });
+    const chatDoc = await resolveChatDoc(chatId, userId);
+    if (!chatDoc) return res.status(404).json({ success: false, message: 'Chat not found' });
+    
+    const actualChatId = chatDoc._id.toString();
+    const chat = chatDoc;
 
     const isBrandUser = req.user.role === 'brand' || chat.brand_id.toString() === userId.toString();
     if (!isBrandUser) {
-      return res.status(403).json({ success: false, message: 'Only brand owner can approve work' });
+      return res.status(403).json({ success: false, message: 'Only brand owner can approve work quality' });
     }
 
     const Application = (await import('../models/Application.js')).default;
@@ -459,35 +535,31 @@ router.post('/:chatId/approve-work', authMiddleware, async (req, res) => {
     }
 
     if (!application) {
-      application = await Application.findOne({
-        $or: [
-          { campaign_id: chat.campaign_id, influencer_id: chat.influencer_id },
-          { campaign_id: chat.campaign_id }
-        ]
-      });
+      application = await Application.findOne({ campaign_id: chat.campaign_id, influencer_id: chat.influencer_id });
     }
 
     if (application) {
-      application.deliverable_status = 'brand_approved';
-      application.approved_at = new Date();
+      application.deliverable_status = 'approved';
+      application.status = 'completed';
       await application.save();
     }
 
-    chat.deliverable_status = 'brand_approved';
+    chat.deliverable_status = 'approved';
+    chat.status = 'completed';
     await chat.save();
 
     // Post system message into Chat
     await ChatMessage.create({
-      chat_id: chatId,
+      chat_id: actualChatId,
       sender_id: userId,
-      message: `✅ WORK APPROVED! Brand verified content quality. Escrow payout ready for Admin release!`,
+      message: `✅ Work Approved · Escrow Payout Ready for Admin Release`,
       message_type: 'system',
       is_read: false
     });
 
     res.json({
       success: true,
-      message: 'Creator work deliverable approved successfully!'
+      message: 'Deliverable quality approved successfully! Payout queued for Web Admin release.'
     });
   } catch (error) {
     console.error('In-chat approve work error:', error);
