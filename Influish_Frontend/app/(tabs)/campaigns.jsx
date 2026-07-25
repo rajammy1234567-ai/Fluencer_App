@@ -19,6 +19,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useLocalSearchParams } from 'expo-router';
 
 import BrandSwipeCard from '../../components/BrandSwipeCard';
 import { COLORS } from '../../constants/colors';
@@ -31,6 +32,7 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function InfluencerCampaigns() {
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams();
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -63,7 +65,7 @@ export default function InfluencerCampaigns() {
   useFocusEffect(
     React.useCallback(() => {
       fetchCampaigns();
-    }, [])
+    }, [params.campaignId])
   );
 
 
@@ -84,6 +86,28 @@ export default function InfluencerCampaigns() {
         const allCampaigns = data.campaigns || [];
         console.log('Campaigns count:', allCampaigns.length);
         setCampaigns(allCampaigns);
+
+        if (params.campaignId) {
+          const target = allCampaigns.find(c => String(c._id || c.id) === String(params.campaignId));
+          if (target) {
+            const formatted = {
+              id: target._id || target.id,
+              brandName: target.brand_name || 'Krishna Private Limited',
+              title: target.campaign_name,
+              category: target.content_type?.toUpperCase() || 'REEL',
+              followers: '10K+',
+              payout: `₹${target.cost_per_influencer}`,
+              seats: target.number_of_seats || 5,
+              description: target.description || '',
+              rating: 'New',
+              verified: true,
+              referenceImages: target.reference_images || [],
+              productImage: target.product_image || (target.reference_images && target.reference_images[0]),
+            };
+            setSelectedCampaign(formatted);
+            setDetailModalVisible(true);
+          }
+        }
       } else {
         console.log('Fetch failed:', data.message);
         Alert.alert('Error', data.message || 'Failed to fetch campaigns');

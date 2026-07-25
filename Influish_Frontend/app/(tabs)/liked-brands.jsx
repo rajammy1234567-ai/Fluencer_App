@@ -76,12 +76,15 @@ export default function LikedBrands() {
     );
   };
 
-  const handleBrandPress = (brand) => {
-    // Navigate to brand detail screen (to be created)
+  const handleViewCampaigns = (item) => {
     router.push({
-      pathname: '/brand-detail',
-      params: { brandId: brand.id },
+      pathname: '/campaigns',
+      params: { campaignId: item.id || item._id, openApply: 'true' }
     });
+  };
+
+  const handleBrandPress = (brand) => {
+    handleViewCampaigns(brand);
   };
 
   const renderBrand = ({ item }) => (
@@ -138,7 +141,7 @@ export default function LikedBrands() {
         </View>
       </View>
 
-      <TouchableOpacity style={styles.viewButton}>
+      <TouchableOpacity style={styles.viewButton} onPress={() => handleViewCampaigns(item)}>
         <Text style={styles.viewButtonText}>View Campaigns</Text>
         <MaterialCommunityIcons
           name="arrow-right"
