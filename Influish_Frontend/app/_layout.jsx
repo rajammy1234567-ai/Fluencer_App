@@ -3,6 +3,7 @@ import "../global.css";
 import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import { isAuthenticated } from "../utils/storage";
+import GlobalErrorBoundary from "../components/GlobalErrorBoundary";
 
 export default function RootLayout() {
   const [isLoggedIn, setIsLoggedIn] = useState(null);
@@ -18,15 +19,17 @@ export default function RootLayout() {
   };
 
   return (
-    <Stack screenOptions={{ headerShown: false, animationEnabled: true }}>
-      <Stack.Screen name="splash" />
-      <Stack.Screen name="role-selection" />
-      <Stack.Screen name="(auth)" />
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="(brand-tabs)" />
-      <Stack.Screen name="settings" />
-      <Stack.Screen name="selected-brands" />
-      <Stack.Screen name="conversation" options={{ headerShown: false }} />
-    </Stack>
+    <GlobalErrorBoundary>
+      <Stack screenOptions={{ headerShown: false, animationEnabled: true }}>
+        <Stack.Screen name="splash" />
+        <Stack.Screen name="role-selection" />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="(brand-tabs)" />
+        <Stack.Screen name="settings" />
+        <Stack.Screen name="selected-brands" />
+        <Stack.Screen name="conversation" options={{ headerShown: false }} />
+      </Stack>
+    </GlobalErrorBoundary>
   );
 }
