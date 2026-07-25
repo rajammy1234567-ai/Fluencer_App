@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   Platform,
   Alert,
+  Modal,
+  TextInput,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -22,6 +24,15 @@ export default function Wallet() {
   const [loading, setLoading] = useState(true);
   const [balance, setBalance] = useState({ total: 0, pending: 0, available: 0 });
   const [transactions, setTransactions] = useState([]);
+
+  // Modal States for Top-Up and Withdrawal
+  const [topUpModalVisible, setTopUpModalVisible] = useState(false);
+  const [topUpInputAmount, setTopUpInputAmount] = useState('10000');
+
+  const [withdrawModalVisible, setWithdrawModalVisible] = useState(false);
+  const [withdrawInputAmount, setWithdrawInputAmount] = useState('');
+  const [withdrawUpiId, setWithdrawUpiId] = useState('');
+  const [submittingAction, setSubmittingAction] = useState(false);
 
   const fetchWalletData = async () => {
     try {
@@ -59,8 +70,7 @@ export default function Wallet() {
     fetchWalletData();
   }, []);
 
-
-  if (loading) {
+  if (loading && !submittingAction) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
@@ -68,114 +78,80 @@ export default function Wallet() {
     );
   }
 
-  const handleTopUp = async () => {
-    let topUpAmount = 10000;
-    if (Platform.OS === 'web') {
-      const amountStr = window.prompt('💳 Enter amount to Top Up your Brand Wallet (₹):', '10000');
-      if (!amountStr) return;
-      topUpAmount = parseFloat(amountStr);
-      if (!topUpAmount || topUpAmount <= 0) {
-        return window.alert('Invalid Amount: Please enter a valid top-up amount.');
-      }
-    }
+  const handleTopUp = () => {
+    setTopUpInputAmount('10000');
+    setTopUpModalVisible(true);
+  };
 
+  const submitTopUp = async () => {
+    const amount = parseFloat(topUpInputAmount);
+    if (!amount || amount <= 0) {
+      Alert.alert('Error', 'Please enter a valid deposit amount');
+      return;
+    }
+    setSubmittingAction(true);
     try {
-      setLoading(true);
       const headers = await getAuthHeader();
       const res = await fetch(`${API_CONFIG.BASE_URL}/api/wallet/deposit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...headers },
-        body: JSON.stringify({ amount: topUpAmount, is_simulation: true })
+        body: JSON.stringify({ amount, is_simulation: true })
       });
       const data = await res.json();
       if (data.success) {
-        if (Platform.OS === 'web') {
-          window.alert(`🎉 Success: ₹${topUpAmount.toLocaleString('en-IN')} credited to your Brand Wallet!`);
-        } else {
-          Alert.alert('🎉 Success', `₹${topUpAmount.toLocaleString('en-IN')} credited to your Brand Wallet!`);
-        }
+        setTopUpModalVisible(false);
+        Alert.alert('🎉 Deposit Successful', `₹${amount.toLocaleString('en-IN')} credited to your Brand Wallet!`);
         fetchWalletData();
       } else {
         Alert.alert('Error', data.message || 'Failed to top-up wallet');
-        setLoading(false);
       }
     } catch (err) {
-      console.error(err);
-      setLoading(false);
+      Alert.alert('Error', 'Failed to deposit funds');
+    } finally {
+      setSubmittingAction(false);
     }
   };
 
-  const handleWithdraw = async () => {
+  const handleWithdraw = () => {
     if (balance.available <= 0) {
-      if (Platform.OS === 'web') window.alert('Notice: You have no available balance to withdraw.');
-      else Alert.alert('Notice', 'You have no available balance to withdraw.');
+      Alert.alert('Notice', 'You have no available balance to withdraw.');
       return;
     }
+    setWithdrawInputAmount(String(balance.available || '0'));
+    setWithdrawUpiId(balance.role === 'brand' ? 'krishna@upi' : 'ananya@okicici');
+    setWithdrawModalVisible(true);
+  };
 
-    if (Platform.OS === 'web') {
-      const amountStr = window.prompt(`Enter amount to withdraw to UPI (Max Available: ₹${balance.available}):`, String(balance.available));
-      if (!amountStr) return;
-      const upiId = window.prompt(`Enter your UPI ID for payout (e.g. name@upi):`, 'ananya@okicici');
-      if (!upiId) return;
-
-      const amount = parseFloat(amountStr);
-      if (!amount || amount <= 0 || amount > balance.available) {
-        return window.alert('Invalid Amount: Please enter a valid amount within your available balance.');
+  const submitWithdraw = async () => {
+    const amount = parseFloat(withdrawInputAmount);
+    if (!amount || amount <= 0 || amount > balance.available) {
+      Alert.alert('Error', `Please enter a valid amount up to your available balance (₹${balance.available.toLocaleString('en-IN')})`);
+      return;
+    }
+    if (!withdrawUpiId.trim()) {
+      Alert.alert('Error', 'Please enter your UPI ID or bank account details');
+      return;
+    }
+    setSubmittingAction(true);
+    try {
+      const headers = await getAuthHeader();
+      const res = await fetch(`${API_CONFIG.BASE_URL}/api/wallet/withdraw-request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...headers },
+        body: JSON.stringify({ amount, upi_id: withdrawUpiId.trim(), payout_method: 'UPI' })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setWithdrawModalVisible(false);
+        Alert.alert('✅ Request Submitted', 'Withdrawal request submitted! Admin will process your payout.');
+        fetchWalletData();
+      } else {
+        Alert.alert('Error', data.message || 'Withdrawal request failed');
       }
-      try {
-        setLoading(true);
-        const headers = await getAuthHeader();
-        const res = await fetch(`${API_CONFIG.BASE_URL}/api/wallet/withdraw-request`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...headers },
-          body: JSON.stringify({ amount, upi_id: upiId, payout_method: 'UPI' })
-        });
-        const data = await res.json();
-        if (data.success) {
-          window.alert('✅ Success: Cash withdrawal request submitted! Admin will process your payout.');
-          fetchWalletData();
-        } else {
-          window.alert('Error: ' + (data.message || 'Withdrawal failed'));
-          setLoading(false);
-        }
-      } catch (err) {
-        console.error(err);
-        window.alert('Error: Withdrawal request failed');
-        setLoading(false);
-      }
-    } else {
-      Alert.alert(
-        'Withdraw Cash to UPI',
-        `Request payout of ₹${balance.available} to your UPI account? Admin will process your payment.`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Submit Request',
-            onPress: async () => {
-              try {
-                setLoading(true);
-                const headers = await getAuthHeader();
-                const res = await fetch(`${API_CONFIG.BASE_URL}/api/wallet/withdraw-request`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json', ...headers },
-                  body: JSON.stringify({ amount: balance.available, upi_id: 'ananya@okicici', payout_method: 'UPI' })
-                });
-                const data = await res.json();
-                if (data.success) {
-                  Alert.alert('Success', 'Withdrawal request submitted! Admin will process your payout.');
-                  fetchWalletData();
-                } else {
-                  Alert.alert('Error', data.message || 'Withdrawal failed');
-                  setLoading(false);
-                }
-              } catch (err) {
-                console.error(err);
-                setLoading(false);
-              }
-            }
-          }
-        ]
-      );
+    } catch (err) {
+      Alert.alert('Error', 'Withdrawal request failed');
+    } finally {
+      setSubmittingAction(false);
     }
   };
 
@@ -314,6 +290,114 @@ export default function Wallet() {
           ))}
         </View>
       </ScrollView>
+
+      {/* NATIVE TOP-UP MODAL */}
+      <Modal
+        visible={topUpModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setTopUpModalVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <View style={{ width: '100%', backgroundColor: '#FFFFFF', borderRadius: 24, padding: 24, elevation: 8 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <Text style={{ fontSize: 20, fontWeight: '700', color: '#1E293B' }}>💳 Top Up Wallet Balance</Text>
+              <TouchableOpacity onPress={() => setTopUpModalVisible(false)}>
+                <MaterialCommunityIcons name="close" size={24} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={{ fontSize: 13, color: '#64748B', marginBottom: 12 }}>Select Quick Amount (₹):</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+              {['1000', '5000', '10000', '25000', '50000'].map((amt) => (
+                <TouchableOpacity
+                  key={amt}
+                  style={{
+                    paddingHorizontal: 14,
+                    paddingVertical: 8,
+                    borderRadius: 20,
+                    backgroundColor: topUpInputAmount === amt ? '#10B981' : '#F1F5F9',
+                  }}
+                  onPress={() => setTopUpInputAmount(amt)}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: topUpInputAmount === amt ? '#FFFFFF' : '#475569' }}>
+                    +₹{parseInt(amt).toLocaleString('en-IN')}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={{ fontSize: 13, color: '#64748B', marginBottom: 6 }}>Custom Deposit Amount (₹):</Text>
+            <TextInput
+              style={{ width: '100%', backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontSize: 18, fontWeight: '700', color: '#1E293B', marginBottom: 20 }}
+              placeholder="e.g. 10000"
+              keyboardType="numeric"
+              value={topUpInputAmount}
+              onChangeText={setTopUpInputAmount}
+            />
+
+            <TouchableOpacity
+              style={{ width: '100%', paddingVertical: 14, borderRadius: 12, backgroundColor: '#10B981', alignItems: 'center' }}
+              onPress={submitTopUp}
+              disabled={submittingAction}
+            >
+              {submittingAction ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#FFFFFF' }}>Deposit Funds</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* NATIVE WITHDRAWAL MODAL */}
+      <Modal
+        visible={withdrawModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setWithdrawModalVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <View style={{ width: '100%', backgroundColor: '#FFFFFF', borderRadius: 24, padding: 24, elevation: 8 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <Text style={{ fontSize: 20, fontWeight: '700', color: '#1E293B' }}>💸 Withdraw / Refund Request</Text>
+              <TouchableOpacity onPress={() => setWithdrawModalVisible(false)}>
+                <MaterialCommunityIcons name="close" size={24} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={{ fontSize: 13, color: '#64748B', marginBottom: 6 }}>Withdrawal Amount (Available: ₹{balance.available.toLocaleString('en-IN')}):</Text>
+            <TextInput
+              style={{ width: '100%', backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontSize: 18, fontWeight: '700', color: '#1E293B', marginBottom: 16 }}
+              placeholder="e.g. 5000"
+              keyboardType="numeric"
+              value={withdrawInputAmount}
+              onChangeText={setWithdrawInputAmount}
+            />
+
+            <Text style={{ fontSize: 13, color: '#64748B', marginBottom: 6 }}>UPI ID / Bank Payout Details:</Text>
+            <TextInput
+              style={{ width: '100%', backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, color: '#1E293B', marginBottom: 20 }}
+              placeholder="e.g. name@upi or Account Details"
+              value={withdrawUpiId}
+              onChangeText={setWithdrawUpiId}
+            />
+
+            <TouchableOpacity
+              style={{ width: '100%', paddingVertical: 14, borderRadius: 12, backgroundColor: '#2563EB', alignItems: 'center' }}
+              onPress={submitWithdraw}
+              disabled={submittingAction}
+            >
+              {submittingAction ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#FFFFFF' }}>Submit Withdrawal Request</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
