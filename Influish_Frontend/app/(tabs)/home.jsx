@@ -453,7 +453,7 @@ const TrendingVideosSection = () => {
             <TouchableOpacity style={styles.trendingCard} onPress={() => handleVideoPress(video)}>
               <View style={styles.trendingImageContainer}>
                 <Image 
-                  source={{ uri: video.image || video.banner || video.thumbnail || 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400&h=300&fit=crop' }} 
+                  source={{ uri: video.product_image || (video.reference_images && video.reference_images[0]) || video.brand_image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500' }} 
                   style={styles.trendingImage} 
                 />
                 <LinearGradient
@@ -470,7 +470,7 @@ const TrendingVideosSection = () => {
                 </View>
               </View>
               <View style={styles.trendingInfo}>
-                <Text style={styles.trendingTitle} numberOfLines={2}>{video.name || video.title}</Text>
+                <Text style={styles.trendingTitle} numberOfLines={2}>{video.campaign_name || video.name || video.title}</Text>
                 <View style={styles.companyOverlay}>
                    <Text style={styles.companyNameOverlay} numberOfLines={1}>
                      {video.company_name || video.brand_name || 'Brand'}
@@ -579,17 +579,17 @@ const OpportunitiesSection = () => {
                  </View>
                  <View style={styles.compactBadge}>
                     <Text style={styles.compactBadgeText}>
-                      {opportunity.price ? `₹${opportunity.price}` : 'Paid'}
+                      {opportunity.cost_per_influencer ? `₹${opportunity.cost_per_influencer}` : (opportunity.price ? `₹${opportunity.price}` : 'Paid')}
                     </Text>
                  </View>
               </View>
               
               <Text style={styles.compactTitle} numberOfLines={2}>
-                {opportunity.name || opportunity.title}
+                {opportunity.campaign_name || opportunity.name || opportunity.title}
               </Text>
               
               <Text style={styles.compactCompany} numberOfLines={1}>
-                {opportunity.company_name || 'Brand Partner'}
+                {opportunity.company_name || 'Krishna Private Limited'}
               </Text>
               
               <View style={styles.compactFooter}>

@@ -128,6 +128,11 @@ export default function InfluencerCampaigns() {
       );
       const data = await response.json();
       
+      if (!response.ok && (data.message?.toLowerCase().includes('already') || response.status === 400)) {
+        console.log('Already applied to this campaign:', cardData.id);
+        return;
+      }
+      
       if (response.ok && data.success) {
         // 2. Save to Liked Brands
         const stored = await AsyncStorage.getItem('@influencer_liked_brands');
@@ -275,6 +280,13 @@ export default function InfluencerCampaigns() {
         }
       );
       const data = await response.json();
+      
+      if (!response.ok && (data.message?.toLowerCase().includes('already') || response.status === 400)) {
+        Alert.alert('📌 Application Status', 'You have already applied for this campaign. Chat will open once the brand approves!');
+        setDetailModalVisible(false);
+        setApplicationMessage('');
+        return;
+      }
       
       if (response.ok && data.success) {
         // Save to liked

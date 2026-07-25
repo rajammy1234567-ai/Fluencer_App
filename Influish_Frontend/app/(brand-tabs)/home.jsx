@@ -61,30 +61,20 @@ const bannerImages = [
 ];
 
 const productCategories = [
-  { id: 1, name: 'Nike', image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=150&h=150&fit=crop', color: '#FF6B9D' },
-  { id: 2, name: 'H&M', image: 'https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?w=150&h=150&fit=crop', color: '#A78BFA' },
-  { id: 3, name: 'Adidas', image: 'https://images.unsplash.com/photo-1556906781-9a412961c28c?w=150&h=150&fit=crop', color: '#34D399' },
-  { id: 4, name: 'Zara', image: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=150&h=150&fit=crop', color: '#FBBF24' },
-  { id: 5, name: 'Puma', image: 'https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=150&h=150&fit=crop', color: '#F87171' },
-  { id: 6, name: 'Gucci', image: 'https://images.unsplash.com/photo-1591561954555-607968c989ab?w=150&h=150&fit=crop', color: '#3b82f6' },
-  { id: 7, name: 'Polo', image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=150&h=150&fit=crop', color: '#FF6B9D' },
-  { id: 8, name: 'Levis', image: 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=150&h=150&fit=crop', color: '#A78BFA' },
-  { id: 9, name: 'Apple', image: 'https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=150&h=150&fit=crop', color: '#6B7280' },
-  { id: 10, name: 'Samsung', image: 'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=150&h=150&fit=crop', color: '#3B82F6' },
-  { id: 11, name: 'Sony', image: 'https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=150&h=150&fit=crop', color: '#1F2937' },
-  { id: 12, name: 'Dell', image: 'https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=150&h=150&fit=crop', color: '#0EA5E9' },
-  { id: 13, name: 'HP', image: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=150&h=150&fit=crop', color: '#0891B2' },
-  { id: 14, name: 'Amazon', image: 'https://images.unsplash.com/photo-1523474253046-8cd2748b5fd2?w=150&h=150&fit=crop', color: '#F59E0B' },
-  { id: 15, name: 'Netflix', image: 'https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=150&h=150&fit=crop', color: '#DC2626' },
-  { id: 16, name: 'Spotify', image: 'https://images.unsplash.com/photo-1614680376593-902f74cf0d41?w=150&h=150&fit=crop', color: '#22C55E' },
+  { id: 1, name: 'Ethnic Sarees', image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=150&h=150&fit=crop', color: '#3B82F6' },
+  { id: 2, name: 'Linen Kurtas', image: 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?w=150&h=150&fit=crop', color: '#10B981' },
+  { id: 3, name: 'Bridal Lehengas', image: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=150&h=150&fit=crop', color: '#8B5CF6' },
+  { id: 4, name: 'Organza Dupattas', image: 'https://images.unsplash.com/photo-1617627143750-d86bc21e42bb?w=150&h=150&fit=crop', color: '#F59E0B' },
+  { id: 5, name: 'Urban Hoodies', image: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=150&h=150&fit=crop', color: '#EF4444' },
+  { id: 6, name: 'Gold Jewelry', image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=150&h=150&fit=crop', color: '#EC4899' },
 ];
 
 const trendingProducts = [
-  { id: 1, name: 'Wireless Earbuds', image: 'https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?w=150&h=150&fit=crop' },
-  { id: 2, name: 'Mobile Phones', image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=150&h=150&fit=crop' },
-  { id: 3, name: 'JL Bluetooth', image: 'https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=150&h=150&fit=crop' },
-  { id: 4, name: 'Smart Watch', image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=150&h=150&fit=crop' },
-  { id: 5, name: 'Headphones', image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=150&h=150&fit=crop' },
+  { id: 1, name: 'Banarasi Silk Saree', image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=150&h=150&fit=crop' },
+  { id: 2, name: 'Summer Linen Kurta', image: 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?w=150&h=150&fit=crop' },
+  { id: 3, name: 'Bridal Zardozi Lehenga', image: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=150&h=150&fit=crop' },
+  { id: 4, name: '18K Gold Plated Set', image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=150&h=150&fit=crop' },
+  { id: 5, name: 'Streetwear Oversized Hoodie', image: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=150&h=150&fit=crop' },
 ];
 
 const businessHackProducts = [
