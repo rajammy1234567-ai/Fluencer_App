@@ -68,9 +68,13 @@ const influencerProfileSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
-  account_holder_name: {
-    type: String,
-    default: ''
+  is_pro_member: {
+    type: Boolean,
+    default: false
+  },
+  pro_unlocked_at: {
+    type: Date,
+    default: null
   }
 }, {
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }

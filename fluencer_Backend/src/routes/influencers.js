@@ -213,4 +213,30 @@ router.post('/update-followers', authMiddleware, async (req, res) => {
   }
 });
 
+// Unlock ₹499 Pro Membership Campaign Pass for Creator
+router.post('/unlock-pass', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.userId || req.user.id;
+
+    const profile = await InfluencerProfile.findOneAndUpdate(
+      { user_id: userId },
+      { 
+        is_pro_member: true,
+        pro_unlocked_at: new Date()
+      },
+      { new: true, upsert: true }
+    );
+
+    res.json({
+      success: true,
+      message: '🎉 Pro Membership (₹499) Unlocked Successfully! You can now view and apply to all brand campaigns.',
+      is_pro_member: true,
+      profile
+    });
+  } catch (error) {
+    console.error('Pro pass unlock error:', error);
+    res.status(500).json({ success: false, message: 'Failed to unlock Pro Membership pass', error: error.message });
+  }
+});
+
 export default router;

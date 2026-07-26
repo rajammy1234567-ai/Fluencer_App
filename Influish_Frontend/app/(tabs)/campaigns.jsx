@@ -33,6 +33,8 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 export default function InfluencerCampaigns() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
+  const [isProMember, setIsProMember] = useState(false);
+  const [unlockingPro, setUnlockingPro] = useState(false);
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -52,21 +54,59 @@ export default function InfluencerCampaigns() {
   const [likeScale] = useState(new Animated.Value(1));
   const [nopeScale] = useState(new Animated.Value(1));
 
-  // Apply Modal State (old - keeping for now)
+  // Apply Modal State
   const [applyModalVisible, setApplyModalVisible] = useState(false);
   const [selectedCampaignId, setSelectedCampaignId] = useState(null);
   const [applicationMessage, setApplicationMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   
-  // Detail Modal State (new)
+  // Detail Modal State
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState(null);
 
   useFocusEffect(
     React.useCallback(() => {
+      checkProStatus();
       fetchCampaigns();
     }, [params.campaignId])
   );
+
+  const checkProStatus = async () => {
+    try {
+      const headers = await getAuthHeader();
+      const res = await fetch(getApiUrl('/api/influencers/profile'), { headers });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setIsProMember(!!data.profile?.is_pro_member);
+      }
+    } catch (e) {
+      console.error('Pro status check error:', e);
+    }
+  };
+
+  const handleUnlockProPass = async () => {
+    setUnlockingPro(true);
+    try {
+      const headers = await getAuthHeader();
+      const res = await fetch(getApiUrl('/api/influencers/unlock-pass'), {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setIsProMember(true);
+        Alert.alert('🎉 Access Unlocked!', 'Pro Pass (₹499) Unlocked Successfully! You can now view and apply to all brand campaigns.');
+        fetchCampaigns();
+      } else {
+        Alert.alert('Error', data.message || 'Failed to unlock Pro Pass');
+      }
+    } catch (err) {
+      console.error('Pro pass unlock error:', err);
+      Alert.alert('Error', 'Something went wrong unlocking pass');
+    } finally {
+      setUnlockingPro(false);
+    }
+  };
 
 
 
@@ -596,6 +636,64 @@ export default function InfluencerCampaigns() {
                 {submitting ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitBtnText}>Apply Now</Text>}
               </TouchableOpacity>
             </View>
+      </Modal>
+
+      {/* Creator Pro Pass Unlock Modal (₹499) */}
+      <Modal
+        visible={!isProMember && !loading}
+        transparent={true}
+        animationType="slide"
+      >
+        <View style={styles.proModalOverlay}>
+          <View style={styles.proModalCard}>
+            <LinearGradient colors={['#3B82F6', '#2563EB']} style={styles.proHeaderGradient}>
+              <MaterialCommunityIcons name="crown" size={48} color="#FFD700" />
+              <Text style={styles.proHeaderTitle}>FLUENCER CREATOR PRO</Text>
+              <Text style={styles.proHeaderSubtitle}>Unlock Premium Campaigns Pass</Text>
+            </LinearGradient>
+
+            <View style={styles.proBody}>
+              <Text style={styles.proPriceText}>₹499 <Text style={{ fontSize: 16, color: '#64748B', fontWeight: '400' }}>/ Lifetime Pass</Text></Text>
+              
+              <View style={styles.proFeatureList}>
+                <View style={styles.proFeatureItem}>
+                  <MaterialCommunityIcons name="check-circle" size={20} color="#10B981" />
+                  <Text style={styles.proFeatureText}>Access & Apply to All Brand Campaigns</Text>
+                </View>
+
+                <View style={styles.proFeatureItem}>
+                  <MaterialCommunityIcons name="check-circle" size={20} color="#10B981" />
+                  <Text style={styles.proFeatureText}>Direct Escrow Payment Protection</Text>
+                </View>
+
+                <View style={styles.proFeatureItem}>
+                  <MaterialCommunityIcons name="check-circle" size={20} color="#10B981" />
+                  <Text style={styles.proFeatureText}>1-on-1 Chat with Top Brands</Text>
+                </View>
+
+                <View style={styles.proFeatureItem}>
+                  <MaterialCommunityIcons name="check-circle" size={20} color="#10B981" />
+                  <Text style={styles.proFeatureText}>Priority Creator Approval</Text>
+                </View>
+              </View>
+
+              <TouchableOpacity 
+                style={styles.proUnlockButton}
+                onPress={handleUnlockProPass}
+                disabled={unlockingPro}
+              >
+                <LinearGradient colors={['#10B981', '#059669']} style={styles.proUnlockGradient}>
+                  {unlockingPro ? (
+                    <ActivityIndicator color="#FFF" />
+                  ) : (
+                    <>
+                      <MaterialCommunityIcons name="lock-open" size={22} color="#FFF" />
+                      <Text style={styles.proUnlockText}>Pay ₹499 & Unlock Campaigns</Text>
+                    </>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -846,5 +944,80 @@ const styles = StyleSheet.create({
     color: '#64748B',
     lineHeight: 22,
     marginBottom: 16,
+  },
+  proModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  proModalCard: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  proHeaderGradient: {
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+  },
+  proHeaderTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    marginTop: 8,
+    letterSpacing: 1,
+  },
+  proHeaderSubtitle: {
+    fontSize: 14,
+    color: '#E0F2FE',
+    marginTop: 4,
+  },
+  proBody: {
+    padding: 24,
+  },
+  proPriceText: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#1E293B',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  proFeatureList: {
+    gap: 12,
+    marginBottom: 24,
+  },
+  proFeatureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  proFeatureText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#334155',
+  },
+  proUnlockButton: {
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  proUnlockGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    gap: 10,
+  },
+  proUnlockText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });
