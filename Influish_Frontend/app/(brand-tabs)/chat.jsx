@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Shadow } from 'react-native-shadow-2';
+
 import { COLORS } from '../../constants/colors';
 import { FONTS } from '../../constants/fonts';
 import { getAuthHeader, getUserId } from '../../utils/storage';

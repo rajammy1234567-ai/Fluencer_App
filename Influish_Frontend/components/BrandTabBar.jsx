@@ -1,5 +1,4 @@
 import { View, Text, Pressable, StyleSheet } from "react-native";
-import { Shadow } from "react-native-shadow-2";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -32,62 +31,47 @@ export default function BrandTabBar({ state, descriptors, navigation }) {
 
   return (
     <View style={[styles.wrapper, { bottom: 12 + insets.bottom }]}>
-      <Shadow
-        distance={15}
-        startColor="rgba(0, 0, 0, 0.08)"
-        endColor="rgba(0, 0, 0, 0)"
-        offset={[0, 4]}
-        style={styles.shadowContainer}
-      >
-        <View style={styles.container}>
-          <View style={styles.tabContainer}>
-            {visibleRoutes.map((route, index) => {
-              const focused = state.index === state.routes.indexOf(route);
-              const { options } = descriptors[route.key];
+      <View style={styles.container}>
+        <View style={styles.tabContainer}>
+          {visibleRoutes.map((route, index) => {
+            const focused = state.index === state.routes.indexOf(route);
+            const { options } = descriptors[route.key];
 
-              const icon = options.tabBarIcon;
-              const label = options.title;
+            const icon = options.tabBarIcon;
+            const label = options.title;
 
-              const onPress = () => {
-                if (!focused) navigation.navigate(route.name);
-              };
+            const onPress = () => {
+              if (!focused) navigation.navigate(route.name);
+            };
 
-              if (focused) {
-                return (
-                  <Shadow
-                    key={route.key}
-                    distance={6}
-                    startColor="rgba(59, 130, 246, 0.15)"
-                    endColor="rgba(59, 130, 246, 0)"
-                    offset={[0, 2]}
-                    style={styles.activeTabShadow}
-                  >
-                    <LinearGradient
-                      colors={[THEME.blue, THEME.blueDark]}
-                      style={styles.activeTab}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                    >
-                      {icon && icon({ color: '#FFFFFF', size: 22 })}
-                      <Text style={styles.activeLabel}>{label}</Text>
-                    </LinearGradient>
-                  </Shadow>
-                );
-              }
-
+            if (focused) {
               return (
-                <Pressable
-                  key={route.key}
-                  onPress={onPress}
-                  style={styles.inactiveTab}
-                >
-                  {icon && icon({ color: THEME.textLight, size: 22 })}
-                </Pressable>
+                <View key={route.key} style={styles.activeTabShadow}>
+                  <LinearGradient
+                    colors={[THEME.blue, THEME.blueDark]}
+                    style={styles.activeTab}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                  >
+                    {icon && icon({ color: '#FFFFFF', size: 22 })}
+                    <Text style={styles.activeLabel}>{label}</Text>
+                  </LinearGradient>
+                </View>
               );
-            })}
-          </View>
+            }
+
+            return (
+              <Pressable
+                key={route.key}
+                onPress={onPress}
+                style={styles.inactiveTab}
+              >
+                {icon && icon({ color: THEME.textLight, size: 22 })}
+              </Pressable>
+            );
+          })}
         </View>
-      </Shadow>
+      </View>
     </View>
   );
 }
@@ -98,15 +82,17 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
   },
-  shadowContainer: {
-    width: '100%',
-  },
   container: {
     height: 75,
     borderRadius: 38,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.8)',
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 8,
   },
   tabContainer: {
     flex: 1,

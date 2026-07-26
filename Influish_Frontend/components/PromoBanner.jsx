@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Shadow } from 'react-native-shadow-2';
+
 import { LinearGradient } from 'expo-linear-gradient';
 
 // Premium clean white theme colors
@@ -15,13 +15,7 @@ const THEME = {
 
 const PromoBanner = () => {
   return (
-    <Shadow
-      distance={15}
-      startColor="rgba(0, 0, 0, 0.08)"
-      endColor="rgba(0, 0, 0, 0)"
-      offset={[0, 4]}
-      style={styles.shadowContainer}
-    >
+    <View>
       <LinearGradient
         colors={[THEME.blue, THEME.blueDark, '#1E40AF']}
         start={{ x: 0, y: 0 }}
@@ -47,7 +41,7 @@ const PromoBanner = () => {
           </View>
         </View>
       </LinearGradient>
-    </Shadow>
+    </View>
   );
 };
 

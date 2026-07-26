@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import { Shadow } from 'react-native-shadow-2';
+
 import ImageCarousel from './ImageCarousel';
 import FilterModal from './FilterModal';
 import { COLORS } from '../constants/colors';
@@ -24,17 +24,11 @@ const THEME = {
 const AnimatedIcon = ({ name, label, delay = 0 }) => {
   return (
     <TouchableOpacity style={styles.iconButton}>
-      <Shadow
-        distance={6}
-        startColor="rgba(59, 130, 246, 0.15)"
-        endColor="rgba(59, 130, 246, 0)"
-        offset={[0, 2]}
-        style={styles.iconShadow}
-      >
+      <View>
         <View style={styles.iconCircle}>
           <Ionicons name={name} size={26} color={THEME.blue} />
         </View>
-      </Shadow>
+      </View>
       <Text style={styles.iconLabel}>{label}</Text>
     </TouchableOpacity>
   );

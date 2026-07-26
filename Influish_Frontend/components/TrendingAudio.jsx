@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
-import { Shadow } from 'react-native-shadow-2';
+
 
 // Premium clean white theme colors
 const THEME = {
@@ -22,13 +22,7 @@ const TrendingAudio = () => {
   ];
 
   return (
-    <Shadow
-      distance={12}
-      startColor="rgba(0, 0, 0, 0.06)"
-      endColor="rgba(0, 0, 0, 0)"
-      offset={[0, 3]}
-      style={styles.shadowContainer}
-    >
+    <View>
       <View style={styles.container}>
         <View style={styles.header}>
           <View style={styles.titleContainer}>
@@ -49,13 +43,7 @@ const TrendingAudio = () => {
         >
           {audioItems.map((item, index) => (
             <TouchableOpacity key={item.id} activeOpacity={0.8}>
-              <Shadow
-                distance={10}
-                startColor="rgba(139, 92, 246, 0.12)"
-                endColor="rgba(139, 92, 246, 0)"
-                offset={[0, 4]}
-                style={styles.cardShadow}
-              >
+              <View>
                 <View style={styles.card}>
                   <Image source={item.image} style={styles.cardImage} resizeMode="cover" />
                   <View style={styles.cardOverlay}>
@@ -64,13 +52,13 @@ const TrendingAudio = () => {
                     </View>
                   </View>
                 </View>
-              </Shadow>
+              </View>
               <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
       </View>
-    </Shadow>
+    </View>
   );
 };
 
