@@ -57,22 +57,14 @@ export default function SplashScreen() {
     try {
       console.log('🔍 Checking for saved auth session...');
       
-      // Artificial delay to show off the animation
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Artificial delay for splash animation
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
-      // Check admin auth first
-      const adminAuth = await isAdminAuthenticated();
-      if (adminAuth) {
-        console.log('✅ Admin session found');
-        router.replace('/(admin)/(tabs)/dashboard');
-        return;
-      }
-
-      // Check user auth
+      // Check user auth session
       const userAuth = await storage.isAuthenticated();
       if (userAuth) {
         const role = await storage.getRole();
-        console.log('✅ User session found, role:', role);
+        console.log('✅ Saved user session found, role:', role);
         
         if (role === 'influencer') {
           router.replace('/(tabs)/home');
@@ -85,14 +77,16 @@ export default function SplashScreen() {
         return;
       }
 
-      // No session
-      console.log('ℹ️ No session found, showing role selection');
+      // No active session -> show role selection
+      console.log('ℹ️ No active session found, showing role selection');
       router.replace('/role-selection');
 
     } catch (error) {
       console.error('❌ Auth restore error:', error);
-      await storage.clearAuth();
-      router.replace('/role-selection');
+      try {
+        await storage.clearAuth();
+        router.replace('/role-selection');
+      } catch (err) {}
     }
   };
 

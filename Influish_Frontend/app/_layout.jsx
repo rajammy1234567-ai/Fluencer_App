@@ -1,5 +1,4 @@
 import 'react-native-reanimated';
-import "../global.css";
 import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import { isAuthenticated } from "../utils/storage";
