@@ -59,9 +59,8 @@ export default function CreateCampaign() {
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        quality: 0.8,
+        allowsEditing: false,
+        quality: 0.7,
       });
       if (!result.canceled && result.assets?.[0]?.uri) {
         setProductImage(result.assets[0].uri);
@@ -80,8 +79,8 @@ export default function CreateCampaign() {
         return;
       }
       const result = await ImagePicker.launchCameraAsync({
-        allowsEditing: true,
-        quality: 0.8,
+        allowsEditing: false,
+        quality: 0.7,
       });
       if (!result.canceled && result.assets?.[0]?.uri) {
         setProductImage(result.assets[0].uri);
