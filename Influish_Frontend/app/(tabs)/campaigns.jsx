@@ -636,6 +636,8 @@ export default function InfluencerCampaigns() {
                 {submitting ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitBtnText}>Apply Now</Text>}
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
       </Modal>
 
       {/* Creator Pro Pass Unlock Modal (₹499) */}
