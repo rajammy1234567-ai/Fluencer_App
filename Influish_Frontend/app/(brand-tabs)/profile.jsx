@@ -230,7 +230,7 @@ export default function BrandProfile() {
    */
   const handleCreateCampaign = () => {
     if (!isMountedRef.current) return;
-    router.push('/(brand-tabs)/create');
+    router.replace('/(brand-tabs)/create');
   };
 
   /**
