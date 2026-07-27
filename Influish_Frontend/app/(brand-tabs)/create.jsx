@@ -19,7 +19,17 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { getAuthHeader } from '../../utils/storage';
 import { API, getApiUrl } from '../../constants/api';
-import * as ImagePicker from 'expo-image-picker';
+
+// Safe lazy getter for ImagePicker to prevent native module crashes on launch
+const getImagePicker = () => {
+  try {
+    const ImagePicker = require('expo-image-picker');
+    return ImagePicker;
+  } catch (err) {
+    console.warn('⚠️ ExponentImagePicker native module not available:', err);
+    return null;
+  }
+};
 
 const THEME = {
   primary: '#3B82F6',
@@ -52,8 +62,13 @@ export default function CreateCampaign() {
 
   const handlePickGalleryImage = async () => {
     try {
+      const ImagePicker = getImagePicker();
+      if (!ImagePicker) {
+        Alert.alert('Notice', 'Photo library picker is not available on this device build. You can paste an image URL directly below.');
+        return;
+      }
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
+      if (!permission?.granted) {
         Alert.alert('Permission Needed', 'Please grant gallery access permission to upload product photos.');
         return;
       }
@@ -72,8 +87,13 @@ export default function CreateCampaign() {
 
   const handleTakePhotoCamera = async () => {
     try {
+      const ImagePicker = getImagePicker();
+      if (!ImagePicker) {
+        Alert.alert('Notice', 'Camera is not available on this device build. You can paste an image URL directly below.');
+        return;
+      }
       const permission = await ImagePicker.requestCameraPermissionsAsync();
-      if (!permission.granted) {
+      if (!permission?.granted) {
         Alert.alert('Permission Needed', 'Please grant camera access permission to capture product photos.');
         return;
       }
