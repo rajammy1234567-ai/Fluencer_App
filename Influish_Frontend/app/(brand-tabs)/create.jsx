@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
   stepLine: { width: 50, height: 3, backgroundColor: THEME.border, marginHorizontal: 8 },
   stepLineActive: { backgroundColor: THEME.primary },
   formScroll: { flex: 1 },
-  formContent: { padding: 20, paddingBottom: 140 },
+  formContent: { padding: 20, paddingBottom: 220 },
   inputGroup: { marginBottom: 20 },
   label: { fontSize: 15, fontWeight: '600', color: THEME.text, marginBottom: 10 },
   inputWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: THEME.surface, borderRadius: 14, paddingHorizontal: 16, borderWidth: 1, borderColor: THEME.border },
