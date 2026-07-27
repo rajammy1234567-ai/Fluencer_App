@@ -24,7 +24,7 @@ import { useLocalSearchParams } from 'expo-router';
 import BrandSwipeCard from '../../components/BrandSwipeCard';
 import { COLORS } from '../../constants/colors';
 import { FONTS } from '../../constants/fonts';
-import { getAuthHeader } from '../../utils/storage';
+import { getAuthHeader, storage } from '../../utils/storage';
 import { API, getApiUrl } from '../../constants/api';
 import WaveHeader from '../../components/WaveHeader';
 
@@ -73,14 +73,20 @@ export default function InfluencerCampaigns() {
 
   const checkProStatus = async () => {
     try {
+      const role = await storage.getRole();
+      if (role !== 'influencer') {
+        setIsProMember(true);
+        return;
+      }
       const headers = await getAuthHeader();
       const res = await fetch(getApiUrl('/api/influencers/profile'), { headers });
+      if (!res.ok) return;
       const data = await res.json();
-      if (res.ok && data.success) {
+      if (data.success) {
         setIsProMember(!!data.profile?.is_pro_member);
       }
     } catch (e) {
-      console.error('Pro status check error:', e);
+      // Silent catch for non-influencer roles
     }
   };
 
