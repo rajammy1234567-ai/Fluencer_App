@@ -22,15 +22,16 @@ const THEME = {
 
 export default function BrandTabBar({ state, descriptors, navigation }) {
   const insets = useSafeAreaInsets();
+  const safeBottomInset = (insets && Number.isFinite(insets.bottom)) ? insets.bottom : 0;
 
   // Filter out hidden routes (href: null)
-  const visibleRoutes = state.routes.filter((route) => {
-    const { options } = descriptors[route.key];
-    return options.href !== null;
-  });
+  const visibleRoutes = state.routes ? state.routes.filter((route) => {
+    const { options } = descriptors[route.key] || {};
+    return options && options.href !== null;
+  }) : [];
 
   return (
-    <View style={[styles.wrapper, { bottom: 12 + insets.bottom }]}>
+    <View style={[styles.wrapper, { bottom: 12 + safeBottomInset }]}>
       <View style={styles.container}>
         <View style={styles.tabContainer}>
           {visibleRoutes.map((route, index) => {
