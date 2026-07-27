@@ -99,6 +99,7 @@ export default function ConversationScreen() {
 
       clearTimeout(timeoutId);
 
+      if (response.status === 401) {
         if (isMountedRef.current) {
           router.replace('/role-selection');
         }
