@@ -2,10 +2,10 @@
  * Cloudinary Image Upload Helper
  * 
  * 100% Crash-Free HTTPS REST Upload Service
- * Uses User's Cloudinary Account: dxyvn9gig
+ * Supports User's Cloudinary Accounts: hrqmdn4c, dxyvn9gig
  */
 
-const CLOUDINARY_CLOUD_NAME = 'dxyvn9gig';
+const CLOUDINARY_CLOUDS = ['hrqmdn4c', 'dxyvn9gig', 'dvyh3e9xs'];
 const PRESETS_TO_TRY = ['ml_default', 'unsigned', 'preset_fluencer', 'fluencer'];
 
 /**
@@ -23,35 +23,37 @@ export const uploadToCloudinary = async (imageUri) => {
     return imageUri;
   }
 
-  for (const preset of PRESETS_TO_TRY) {
-    try {
-      const formData = new FormData();
+  for (const cloudName of CLOUDINARY_CLOUDS) {
+    for (const preset of PRESETS_TO_TRY) {
+      try {
+        const formData = new FormData();
 
-      // Prepare image payload
-      if (imageUri.startsWith('data:image')) {
-        formData.append('file', imageUri);
-      } else {
-        const filename = imageUri.split('/').pop() || 'upload.jpg';
-        const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : 'image/jpeg';
-        formData.append('file', { uri: imageUri, name: filename, type });
+        // Prepare image payload
+        if (imageUri.startsWith('data:image')) {
+          formData.append('file', imageUri);
+        } else {
+          const filename = imageUri.split('/').pop() || 'upload.jpg';
+          const match = /\.(\w+)$/.exec(filename);
+          const type = match ? `image/${match[1]}` : 'image/jpeg';
+          formData.append('file', { uri: imageUri, name: filename, type });
+        }
+
+        formData.append('upload_preset', preset);
+
+        const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.secure_url) {
+          console.log(`✅ Cloudinary upload success on ${cloudName}:`, data.secure_url);
+          return data.secure_url;
+        }
+      } catch (error) {
+        console.warn(`⚠️ Cloudinary ${cloudName}:${preset} failed:`, error);
       }
-
-      formData.append('upload_preset', preset);
-
-      const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.secure_url) {
-        console.log('✅ Cloudinary upload success:', data.secure_url);
-        return data.secure_url;
-      }
-    } catch (error) {
-      console.warn(`⚠️ Cloudinary preset ${preset} failed:`, error);
     }
   }
 
