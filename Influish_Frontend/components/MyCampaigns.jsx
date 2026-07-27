@@ -186,7 +186,7 @@ export default function MyCampaigns() {
             </Text>
             <TouchableOpacity
               style={styles.createButton}
-              onPress={() => router.push('/(brand-tabs)/create')}
+              onPress={() => router.navigate('/(brand-tabs)/create')}
             >
               <LinearGradient
                 colors={COLORS.gradientPrimary}
