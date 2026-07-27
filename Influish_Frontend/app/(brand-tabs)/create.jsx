@@ -12,6 +12,7 @@ import {
   Image,
   ActivityIndicator,
   StatusBar,
+  NativeModules,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,13 +21,18 @@ import { router } from 'expo-router';
 import { getAuthHeader } from '../../utils/storage';
 import { API, getApiUrl } from '../../constants/api';
 
-// Safe lazy getter for ImagePicker to prevent native module crashes on launch
+// Safe lazy getter for ImagePicker using NativeModules check first to prevent JSI exceptions
 const getImagePicker = () => {
   try {
+    const isAvailable = NativeModules.ExponentImagePicker || NativeModules.ExpoImagePicker;
+    if (!isAvailable) {
+      console.warn('⚠️ ExponentImagePicker not registered in NativeModules');
+      return null;
+    }
     const ImagePicker = require('expo-image-picker');
     return ImagePicker;
   } catch (err) {
-    console.warn('⚠️ ExponentImagePicker native module not available:', err);
+    console.warn('⚠️ ExponentImagePicker require error:', err);
     return null;
   }
 };
