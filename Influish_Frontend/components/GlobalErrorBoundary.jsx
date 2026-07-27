@@ -1,12 +1,13 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 
 export class GlobalErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, errorInfo: null };
   }
 
   static getDerivedStateFromError(error) {
@@ -15,10 +16,16 @@ export class GlobalErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     console.error('🔥 Global Mobile App Error Boundary Caught Exception:', error, errorInfo);
+    this.setState({ errorInfo });
   }
 
   handleRestart = () => {
-    this.setState({ hasError: false, error: null });
+    this.setState({ hasError: false, error: null, errorInfo: null });
+    try {
+      router.replace('/(brand-tabs)/home');
+    } catch (e) {
+      console.log('Error boundary redirect:', e);
+    }
   };
 
   render() {
@@ -29,23 +36,32 @@ export class GlobalErrorBoundary extends React.Component {
             colors={['#1e293b', '#0f172a']}
             style={styles.gradient}
           >
-            <View style={styles.card}>
-              <View style={styles.iconContainer}>
-                <MaterialCommunityIcons name="shield-alert" size={56} color="#38bdf8" />
+            <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center' }}>
+              <View style={styles.card}>
+                <View style={styles.iconContainer}>
+                  <MaterialCommunityIcons name="shield-alert" size={56} color="#38bdf8" />
+                </View>
+                <Text style={styles.title}>Fluencer Mobile Safeguard</Text>
+                <Text style={styles.subtitle}>
+                  Something unexpected happened, but your data and wallet are completely safe!
+                </Text>
+                {this.state.error && (
+                  <View style={{ backgroundColor: 'rgba(0,0,0,0.4)', padding: 12, borderRadius: 8, marginBottom: 20, width: '100%' }}>
+                    <Text style={{ color: '#f87171', fontSize: 12, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>
+                      {this.state.error.toString()}
+                    </Text>
+                  </View>
+                )}
+                <TouchableOpacity
+                  style={styles.button}
+                  onPress={this.handleRestart}
+                  activeOpacity={0.8}
+                >
+                  <MaterialCommunityIcons name="refresh" size={20} color="#FFFFFF" />
+                  <Text style={styles.buttonText}>Reload Screen</Text>
+                </TouchableOpacity>
               </View>
-              <Text style={styles.title}>Fluencer Mobile Safeguard</Text>
-              <Text style={styles.subtitle}>
-                Something unexpected happened, but your data and wallet are completely safe!
-              </Text>
-              <TouchableOpacity
-                style={styles.button}
-                onPress={this.handleRestart}
-                activeOpacity={0.8}
-              >
-                <MaterialCommunityIcons name="refresh" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText}>Reload Screen</Text>
-              </TouchableOpacity>
-            </View>
+            </ScrollView>
           </LinearGradient>
         </SafeAreaView>
       );

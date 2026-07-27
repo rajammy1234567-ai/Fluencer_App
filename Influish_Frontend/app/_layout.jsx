@@ -28,6 +28,12 @@ export default function RootLayout() {
         <Stack.Screen name="settings" />
         <Stack.Screen name="selected-brands" />
         <Stack.Screen name="conversation" options={{ headerShown: false }} />
+        <Stack.Screen name="applications" />
+        <Stack.Screen name="wallet" />
+        <Stack.Screen name="edit-profile" />
+        <Stack.Screen name="notifications" />
+        <Stack.Screen name="brand-notifications" />
+        <Stack.Screen name="brand-onboarding" />
       </Stack>
     </GlobalErrorBoundary>
   );
