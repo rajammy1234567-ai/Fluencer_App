@@ -208,7 +208,7 @@ const Navbar = ({ children, profileImage, unreadCount }) => {
           <View style={styles.navRightIcons}>
             <TouchableOpacity 
               style={styles.notificationButton}
-              onPress={() => router.push('/brand-notifications')}
+              onPress={() => router.navigate('/(brand-tabs)/notifications')}
             >
               <Ionicons name="notifications-outline" size={26} color={THEME.primary} />
               {unreadCount > 0 && (
@@ -221,7 +221,7 @@ const Navbar = ({ children, profileImage, unreadCount }) => {
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.profileButton}
-              onPress={() => router.push('/(brand-tabs)/profile')}
+              onPress={() => router.navigate('/(brand-tabs)/profile')}
             >
               {profileImage ? (
                 <Image 
@@ -271,21 +271,29 @@ const BannerSlider = () => {
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
+    let isMounted = true;
+    let animRef = null;
     const interval = setInterval(() => {
+      if (!isMounted) return;
       // Fade out
-      Animated.timing(fadeAnim, {
+      animRef = Animated.timing(fadeAnim, {
         toValue: 0.7,
         duration: 200,
         useNativeDriver: true,
-      }).start(() => {
+      });
+      animRef.start(() => {
+        if (!isMounted) return;
         setCurrentIndex((prevIndex) => {
           const nextIndex = (prevIndex + 1) % bannerImages.length;
-          scrollViewRef.current?.scrollTo({
-            x: nextIndex * (width - 48),
-            animated: true,
-          });
+          if (isMounted && scrollViewRef.current) {
+            scrollViewRef.current.scrollTo({
+              x: nextIndex * (width - 48),
+              animated: true,
+            });
+          }
           return nextIndex;
         });
+        if (!isMounted) return;
         // Fade in
         Animated.timing(fadeAnim, {
           toValue: 1,
@@ -295,7 +303,11 @@ const BannerSlider = () => {
       });
     }, 4000);
 
-    return () => clearInterval(interval);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+      fadeAnim.stopAnimation();
+    };
   }, []);
 
   return (
@@ -359,24 +371,27 @@ const ProductCategories = () => {
   const duplicatedCategories = [...productCategories, ...productCategories, ...productCategories];
 
   useEffect(() => {
-    let currentPosition = totalWidth; // Start from middle set
-    scrollViewRef.current?.scrollTo({ x: currentPosition, animated: false });
-    
+    let isMounted = true;
+    let currentPosition = totalWidth;
+    if (scrollViewRef.current) {
+      scrollViewRef.current.scrollTo({ x: currentPosition, animated: false });
+    }
+
     const animateScroll = () => {
-      currentPosition += 1; // Smooth pixel by pixel
-      
-      // When reaching end of second set, jump back to start of second set
+      if (!isMounted || !scrollViewRef.current) return;
+      currentPosition += 1;
       if (currentPosition >= totalWidth * 2) {
         currentPosition = totalWidth;
-        scrollViewRef.current?.scrollTo({ x: currentPosition, animated: false });
+        scrollViewRef.current.scrollTo({ x: currentPosition, animated: false });
       }
-      
-      scrollViewRef.current?.scrollTo({ x: currentPosition, animated: false });
+      scrollViewRef.current.scrollTo({ x: currentPosition, animated: false });
     };
-    
-    const interval = setInterval(animateScroll, 30); // Smooth 30ms intervals
-    
-    return () => clearInterval(interval);
+
+    const interval = setInterval(animateScroll, 30);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, []);
 
   return (

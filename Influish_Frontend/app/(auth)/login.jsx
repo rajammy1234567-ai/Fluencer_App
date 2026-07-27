@@ -19,7 +19,7 @@ import { COLORS } from '../../constants/colors';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { API, API_CONFIG } from '../../constants/api';
 import { saveAuth } from '../../utils/storage';
-import { saveAdminAuth } from '../../utils/adminStorage';
+import { saveAdminAuth, clearAdminAuth } from '../../utils/adminStorage';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 
 const { width } = Dimensions.get('window');
@@ -47,7 +47,6 @@ const Login = () => {
     setLoading(true);
     try {
       // Clear any stale admin auth
-      const { clearAdminAuth } = require('../../utils/adminStorage');
       await clearAdminAuth();
       
       const apiUrl = `${API_CONFIG.BASE_URL}${API.AUTH.LOGIN}`;
@@ -107,7 +106,7 @@ const Login = () => {
   return (
     <View style={styles.container}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
       >
         <ScrollView 

@@ -341,7 +341,7 @@ export default function BrandChat() {
       <FlatList
         data={filteredConversations}
         renderItem={renderConversation}
-        keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
+        keyExtractor={(item, index) => item.id?.toString() || `chat-${index}`}
         contentContainerStyle={[
           styles.listContent,
           filteredConversations.length === 0 && styles.emptyList,

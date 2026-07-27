@@ -80,7 +80,7 @@ export default function MyCampaigns() {
                   { color: getStatusColor(item.status) },
                 ]}
               >
-                {item.status.toUpperCase()}
+                {(item.status || 'unknown').toUpperCase()}
               </Text>
             </View>
           </View>
@@ -203,7 +203,7 @@ export default function MyCampaigns() {
           </View>
         ) : (
           campaigns.map((campaign) => (
-            <View key={campaign.id.toString()}>
+            <View key={(campaign.id || campaign._id || Math.random()).toString()}>
               {renderCampaign({ item: campaign })}
             </View>
           ))

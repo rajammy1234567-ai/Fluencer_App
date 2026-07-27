@@ -99,9 +99,8 @@ export default function ConversationScreen() {
 
       clearTimeout(timeoutId);
 
-      if (response.status === 401) {
         if (isMountedRef.current) {
-          setTimeout(() => router.replace('/role-selection'), 100);
+          router.replace('/role-selection');
         }
         return;
       }
@@ -548,7 +547,7 @@ export default function ConversationScreen() {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         {/* Messages List */}
@@ -556,7 +555,7 @@ export default function ConversationScreen() {
           ref={flatListRef}
           data={dedupedMessages}
           renderItem={renderMessage}
-          keyExtractor={(item) => item.id.toString()}
+          keyExtractor={(item, index) => item.id?.toString() || `msg-${index}`}
           contentContainerStyle={styles.messagesList}
           showsVerticalScrollIndicator={false}
           onContentSizeChange={() =>

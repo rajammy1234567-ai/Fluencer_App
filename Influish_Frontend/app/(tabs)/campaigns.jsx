@@ -651,7 +651,7 @@ export default function InfluencerCampaigns() {
         visible={!isProMember && !loading}
         transparent={true}
         animationType="slide"
-      >
+        onRequestClose={() => {}}
         <View style={styles.proModalOverlay}>
           <View style={styles.proModalCard}>
             <LinearGradient colors={['#3B82F6', '#2563EB']} style={styles.proHeaderGradient}>
