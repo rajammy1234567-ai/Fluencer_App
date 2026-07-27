@@ -128,7 +128,7 @@ export default function CreateCampaign() {
       });
       if (res.ok) {
         Alert.alert('🎉 Success', 'Campaign Created Successfully!', [
-          { text: 'View My Campaigns', onPress: () => { resetForm(); router.replace('/(brand-tabs)/record'); } }
+          { text: 'View My Campaigns', onPress: () => { resetForm(); router.navigate('/(brand-tabs)/record'); } }
         ]);
       } else {
         Alert.alert('Error', 'Failed to create campaign');
@@ -151,7 +151,7 @@ export default function CreateCampaign() {
       
       {/* Header */}
       <View style={styles.modalHeader}>
-        <TouchableOpacity onPress={() => { if (step === 2) setStep(1); else router.replace('/(brand-tabs)/home'); }}>
+        <TouchableOpacity onPress={() => { if (step === 2) setStep(1); else router.navigate('/(brand-tabs)/home'); }}>
           <MaterialCommunityIcons name={step === 2 ? "arrow-left" : "close"} size={26} color={THEME.text} />
         </TouchableOpacity>
         <Text style={styles.modalTitle}>{step === 1 ? 'Create New Campaign' : 'Campaign Requirements'}</Text>
