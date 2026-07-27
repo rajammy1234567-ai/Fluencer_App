@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, Platform, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -7,7 +7,7 @@ import { router } from 'expo-router';
 export class GlobalErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null, errorInfo: null };
+    this.state = { hasError: false, error: null, errorInfo: null, isReloading: false };
   }
 
   static getDerivedStateFromError(error) {
@@ -19,13 +19,16 @@ export class GlobalErrorBoundary extends React.Component {
     this.setState({ errorInfo });
   }
 
-  handleRestart = () => {
-    this.setState({ hasError: false, error: null, errorInfo: null });
-    try {
-      router.replace('/(brand-tabs)/home');
-    } catch (e) {
-      console.log('Error boundary redirect:', e);
-    }
+  handleRestart = (targetRoute = '/(brand-tabs)/home') => {
+    this.setState({ isReloading: true });
+    setTimeout(() => {
+      this.setState({ hasError: false, error: null, errorInfo: null, isReloading: false });
+      try {
+        router.replace(targetRoute);
+      } catch (e) {
+        console.log('Error boundary redirect fallback:', e);
+      }
+    }, 400);
   };
 
   render() {
@@ -36,7 +39,7 @@ export class GlobalErrorBoundary extends React.Component {
             colors={['#1e293b', '#0f172a']}
             style={styles.gradient}
           >
-            <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 20 }}>
               <View style={styles.card}>
                 <View style={styles.iconContainer}>
                   <MaterialCommunityIcons name="shield-alert" size={56} color="#38bdf8" />
@@ -45,21 +48,49 @@ export class GlobalErrorBoundary extends React.Component {
                 <Text style={styles.subtitle}>
                   Something unexpected happened, but your data and wallet are completely safe!
                 </Text>
+
+                {/* Crash Diagnostics Viewer */}
                 {this.state.error && (
-                  <View style={{ backgroundColor: 'rgba(0,0,0,0.4)', padding: 12, borderRadius: 8, marginBottom: 20, width: '100%' }}>
-                    <Text style={{ color: '#f87171', fontSize: 12, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>
+                  <View style={styles.errorBox}>
+                    <Text style={styles.errorHeader}>⚠️ Error Details:</Text>
+                    <Text style={styles.errorText}>
                       {this.state.error.toString()}
                     </Text>
+                    {this.state.errorInfo?.componentStack ? (
+                      <Text style={styles.stackText} numberOfLines={8}>
+                        {this.state.errorInfo.componentStack.trim()}
+                      </Text>
+                    ) : null}
                   </View>
                 )}
-                <TouchableOpacity
-                  style={styles.button}
-                  onPress={this.handleRestart}
-                  activeOpacity={0.8}
-                >
-                  <MaterialCommunityIcons name="refresh" size={20} color="#FFFFFF" />
-                  <Text style={styles.buttonText}>Reload Screen</Text>
-                </TouchableOpacity>
+
+                {/* Loader during Reload */}
+                {this.state.isReloading ? (
+                  <View style={styles.loaderContainer}>
+                    <ActivityIndicator size="large" color="#38bdf8" />
+                    <Text style={styles.loaderText}>Restoring App State...</Text>
+                  </View>
+                ) : (
+                  <View style={{ width: '100%', gap: 10 }}>
+                    <TouchableOpacity
+                      style={styles.button}
+                      onPress={() => this.handleRestart('/(brand-tabs)/home')}
+                      activeOpacity={0.8}
+                    >
+                      <MaterialCommunityIcons name="refresh" size={20} color="#FFFFFF" />
+                      <Text style={styles.buttonText}>Reload Screen (Home)</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.button, { backgroundColor: '#334155' }]}
+                      onPress={() => this.handleRestart('/(brand-tabs)/profile')}
+                      activeOpacity={0.8}
+                    >
+                      <MaterialCommunityIcons name="account" size={20} color="#FFFFFF" />
+                      <Text style={styles.buttonText}>Open Profile</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
             </ScrollView>
           </LinearGradient>
@@ -129,6 +160,44 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#FFFFFF',
     fontSize: 16,
+    fontWeight: '600',
+  },
+  errorBox: {
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 12,
+    padding: 14,
+    width: '100%',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(248, 113, 113, 0.3)',
+  },
+  errorHeader: {
+    color: '#f87171',
+    fontWeight: '700',
+    fontSize: 13,
+    marginBottom: 4,
+  },
+  errorText: {
+    color: '#fca5a5',
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 6,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  },
+  stackText: {
+    color: '#94a3b8',
+    fontSize: 10,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    lineHeight: 14,
+  },
+  loaderContainer: {
+    alignItems: 'center',
+    paddingVertical: 16,
+    gap: 8,
+  },
+  loaderText: {
+    color: '#38bdf8',
+    fontSize: 14,
     fontWeight: '600',
   },
 });
