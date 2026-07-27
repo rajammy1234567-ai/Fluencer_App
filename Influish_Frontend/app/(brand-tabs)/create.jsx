@@ -20,6 +20,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { getAuthHeader } from '../../utils/storage';
 import { API, getApiUrl } from '../../constants/api';
+import { uploadToCloudinary } from '../../utils/cloudinary';
 
 // Safe lazy getter for ImagePicker using NativeModules check first to prevent JSI exceptions
 const getImagePicker = () => {
@@ -148,6 +149,12 @@ export default function CreateCampaign() {
     if (!validateStep2()) return;
     setLoading(true);
     try {
+      let hostedImageUrl = productImage.trim();
+      if (hostedImageUrl && !hostedImageUrl.startsWith('http')) {
+        hostedImageUrl = await uploadToCloudinary(hostedImageUrl);
+      }
+      const finalImage = hostedImageUrl || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80';
+
       const headers = await getAuthHeader();
       const payload = {
         campaign_name: campaignName,
@@ -158,8 +165,8 @@ export default function CreateCampaign() {
         min_followers: Number(minFollowers ?? 0),
         cost_per_influencer: campaignType === 'paid' ? Number(costPerInfluencer ?? 0) : 0,
         description: description || 'No description provided.',
-        product_image: productImage.trim() || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80',
-        reference_images: [productImage.trim() || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80']
+        product_image: finalImage,
+        reference_images: [finalImage]
       };
       const res = await fetch(getApiUrl(API.CAMPAIGNS.CREATE), {
         method: 'POST',
