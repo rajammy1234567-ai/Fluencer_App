@@ -10,7 +10,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
-  Dimensions,
   ActivityIndicator,
   StatusBar,
 } from 'react-native';
@@ -44,7 +43,7 @@ export default function CreateCampaign() {
   const [campaignName, setCampaignName] = useState('');
   const [location, setLocation] = useState('');
   const [campaignType, setCampaignType] = useState('paid');
-  const [contentType, setContentType] = useState('');
+  const [contentType, setContentType] = useState('reel');
   const [seats, setSeats] = useState('');
   const [minFollowers, setMinFollowers] = useState('');
   const [costPerInfluencer, setCostPerInfluencer] = useState('');
@@ -92,15 +91,30 @@ export default function CreateCampaign() {
   };
 
   const validateStep1 = () => {
-    if (!campaignName.trim()) { Alert.alert('Error', 'Please enter campaign name'); return false; }
-    if (!location.trim()) { Alert.alert('Error', 'Please enter location'); return false; }
+    if (!campaignName.trim()) { 
+      Alert.alert('Error', 'Please enter campaign name'); 
+      return false; 
+    }
+    if (!location.trim()) { 
+      Alert.alert('Error', 'Please enter location'); 
+      return false; 
+    }
     return true;
   };
 
   const validateStep2 = () => {
-    if (!contentType) { Alert.alert('Error', 'Please select content type'); return false; }
-    if (!seats) { Alert.alert('Error', 'Please enter number of influencers'); return false; }
-    if (campaignType === 'paid' && !costPerInfluencer) { Alert.alert('Error', 'Please enter cost per influencer'); return false; }
+    if (!contentType) { 
+      Alert.alert('Error', 'Please select content type'); 
+      return false; 
+    }
+    if (!seats) { 
+      Alert.alert('Error', 'Please enter number of influencers'); 
+      return false; 
+    }
+    if (campaignType === 'paid' && !costPerInfluencer) { 
+      Alert.alert('Error', 'Please enter cost per influencer'); 
+      return false; 
+    }
     return true;
   };
 
@@ -117,7 +131,7 @@ export default function CreateCampaign() {
         number_of_seats: Number(seats ?? 1),
         min_followers: Number(minFollowers ?? 0),
         cost_per_influencer: campaignType === 'paid' ? Number(costPerInfluencer ?? 0) : 0,
-        description,
+        description: description || 'No description provided.',
         product_image: productImage.trim() || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80',
         reference_images: [productImage.trim() || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80']
       };
@@ -126,14 +140,16 @@ export default function CreateCampaign() {
         headers: { ...headers, 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      if (res.ok) {
+      const data = await res.json();
+      if (res.ok && data.success) {
         Alert.alert('🎉 Success', 'Campaign Created Successfully!', [
           { text: 'View My Campaigns', onPress: () => { resetForm(); router.navigate('/(brand-tabs)/record'); } }
         ]);
       } else {
-        Alert.alert('Error', 'Failed to create campaign');
+        Alert.alert('Error', data.message || 'Failed to create campaign');
       }
     } catch (err) {
+      console.error('Submit error:', err);
       Alert.alert('Error', 'Something went wrong while creating campaign');
     } finally {
       setLoading(false);
@@ -141,8 +157,16 @@ export default function CreateCampaign() {
   };
 
   const resetForm = () => {
-    setStep(1); setCampaignName(''); setLocation(''); setCampaignType('paid');
-    setContentType(''); setSeats(''); setMinFollowers(''); setCostPerInfluencer(''); setDescription(''); setProductImage('');
+    setStep(1); 
+    setCampaignName(''); 
+    setLocation(''); 
+    setCampaignType('paid');
+    setContentType('reel'); 
+    setSeats(''); 
+    setMinFollowers(''); 
+    setCostPerInfluencer(''); 
+    setDescription(''); 
+    setProductImage('');
   };
 
   return (
@@ -155,7 +179,7 @@ export default function CreateCampaign() {
           <MaterialCommunityIcons name={step === 2 ? "arrow-left" : "close"} size={26} color={THEME.text} />
         </TouchableOpacity>
         <Text style={styles.modalTitle}>{step === 1 ? 'Create New Campaign' : 'Campaign Requirements'}</Text>
-        <TouchableOpacity onPress={() => router.push('/applications')}>
+        <TouchableOpacity onPress={() => router.navigate('/applications')}>
           <MaterialCommunityIcons name="account-group" size={24} color={THEME.primary} />
         </TouchableOpacity>
       </View>
@@ -167,7 +191,7 @@ export default function CreateCampaign() {
         <View style={[styles.stepDot, step === 2 && styles.stepDotActive]}><Text style={[styles.stepNumber, step === 2 && styles.stepNumberActive]}>2</Text></View>
       </View>
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView style={styles.formScroll} showsVerticalScrollIndicator={false} contentContainerStyle={styles.formContent}>
           {step === 1 ? (
             <>
