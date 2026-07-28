@@ -26,8 +26,8 @@ import { uploadToCloudinary } from '../../utils/cloudinary';
 const getImagePicker = () => {
   if (Platform.OS === 'web') return null;
   try {
-    const isAvailable = NativeModules?.ExponentImagePicker || NativeModules?.ExpoImagePicker;
-    if (!isAvailable) return null;
+    if (typeof NativeModules === 'undefined' || !NativeModules) return null;
+    if (!Object.prototype.hasOwnProperty.call(NativeModules, 'ExponentImagePicker')) return null;
     return require('expo-image-picker');
   } catch (err) {
     return null;

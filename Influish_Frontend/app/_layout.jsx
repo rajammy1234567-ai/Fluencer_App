@@ -6,14 +6,20 @@ import { Platform } from "react-native";
 import { isAuthenticated } from "../utils/storage";
 import GlobalErrorBoundary from "../components/GlobalErrorBoundary";
 
-// Suppress ExponentImagePicker web warning globally
+// Suppress ExponentImagePicker web proxy warning globally across all components
 if (Platform.OS === 'web' && typeof window !== 'undefined') {
-  const originalWarn = console.warn;
-  console.warn = (...args) => {
-    if (args[0] && typeof args[0] === 'string' && args[0].includes('ExponentImagePicker')) {
-      return;
-    }
-    originalWarn(...args);
+  const isTarget = (msg) => typeof msg === 'string' && (msg.includes('ExponentImagePicker') || msg.includes('NativeModules'));
+  
+  const origWarn = window.console.warn;
+  window.console.warn = function (...args) {
+    if (isTarget(args[0])) return;
+    if (origWarn) origWarn.apply(window.console, args);
+  };
+
+  const origError = window.console.error;
+  window.console.error = function (...args) {
+    if (isTarget(args[0])) return;
+    if (origError) origError.apply(window.console, args);
   };
 }
 
