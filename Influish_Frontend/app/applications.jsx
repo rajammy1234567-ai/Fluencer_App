@@ -147,27 +147,33 @@ export default function ApplicationsScreen() {
           return;
         }
 
-        // Show success with custom modal
-        Alert.alert(
-          '✓ Success',
-          'Application accepted! You can now chat with this influencer.',
-          [
-            {
-              text: 'Open Chat',
-              style: 'default',
-              onPress: () => {
-                // APK SAFETY: Double-check chatId before navigation
-                if (chatId && chatId !== 'undefined') {
-                  router.push(`/conversation?chatId=${chatId}`);
-                }
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          if (window.confirm('🎉 Application accepted! Open chat with influencer now?')) {
+            if (chatId && chatId !== 'undefined') {
+              router.push(`/conversation?chatId=${chatId}`);
+            }
+          }
+        } else {
+          Alert.alert(
+            '✓ Success',
+            'Application accepted! You can now chat with this influencer.',
+            [
+              {
+                text: 'Open Chat',
+                style: 'default',
+                onPress: () => {
+                  if (chatId && chatId !== 'undefined') {
+                    router.push(`/conversation?chatId=${chatId}`);
+                  }
+                },
               },
-            },
-            {
-              text: 'Later',
-              style: 'cancel',
-            },
-          ]
-        );
+              {
+                text: 'Later',
+                style: 'cancel',
+              },
+            ]
+          );
+        }
       } else {
         Alert.alert('Error', data.message || 'Failed to accept application');
       }

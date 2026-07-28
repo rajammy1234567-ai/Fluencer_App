@@ -177,13 +177,13 @@ router.get('/:id/applications', authMiddleware, async (req, res) => {
 router.post('/applications/:applicationId/accept', authMiddleware, async (req, res) => {
   try {
     const applicationId = req.params.applicationId;
-    const brandId = req.user.userId;
+    const brandId = req.user.userId || req.user.id;
     const role = req.user.role;
 
-    if (role !== 'brand') {
+    if (role && role !== 'brand' && role !== 'business' && role !== 'admin') {
       return res.status(403).json({ 
         success: false, 
-        message: 'Unauthorized' 
+        message: 'Only brands can accept applications' 
       });
     }
 
@@ -196,11 +196,18 @@ router.post('/applications/:applicationId/accept', authMiddleware, async (req, r
       });
     }
 
-    const campaign = await Campaign.findOne({ _id: application.campaign_id, brand_id: brandId });
+    const campaign = await Campaign.findById(application.campaign_id);
     if (!campaign) {
       return res.status(404).json({ 
         success: false, 
-        message: 'Campaign not found or unauthorized' 
+        message: 'Campaign not found' 
+      });
+    }
+
+    if (campaign.brand_id.toString() !== brandId.toString() && role !== 'admin') {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Unauthorized campaign owner' 
       });
     }
 
