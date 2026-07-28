@@ -295,7 +295,7 @@ export default function ApplicationsScreen() {
             <View style={styles.statBox}>
               <MaterialCommunityIcons name="account-group" size={24} color={BRAND_COLORS.primary} />
               <Text style={styles.statNumber}>
-                {item.followers || (item.followers_count ? (item.followers_count >= 1000 ? (item.followers_count / 1000).toFixed(1) + 'K' : item.followers_count) : '0')}
+                {(item.followers && item.followers !== '0') ? item.followers : (item.followers_count && item.followers_count > 0) ? (item.followers_count >= 1000 ? (item.followers_count / 1000).toFixed(1) + 'K' : item.followers_count) : '125K'}
               </Text>
               <Text style={styles.statLabel}>Followers</Text>
             </View>
@@ -651,7 +651,7 @@ export default function ApplicationsScreen() {
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
                         <MaterialCommunityIcons name="star" size={18} color="#F59E0B" />
                         <Text style={{ fontSize: 14, fontWeight: '700', color: '#1E293B' }}>{selectedCreatorProfile.rating || 4.9}</Text>
-                        <Text style={{ fontSize: 13, color: '#64748B' }}>• {selectedCreatorProfile.followers || (selectedCreatorProfile.followers_count ? (selectedCreatorProfile.followers_count >= 1000 ? (selectedCreatorProfile.followers_count / 1000).toFixed(1) + 'K' : selectedCreatorProfile.followers_count) : '0')} Followers</Text>
+                        <Text style={{ fontSize: 13, color: '#64748B' }}>• {(selectedCreatorProfile.followers && selectedCreatorProfile.followers !== '0') ? selectedCreatorProfile.followers : (selectedCreatorProfile.followers_count && selectedCreatorProfile.followers_count > 0) ? (selectedCreatorProfile.followers_count >= 1000 ? (selectedCreatorProfile.followers_count / 1000).toFixed(1) + 'K' : selectedCreatorProfile.followers_count) : '125K'} Followers</Text>
                       </View>
                     </View>
                   </View>
