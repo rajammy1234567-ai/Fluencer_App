@@ -39,6 +39,7 @@ import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { API, API_CONFIG } from '../../constants/api';
 import { storage } from '../../utils/storage';
+import { uploadToCloudinary } from '../../utils/cloudinary';
 
 const PRIMARY_COLOR = '#3b82f6';
 const FALLBACK_LOGO = require('../../assets/images/icon.png');
@@ -73,6 +74,125 @@ export default function Profile() {
   const [followerModalVisible, setFollowerModalVisible] = useState(false);
   const [customFollowers, setCustomFollowers] = useState('');
   const [updatingFollowers, setUpdatingFollowers] = useState(false);
+  
+  // Portfolio Showcase State
+  const [portfolioFilter, setPortfolioFilter] = useState('all');
+  const [addMediaModalVisible, setAddMediaModalVisible] = useState(false);
+  const [mediaType, setMediaType] = useState('photo'); // 'photo' | 'reel'
+  const [mediaUrl, setMediaUrl] = useState('');
+  const [mediaTitle, setMediaTitle] = useState('');
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [previewMedia, setPreviewMedia] = useState(null);
+
+  // Cloudinary image picker handler for portfolio photos
+  const handlePickPortfolioPhoto = async () => {
+    try {
+      let ImagePicker = null;
+      try {
+        const { NativeModules } = require('react-native');
+        if (NativeModules.ExponentImagePicker || NativeModules.ExpoImagePicker) {
+          ImagePicker = require('expo-image-picker');
+        }
+      } catch (e) {}
+
+      if (ImagePicker) {
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (permission?.granted) {
+          const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: false, quality: 0.7 });
+          if (!result.canceled && result.assets?.[0]?.uri) {
+            setUploadingMedia(true);
+            const uploadedUrl = await uploadToCloudinary(result.assets[0].uri);
+            setMediaUrl(uploadedUrl);
+            setUploadingMedia(false);
+            return;
+          }
+        }
+      }
+
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        const url = window.prompt('Enter Image or Cloudinary Photo URL:');
+        if (url) setMediaUrl(url);
+      } else {
+        Alert.alert('Notice', 'Please paste your Photo URL directly in the input box below.');
+      }
+    } catch (err) {
+      console.error('Pick photo error:', err);
+      setUploadingMedia(false);
+    }
+  };
+
+  // Add Portfolio Item handler
+  const handleAddPortfolioItem = async () => {
+    if (!mediaUrl.trim()) {
+      Alert.alert('Required', 'Please provide an Image or Reel Video URL');
+      return;
+    }
+
+    setUploadingMedia(true);
+    try {
+      const token = await storage.getToken();
+      let finalUrl = mediaUrl.trim();
+
+      if (mediaType === 'photo' && !finalUrl.startsWith('http')) {
+        finalUrl = await uploadToCloudinary(finalUrl);
+      }
+
+      const res = await fetch(`${API_CONFIG.BASE_URL}${API.INFLUENCERS.PORTFOLIO}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          type: mediaType,
+          url: finalUrl,
+          title: mediaTitle
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setProfile(prev => ({
+          ...prev,
+          portfolio: data.portfolio || [...(prev?.portfolio || []), data.portfolioItem]
+        }));
+        setAddMediaModalVisible(false);
+        setMediaUrl('');
+        setMediaTitle('');
+        Alert.alert('Success 🎉', `${mediaType === 'reel' ? 'Reel' : 'Photo'} added to your portfolio!`);
+      } else {
+        Alert.alert('Error', data.message || 'Failed to add item to portfolio');
+      }
+    } catch (err) {
+      console.error('Add portfolio error:', err);
+      Alert.alert('Error', 'Network error while saving portfolio item');
+    } finally {
+      setUploadingMedia(false);
+    }
+  };
+
+  // Delete Portfolio Item handler
+  const handleDeletePortfolioItem = async (itemId) => {
+    try {
+      const token = await storage.getToken();
+      const res = await fetch(`${API_CONFIG.BASE_URL}${API.INFLUENCERS.PORTFOLIO}/${itemId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setProfile(prev => ({
+          ...prev,
+          portfolio: (prev?.portfolio || []).filter(item => item.id !== itemId)
+        }));
+        setPreviewMedia(null);
+      }
+    } catch (err) {
+      console.error('Delete portfolio error:', err);
+    }
+  };
   
   // Lifecycle safety
   const isMountedRef = useRef(true);
@@ -437,6 +557,109 @@ export default function Profile() {
             </View>
           </View>
 
+          {/* PORTFOLIO & REELS SHOWCASE SECTION */}
+          <View style={styles.portfolioSection}>
+            <View style={styles.portfolioHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <MaterialCommunityIcons name="image-multiple" size={24} color={PRIMARY_COLOR} />
+                <Text style={styles.portfolioTitle}>My Portfolio & Content</Text>
+              </View>
+
+              <TouchableOpacity
+                style={styles.addMediaBtn}
+                onPress={() => setAddMediaModalVisible(true)}
+              >
+                <MaterialCommunityIcons name="plus-circle" size={18} color="#FFFFFF" />
+                <Text style={styles.addMediaBtnText}>+ Add Media</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Filter Tabs */}
+            <View style={styles.filterTabsContainer}>
+              <TouchableOpacity
+                style={[styles.filterTab, portfolioFilter === 'all' && styles.activeFilterTab]}
+                onPress={() => setPortfolioFilter('all')}
+              >
+                <Text style={[styles.filterTabText, portfolioFilter === 'all' && styles.activeFilterTabText]}>
+                  All ({(profile?.portfolio || []).length})
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.filterTab, portfolioFilter === 'photo' && styles.activeFilterTab]}
+                onPress={() => setPortfolioFilter('photo')}
+              >
+                <Text style={[styles.filterTabText, portfolioFilter === 'photo' && styles.activeFilterTabText]}>
+                  📸 Photos ({(profile?.portfolio || []).filter(i => i.type === 'photo').length})
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.filterTab, portfolioFilter === 'reel' && styles.activeFilterTab]}
+                onPress={() => setPortfolioFilter('reel')}
+              >
+                <Text style={[styles.filterTabText, portfolioFilter === 'reel' && styles.activeFilterTabText]}>
+                  🎬 Reels ({(profile?.portfolio || []).filter(i => i.type === 'reel').length})
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Portfolio Grid */}
+            {((profile?.portfolio || []).filter(item => portfolioFilter === 'all' || item.type === portfolioFilter)).length === 0 ? (
+              <View style={styles.emptyPortfolioContainer}>
+                <MaterialCommunityIcons name="camera-enhance-outline" size={44} color="#94A3B8" />
+                <Text style={styles.emptyPortfolioTitle}>No portfolio media added yet</Text>
+                <Text style={styles.emptyPortfolioSub}>
+                  Upload sample photos or Reel links to showcase your content quality to brands!
+                </Text>
+                <TouchableOpacity
+                  style={styles.emptyAddBtn}
+                  onPress={() => setAddMediaModalVisible(true)}
+                >
+                  <Text style={styles.emptyAddBtnText}>+ Upload Photos & Reels</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.portfolioGrid}>
+                {((profile?.portfolio || []).filter(item => portfolioFilter === 'all' || item.type === portfolioFilter)).map((item, idx) => (
+                  <TouchableOpacity
+                    key={item.id || idx}
+                    style={styles.mediaCard}
+                    onPress={() => setPreviewMedia(item)}
+                    activeOpacity={0.85}
+                  >
+                    <Image
+                      source={{ uri: item.url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80' }}
+                      style={styles.mediaThumbnail}
+                    />
+
+                    {item.type === 'reel' && (
+                      <View style={styles.reelBadge}>
+                        <MaterialCommunityIcons name="play-circle" size={24} color="#FFFFFF" />
+                        <Text style={styles.reelBadgeText}>REEL</Text>
+                      </View>
+                    )}
+
+                    <TouchableOpacity
+                      style={styles.deleteMediaBadge}
+                      onPress={() => handleDeletePortfolioItem(item.id)}
+                    >
+                      <MaterialCommunityIcons name="trash-can-outline" size={16} color="#FFFFFF" />
+                    </TouchableOpacity>
+
+                    {item.title ? (
+                      <View style={styles.mediaCaptionBar}>
+                        <Text style={styles.mediaCaptionText} numberOfLines={1}>
+                          {item.title}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+
           {/* Action Buttons */}
           <View style={styles.actionsContainer}>
             <TouchableOpacity 
@@ -508,18 +731,71 @@ export default function Profile() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={{ flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: '#2563EB', alignItems: 'center' }}
-                onPress={handleUpdateFollowers}
-                disabled={updatingFollowers}
+                onPress={() => setAddMediaModalVisible(false)}
               >
-                {updatingFollowers ? (
+                <Text style={{ fontSize: 15, fontWeight: '600', color: '#64748B' }}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{ flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: mediaType === 'reel' ? '#E11D48' : '#2563EB', alignItems: 'center' }}
+                onPress={handleAddPortfolioItem}
+                disabled={uploadingMedia}
+              >
+                {uploadingMedia ? (
                   <ActivityIndicator color="#FFFFFF" />
                 ) : (
-                  <Text style={{ fontSize: 16, fontWeight: '700', color: '#FFFFFF' }}>Save</Text>
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF' }}>Save Media</Text>
                 )}
               </TouchableOpacity>
             </View>
           </View>
+        </View>
+      </Modal>
+
+      {/* MEDIA PREVIEW MODAL */}
+      <Modal
+        visible={!!previewMedia}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setPreviewMedia(null)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+          <TouchableOpacity
+            style={{ position: 'absolute', top: 40, right: 20, zIndex: 10, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20, padding: 8 }}
+            onPress={() => setPreviewMedia(null)}
+          >
+            <MaterialCommunityIcons name="close" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+
+          {previewMedia && (
+            <View style={{ width: '100%', maxWidth: 500, alignItems: 'center' }}>
+              <Image
+                source={{ uri: previewMedia.url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80' }}
+                style={{ width: '100%', height: 380, borderRadius: 16, resizeMode: 'contain', backgroundColor: '#000' }}
+              />
+
+              {previewMedia.title ? (
+                <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600', marginTop: 14, textAlign: 'center' }}>
+                  {previewMedia.title}
+                </Text>
+              ) : null}
+
+              {previewMedia.type === 'reel' && (
+                <View style={{ marginTop: 12, backgroundColor: '#E11D48', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <MaterialCommunityIcons name="play-circle" size={20} color="#FFFFFF" />
+                  <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 14 }}>Sample Reel Video Preview</Text>
+                </View>
+              )}
+
+              <TouchableOpacity
+                style={{ marginTop: 20, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(239,68,68,0.2)', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 }}
+                onPress={() => handleDeletePortfolioItem(previewMedia.id)}
+              >
+                <MaterialCommunityIcons name="trash-can" size={18} color="#EF4444" />
+                <Text style={{ color: '#EF4444', fontWeight: '700' }}>Delete From Portfolio</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </Modal>
     </SafeAreaView>
@@ -713,6 +989,159 @@ const styles = StyleSheet.create({
     marginLeft: 14,
     fontWeight: '600',
     flex: 1,
+  },
+  portfolioSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 24,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+  },
+  portfolioHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  portfolioTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  addMediaBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#2563EB',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  addMediaBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  filterTabsContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+  },
+  filterTab: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: '#F1F5F9',
+  },
+  activeFilterTab: {
+    backgroundColor: '#3B82F6',
+  },
+  filterTabText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  activeFilterTabText: {
+    color: '#FFFFFF',
+  },
+  emptyPortfolioContainer: {
+    padding: 24,
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderStyle: 'dashed',
+  },
+  emptyPortfolioTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#334155',
+    marginTop: 10,
+  },
+  emptyPortfolioSub: {
+    fontSize: 13,
+    color: '#64748B',
+    textAlign: 'center',
+    marginTop: 4,
+    marginBottom: 14,
+  },
+  emptyAddBtn: {
+    backgroundColor: '#2563EB',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  emptyAddBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  portfolioGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  mediaCard: {
+    width: '47%',
+    height: 160,
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: '#F1F5F9',
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  mediaThumbnail: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  reelBadge: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 2,
+  },
+  reelBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  deleteMediaBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(239, 68, 68, 0.85)',
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  mediaCaptionBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  mediaCaptionText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '600',
   },
   actionsContainer: {
     flexDirection: 'column',

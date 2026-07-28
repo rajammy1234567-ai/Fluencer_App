@@ -239,4 +239,63 @@ router.post('/unlock-pass', authMiddleware, async (req, res) => {
   }
 });
 
+// Add portfolio item (photo or reel)
+router.post('/portfolio', authMiddleware, async (req, res) => {
+  try {
+    const { type, url, title } = req.body;
+    const userId = req.user.userId || req.user.id;
+
+    if (!url || !url.trim()) {
+      return res.status(400).json({ success: false, message: 'Media URL is required' });
+    }
+
+    const newItem = {
+      id: `media_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      type: type === 'reel' ? 'reel' : 'photo',
+      url: url.trim(),
+      title: title ? String(title).trim() : '',
+      created_at: new Date()
+    };
+
+    const profile = await InfluencerProfile.findOneAndUpdate(
+      { user_id: userId },
+      { $push: { portfolio: newItem } },
+      { new: true, upsert: true }
+    );
+
+    res.json({
+      success: true,
+      message: 'Portfolio item added successfully!',
+      portfolioItem: newItem,
+      portfolio: profile.portfolio || []
+    });
+  } catch (error) {
+    console.error('Portfolio add error:', error);
+    res.status(500).json({ success: false, message: 'Failed to add portfolio item', error: error.message });
+  }
+});
+
+// Delete portfolio item
+router.delete('/portfolio/:id', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId || req.user.id;
+
+    const profile = await InfluencerProfile.findOneAndUpdate(
+      { user_id: userId },
+      { $pull: { portfolio: { id: id } } },
+      { new: true }
+    );
+
+    res.json({
+      success: true,
+      message: 'Portfolio item deleted successfully!',
+      portfolio: profile ? profile.portfolio : []
+    });
+  } catch (error) {
+    console.error('Portfolio delete error:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete portfolio item', error: error.message });
+  }
+});
+
 export default router;

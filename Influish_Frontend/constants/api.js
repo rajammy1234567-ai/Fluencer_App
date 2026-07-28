@@ -34,6 +34,7 @@ export const API = {
     PROFILE: '/api/influencers/profile',
     PROFILE_EXISTS: '/api/influencers/profile-exists',
     UPLOAD_IMAGE: '/api/influencers/upload-image',
+    PORTFOLIO: '/api/influencers/portfolio',
   },
   BRANDS: {
     PROFILE: '/api/brands/profile',

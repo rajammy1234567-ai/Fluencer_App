@@ -75,7 +75,14 @@ const influencerProfileSchema = new mongoose.Schema({
   pro_unlocked_at: {
     type: Date,
     default: null
-  }
+  },
+  portfolio: [{
+    id: { type: String, required: true },
+    type: { type: String, enum: ['photo', 'reel'], default: 'photo' },
+    url: { type: String, required: true },
+    title: { type: String, default: '' },
+    created_at: { type: Date, default: Date.now }
+  }]
 }, {
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });
