@@ -24,16 +24,12 @@ import { uploadToCloudinary } from '../../utils/cloudinary';
 
 // Safe lazy getter for ImagePicker using NativeModules check first to prevent JSI exceptions
 const getImagePicker = () => {
+  if (Platform.OS === 'web') return null;
   try {
-    const isAvailable = NativeModules.ExponentImagePicker || NativeModules.ExpoImagePicker;
-    if (!isAvailable) {
-      console.warn('⚠️ ExponentImagePicker not registered in NativeModules');
-      return null;
-    }
-    const ImagePicker = require('expo-image-picker');
-    return ImagePicker;
+    const isAvailable = NativeModules?.ExponentImagePicker || NativeModules?.ExpoImagePicker;
+    if (!isAvailable) return null;
+    return require('expo-image-picker');
   } catch (err) {
-    console.warn('⚠️ ExponentImagePicker require error:', err);
     return null;
   }
 };
