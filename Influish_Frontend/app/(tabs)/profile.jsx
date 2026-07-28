@@ -787,56 +787,87 @@ export default function Profile() {
             <Text style={{ fontSize: 20, fontWeight: '700', color: '#1E293B', marginBottom: 6, textAlign: 'center' }}>
               ✨ Add Portfolio Photo / Video Reel
             </Text>
-            <Text style={{ fontSize: 14, color: '#64748B', marginBottom: 18, textAlign: 'center' }}>
-              Upload local photos & videos or paste media URLs to showcase on your profile
+            <Text style={{ fontSize: 13, fontWeight: '600', color: '#64748B', marginBottom: 16 }}>
+              Upload photos and reel videos directly from your phone or computer to showcase on your profile.
             </Text>
 
-            {/* Type Selector */}
-            <View style={{ flexDirection: 'row', backgroundColor: '#F1F5F9', borderRadius: 12, padding: 4, marginBottom: 16 }}>
-              <TouchableOpacity
-                style={{ flex: 1, paddingVertical: 10, borderRadius: 10, backgroundColor: mediaType === 'photo' ? '#FFFFFF' : 'transparent', alignItems: 'center', elevation: mediaType === 'photo' ? 2 : 0 }}
-                onPress={() => setMediaType('photo')}
-              >
-                <Text style={{ fontSize: 14, fontWeight: '700', color: mediaType === 'photo' ? '#2563EB' : '#64748B' }}>📸 Photo</Text>
-              </TouchableOpacity>
+            {/* Section 1: Local Photo Upload */}
+            <View style={{ marginBottom: 16, backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: mediaType === 'photo' && mediaUrl ? '#86EFAC' : '#E2E8F0', borderRadius: 14, padding: 14 }}>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#1E293B', marginBottom: 6 }}>
+                📸 Section 1: Upload Local Photo
+              </Text>
+              <Text style={{ fontSize: 12, color: '#64748B', marginBottom: 10 }}>
+                Select an image file (JPG, PNG) from your device or PC
+              </Text>
 
-              <TouchableOpacity
-                style={{ flex: 1, paddingVertical: 10, borderRadius: 10, backgroundColor: mediaType === 'reel' ? '#FFFFFF' : 'transparent', alignItems: 'center', elevation: mediaType === 'reel' ? 2 : 0 }}
-                onPress={() => setMediaType('reel')}
-              >
-                <Text style={{ fontSize: 14, fontWeight: '700', color: mediaType === 'reel' ? '#E11D48' : '#64748B' }}>🎬 Reel / Video</Text>
-              </TouchableOpacity>
+              {mediaType === 'photo' && mediaUrl ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#F0FDF4', padding: 10, borderRadius: 10, borderWidth: 1, borderColor: '#BBF7D0', marginBottom: 8 }}>
+                  <MaterialCommunityIcons name="check-circle" size={22} color="#16A34A" />
+                  <Text style={{ flex: 1, fontSize: 13, fontWeight: '700', color: '#15803D' }} numberOfLines={1}>
+                    ✓ Photo Ready to Save!
+                  </Text>
+                  <TouchableOpacity onPress={() => handlePickLocalFile('photo')}>
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#2563EB' }}>Change</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={{ width: '100%', backgroundColor: '#EFF6FF', borderWidth: 1, borderColor: '#BFDBFE', borderRadius: 12, paddingVertical: 12, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}
+                  onPress={() => handlePickLocalFile('photo')}
+                  disabled={uploadingMedia}
+                >
+                  {uploadingMedia && mediaType === 'photo' ? (
+                    <ActivityIndicator color="#2563EB" />
+                  ) : (
+                    <>
+                      <MaterialCommunityIcons name="file-image" size={20} color="#2563EB" />
+                      <Text style={{ fontSize: 14, fontWeight: '700', color: '#1D4ED8' }}>
+                        📁 Choose Photo File from Device / PC
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              )}
             </View>
 
-            {/* Local File Upload Button */}
-            <TouchableOpacity
-              style={{ width: '100%', backgroundColor: mediaType === 'reel' ? '#FFF1F2' : '#EFF6FF', borderWidth: 1, borderColor: mediaType === 'reel' ? '#FECDD3' : '#BFDBFE', borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginBottom: 14, flexDirection: 'row', justifyContent: 'center', gap: 8 }}
-              onPress={() => handlePickLocalFile(mediaType)}
-              disabled={uploadingMedia}
-            >
-              {uploadingMedia ? (
-                <ActivityIndicator color={mediaType === 'reel' ? '#E11D48' : '#2563EB'} />
-              ) : (
-                <>
-                  <MaterialCommunityIcons name="folder-upload" size={22} color={mediaType === 'reel' ? '#E11D48' : '#2563EB'} />
-                  <Text style={{ fontSize: 14, fontWeight: '700', color: mediaType === 'reel' ? '#BE123C' : '#1E40AF' }}>
-                    Choose Local {mediaType === 'reel' ? 'Video File (MP4/MOV)' : 'Photo'}
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
+            {/* Section 2: Local Video / Reel Upload */}
+            <View style={{ marginBottom: 16, backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: mediaType === 'reel' && mediaUrl ? '#86EFAC' : '#E2E8F0', borderRadius: 14, padding: 14 }}>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#1E293B', marginBottom: 6 }}>
+                🎬 Section 2: Upload Local Video / Reel
+              </Text>
+              <Text style={{ fontSize: 12, color: '#64748B', marginBottom: 10 }}>
+                Select a video file (MP4, MOV) from your device or PC
+              </Text>
 
-            {/* URL Input */}
-            <Text style={{ fontSize: 13, fontWeight: '600', color: '#475569', marginBottom: 6 }}>
-              {mediaType === 'photo' ? 'Photo URL / Cloudinary Link' : 'Reel / Video URL (Instagram / YouTube / Cloudinary)'}
-            </Text>
-            <TextInput
-              style={{ width: '100%', backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 15, color: '#1E293B', marginBottom: 14 }}
-              placeholder={mediaType === 'photo' ? 'https://res.cloudinary.com/...' : 'https://instagram.com/reel/...'}
-              placeholderTextColor="#94A3B8"
-              value={mediaUrl}
-              onChangeText={setMediaUrl}
-            />
+              {mediaType === 'reel' && mediaUrl ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FFF1F2', padding: 10, borderRadius: 10, borderWidth: 1, borderColor: '#FECDD3', marginBottom: 8 }}>
+                  <MaterialCommunityIcons name="check-circle" size={22} color="#E11D48" />
+                  <Text style={{ flex: 1, fontSize: 13, fontWeight: '700', color: '#BE123C' }} numberOfLines={1}>
+                    ✓ Video / Reel Ready to Save!
+                  </Text>
+                  <TouchableOpacity onPress={() => handlePickLocalFile('reel')}>
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#E11D48' }}>Change</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={{ width: '100%', backgroundColor: '#FFF1F2', borderWidth: 1, borderColor: '#FECDD3', borderRadius: 12, paddingVertical: 12, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}
+                  onPress={() => handlePickLocalFile('reel')}
+                  disabled={uploadingMedia}
+                >
+                  {uploadingMedia && mediaType === 'reel' ? (
+                    <ActivityIndicator color="#E11D48" />
+                  ) : (
+                    <>
+                      <MaterialCommunityIcons name="video" size={20} color="#E11D48" />
+                      <Text style={{ fontSize: 14, fontWeight: '700', color: '#BE123C' }}>
+                        🎥 Choose Video File (MP4/MOV) from Device / PC
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
 
             {/* Title Input */}
             <Text style={{ fontSize: 13, fontWeight: '600', color: '#475569', marginBottom: 6 }}>Title / Description (Optional)</Text>
