@@ -68,6 +68,30 @@ export default function CreateCampaign() {
   const [productImage, setProductImage] = useState('');
 
   const handlePickGalleryImage = async () => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = async (e) => {
+        const file = e.target.files?.[0];
+        if (file) {
+          try {
+            setLoading(true);
+            const uploadedUrl = await uploadToCloudinary(file);
+            if (uploadedUrl) {
+              setProductImage(uploadedUrl);
+            }
+          } catch (err) {
+            console.error('Web file upload error:', err);
+          } finally {
+            setLoading(false);
+          }
+        }
+      };
+      input.click();
+      return;
+    }
+
     try {
       const ImagePicker = getImagePicker();
       if (!ImagePicker) {
@@ -93,6 +117,31 @@ export default function CreateCampaign() {
   };
 
   const handleTakePhotoCamera = async () => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.capture = 'environment';
+      input.onchange = async (e) => {
+        const file = e.target.files?.[0];
+        if (file) {
+          try {
+            setLoading(true);
+            const uploadedUrl = await uploadToCloudinary(file);
+            if (uploadedUrl) {
+              setProductImage(uploadedUrl);
+            }
+          } catch (err) {
+            console.error('Web camera upload error:', err);
+          } finally {
+            setLoading(false);
+          }
+        }
+      };
+      input.click();
+      return;
+    }
+
     try {
       const ImagePicker = getImagePicker();
       if (!ImagePicker) {
