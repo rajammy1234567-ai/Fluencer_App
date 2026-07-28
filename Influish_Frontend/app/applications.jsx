@@ -41,6 +41,32 @@ export default function ApplicationsScreen() {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState(null);
 
+  // Creator Profile & Portfolio Viewer State
+  const [selectedCreatorProfile, setSelectedCreatorProfile] = useState(null);
+  const [creatorModalVisible, setCreatorModalVisible] = useState(false);
+  const [loadingCreatorProfile, setLoadingCreatorProfile] = useState(false);
+  const [creatorPortfolioFilter, setCreatorPortfolioFilter] = useState('all');
+  const [creatorPreviewMedia, setCreatorPreviewMedia] = useState(null);
+
+  const handleOpenCreatorProfile = async (influencerId) => {
+    setLoadingCreatorProfile(true);
+    setCreatorModalVisible(true);
+    try {
+      const headers = await getAuthHeader();
+      const res = await fetch(getApiUrl(`/api/influencers/profile/${influencerId}`), { headers });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSelectedCreatorProfile(data.profile);
+      } else {
+        setSelectedCreatorProfile(null);
+      }
+    } catch (err) {
+      console.error('Error fetching creator profile:', err);
+    } finally {
+      setLoadingCreatorProfile(false);
+    }
+  };
+
   useEffect(() => {
     fetchApplications();
   }, [campaignId]);
@@ -232,7 +258,11 @@ export default function ApplicationsScreen() {
           </View>
 
         {/* Influencer Profile Card */}
-        <View style={styles.profileCard}>
+        <TouchableOpacity 
+          style={styles.profileCard}
+          onPress={() => handleOpenCreatorProfile(item.influencer_id || item.user_id)}
+          activeOpacity={0.9}
+        >
           <View style={styles.profileHeader}>
             <View style={styles.avatarWrapper}>
               <LinearGradient
@@ -287,7 +317,16 @@ export default function ApplicationsScreen() {
               ))}
             </View>
           )}
-        </View>
+
+          {/* View Profile & Portfolio Button */}
+          <TouchableOpacity
+            style={styles.viewProfileBtn}
+            onPress={() => handleOpenCreatorProfile(item.influencer_id || item.user_id)}
+          >
+            <MaterialCommunityIcons name="account-eye" size={18} color="#2563EB" />
+            <Text style={styles.viewProfileBtnText}>View Creator Profile & Portfolio (Photos & Reels) ➔</Text>
+          </TouchableOpacity>
+        </TouchableOpacity>
 
         {/* Proposal Message */}
         {item.message && (
@@ -558,6 +597,203 @@ export default function ApplicationsScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* CREATOR PROFILE & PORTFOLIO VIEWER MODAL */}
+      <Modal
+        visible={creatorModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setCreatorModalVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(15,23,42,0.75)', justifyContent: 'flex-end' }}>
+          <View style={{ width: '100%', height: '88%', backgroundColor: '#F8FAFC', borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden' }}>
+            {/* Header Bar */}
+            <View style={{ backgroundColor: '#2563EB', paddingHorizontal: 20, paddingVertical: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <MaterialCommunityIcons name="account-star" size={26} color="#FFFFFF" />
+                <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '700' }}>Creator Profile & Portfolio</Text>
+              </View>
+
+              <TouchableOpacity
+                style={{ backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20, padding: 6 }}
+                onPress={() => setCreatorModalVisible(false)}
+              >
+                <MaterialCommunityIcons name="close" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+
+            {loadingCreatorProfile ? (
+              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                <ActivityIndicator size="large" color="#2563EB" />
+                <Text style={{ marginTop: 12, color: '#64748B', fontWeight: '600' }}>Loading Creator Portfolio...</Text>
+              </View>
+            ) : selectedCreatorProfile ? (
+              <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
+                {/* Profile Overview Card */}
+                <View style={{ backgroundColor: '#FFFFFF', borderRadius: 20, padding: 20, marginBottom: 20, elevation: 2 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 16 }}>
+                    <Image
+                      source={{ uri: selectedCreatorProfile.profile_image || selectedCreatorProfile.profile_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedCreatorProfile.name || 'Creator')}&size=200` }}
+                      style={{ width: 72, height: 72, borderRadius: 36, borderWidth: 2, borderColor: '#2563EB' }}
+                    />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 20, fontWeight: '700', color: '#1E293B' }}>{selectedCreatorProfile.name}</Text>
+                      <Text style={{ fontSize: 13, color: '#64748B', marginTop: 2 }}>{selectedCreatorProfile.location || 'Location Not Set'}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
+                        <MaterialCommunityIcons name="star" size={18} color="#F59E0B" />
+                        <Text style={{ fontSize: 14, fontWeight: '700', color: '#1E293B' }}>{selectedCreatorProfile.rating || 4.9}</Text>
+                        <Text style={{ fontSize: 13, color: '#64748B' }}>• {selectedCreatorProfile.followers || '125K'} Followers</Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {selectedCreatorProfile.bio ? (
+                    <Text style={{ fontSize: 14, color: '#475569', lineHeight: 20, marginBottom: 14 }}>
+                      "{selectedCreatorProfile.bio}"
+                    </Text>
+                  ) : null}
+
+                  {/* Social Handles */}
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 10, borderTopWidth: 1, borderColor: '#F1F5F9' }}>
+                    {selectedCreatorProfile.instagram ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#FDF2F8', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12 }}>
+                        <MaterialCommunityIcons name="instagram" size={16} color="#E11D48" />
+                        <Text style={{ fontSize: 12, fontWeight: '600', color: '#BE123C' }}>@{selectedCreatorProfile.instagram}</Text>
+                      </View>
+                    ) : null}
+
+                    {selectedCreatorProfile.youtube ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#FEF2F2', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12 }}>
+                        <MaterialCommunityIcons name="youtube" size={16} color="#DC2626" />
+                        <Text style={{ fontSize: 12, fontWeight: '600', color: '#991B1B' }}>{selectedCreatorProfile.youtube}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                </View>
+
+                {/* Portfolio & Reels Showcase Section */}
+                <View style={{ backgroundColor: '#FFFFFF', borderRadius: 20, padding: 20, elevation: 2 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                    <Text style={{ fontSize: 17, fontWeight: '700', color: '#1E293B' }}>📸 Creator Portfolio & Reels</Text>
+                  </View>
+
+                  {/* Filter Tabs */}
+                  <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+                    <TouchableOpacity
+                      style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: creatorPortfolioFilter === 'all' ? '#2563EB' : '#F1F5F9' }}
+                      onPress={() => setCreatorPortfolioFilter('all')}
+                    >
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: creatorPortfolioFilter === 'all' ? '#FFFFFF' : '#64748B' }}>
+                        All ({(selectedCreatorProfile.portfolio || []).length})
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: creatorPortfolioFilter === 'photo' ? '#2563EB' : '#F1F5F9' }}
+                      onPress={() => setCreatorPortfolioFilter('photo')}
+                    >
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: creatorPortfolioFilter === 'photo' ? '#FFFFFF' : '#64748B' }}>
+                        📸 Photos ({(selectedCreatorProfile.portfolio || []).filter(i => i.type === 'photo').length})
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: creatorPortfolioFilter === 'reel' ? '#2563EB' : '#F1F5F9' }}
+                      onPress={() => setCreatorPortfolioFilter('reel')}
+                    >
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: creatorPortfolioFilter === 'reel' ? '#FFFFFF' : '#64748B' }}>
+                        🎬 Reels ({(selectedCreatorProfile.portfolio || []).filter(i => i.type === 'reel').length})
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Portfolio Grid */}
+                  {((selectedCreatorProfile.portfolio || []).filter(item => creatorPortfolioFilter === 'all' || item.type === creatorPortfolioFilter)).length === 0 ? (
+                    <View style={{ padding: 24, alignItems: 'center', backgroundColor: '#F8FAFC', borderRadius: 16, borderWidth: 1, borderColor: '#E2E8F0', borderStyle: 'dashed' }}>
+                      <MaterialCommunityIcons name="image-off-outline" size={40} color="#94A3B8" />
+                      <Text style={{ fontSize: 15, fontWeight: '700', color: '#334155', marginTop: 8 }}>No portfolio media added yet</Text>
+                      <Text style={{ fontSize: 13, color: '#64748B', textAlign: 'center', marginTop: 4 }}>This creator hasn't uploaded sample photos or reels yet.</Text>
+                    </View>
+                  ) : (
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+                      {((selectedCreatorProfile.portfolio || []).filter(item => creatorPortfolioFilter === 'all' || item.type === creatorPortfolioFilter)).map((item, idx) => (
+                        <TouchableOpacity
+                          key={item.id || idx}
+                          style={{ width: '47%', height: 160, borderRadius: 14, overflow: 'hidden', backgroundColor: '#F1F5F9', position: 'relative' }}
+                          onPress={() => setCreatorPreviewMedia(item)}
+                          activeOpacity={0.85}
+                        >
+                          <Image
+                            source={{ uri: item.url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80' }}
+                            style={{ width: '100%', height: '100%', resizeMode: 'cover' }}
+                          />
+
+                          {item.type === 'reel' && (
+                            <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
+                              <MaterialCommunityIcons name="play-circle" size={32} color="#FFFFFF" />
+                              <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '800', marginTop: 2 }}>REEL</Text>
+                            </View>
+                          )}
+
+                          {item.title ? (
+                            <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(15,23,42,0.8)', paddingHorizontal: 8, paddingVertical: 4 }}>
+                              <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '600' }} numberOfLines={1}>{item.title}</Text>
+                            </View>
+                          ) : null}
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              </ScrollView>
+            ) : (
+              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+                <MaterialCommunityIcons name="account-search-outline" size={48} color="#94A3B8" />
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#334155', marginTop: 10 }}>Creator Profile Not Available</Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* CREATOR MEDIA PREVIEW MODAL */}
+      <Modal
+        visible={!!creatorPreviewMedia}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setCreatorPreviewMedia(null)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+          <TouchableOpacity
+            style={{ position: 'absolute', top: 40, right: 20, zIndex: 10, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20, padding: 8 }}
+            onPress={() => setCreatorPreviewMedia(null)}
+          >
+            <MaterialCommunityIcons name="close" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+
+          {creatorPreviewMedia && (
+            <View style={{ width: '100%', maxWidth: 500, alignItems: 'center' }}>
+              <Image
+                source={{ uri: creatorPreviewMedia.url }}
+                style={{ width: '100%', height: 380, borderRadius: 16, resizeMode: 'contain', backgroundColor: '#000' }}
+              />
+
+              {creatorPreviewMedia.title ? (
+                <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600', marginTop: 14, textAlign: 'center' }}>
+                  {creatorPreviewMedia.title}
+                </Text>
+              ) : null}
+
+              {creatorPreviewMedia.type === 'reel' && (
+                <View style={{ marginTop: 12, backgroundColor: '#E11D48', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <MaterialCommunityIcons name="play-circle" size={20} color="#FFFFFF" />
+                  <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 14 }}>Sample Reel Video Preview</Text>
+                </View>
+              )}
+            </View>
+          )}
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -566,6 +802,24 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  viewProfileBtn: {
+    marginTop: 12,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  viewProfileBtnText: {
+    color: '#1E40AF',
+    fontSize: 13,
+    fontWeight: '700',
   },
   loadingContainer: {
     flex: 1,

@@ -169,6 +169,31 @@ router.get('/profile', authMiddleware, async (req, res) => {
   }
 });
 
+// Get any influencer public profile & portfolio by userId or id (for Brands & Public View)
+router.get('/profile/:id', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    let profile = await InfluencerProfile.findOne({
+      $or: [{ user_id: id }, { _id: id }]
+    }).lean();
+
+    if (!profile) {
+      return res.status(404).json({ success: false, message: 'Influencer profile not found' });
+    }
+
+    profile.id = profile._id.toString();
+    profile.followers = profile.followers || '125K';
+    profile.rating = profile.rating || 4.9;
+    profile.portfolio = profile.portfolio || [];
+
+    res.json({ success: true, profile });
+  } catch (error) {
+    console.error('Public profile fetch error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch public profile', error: error.message });
+  }
+});
+
 // Check if profile exists
 router.get('/profile-exists', authMiddleware, async (req, res) => {
   try {
