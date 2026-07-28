@@ -426,6 +426,14 @@ export default function ApplicationsScreen() {
     );
   };
 
+  const handleGoBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.navigate('/(brand-tabs)/record');
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -441,7 +449,7 @@ export default function ApplicationsScreen() {
         <View style={styles.headerTop}>
           <TouchableOpacity 
             style={styles.backButton}
-            onPress={() => router.back()}
+            onPress={handleGoBack}
           >
             <MaterialCommunityIcons name="arrow-left" size={24} color={BRAND_COLORS.white} />
           </TouchableOpacity>
