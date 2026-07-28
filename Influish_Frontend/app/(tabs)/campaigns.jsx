@@ -269,15 +269,18 @@ export default function InfluencerCampaigns() {
       const data = await response.json();
       if (response.ok && data.success) {
         setApplyModalVisible(false);
-        Alert.alert('Success', 'Application submitted!');
-        // Remove from local list or refresh?
-        // Current index already moved.
+        Alert.alert('🎉 Success!', 'Application submitted successfully! You can track your application status in your Creator Dashboard.');
+        fetchCampaigns();
       } else {
-        Alert.alert('Error', data.message || 'Failed to apply');
+        setApplyModalVisible(false);
+        Alert.alert(
+          data.already_applied ? '⚠️ Already Applied' : 'Notice',
+          data.message || 'You have already applied to this campaign.'
+        );
       }
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'Failed to submit');
+      Alert.alert('Error', 'Failed to submit application');
     } finally {
       setSubmitting(false);
     }

@@ -498,9 +498,18 @@ router.get('/active/all', authMiddleware, async (req, res) => {
         } catch (err) {}
       }
 
-      if (userId && mongoose.Types.ObjectId.isValid(userId)) {
+      if (userId) {
         try {
-          app = await Application.findOne({ campaign_id: c._id, influencer_id: userId }).lean();
+          const campIdObj = mongoose.Types.ObjectId.isValid(c._id) ? new mongoose.Types.ObjectId(c._id) : c._id;
+          const infIdObj = mongoose.Types.ObjectId.isValid(userId) ? new mongoose.Types.ObjectId(userId) : userId;
+          
+          app = await Application.findOne({
+            $or: [
+              { campaign_id: c._id, influencer_id: userId },
+              { campaign_id: campIdObj, influencer_id: infIdObj },
+              { campaign_id: c._id.toString(), influencer_id: userId.toString() }
+            ]
+          }).lean();
         } catch (err) {}
       }
 
@@ -516,7 +525,6 @@ router.get('/active/all', authMiddleware, async (req, res) => {
     }));
 
     // If Influencer is logged in, filter out campaigns they have already applied to
-    // (So 1 creator can apply to 1 campaign only once, and applied campaigns won't clutter discovery feed)
     if (userRole === 'influencer' && req.query.show_all !== 'true') {
       campaigns = campaigns.filter(c => !c.already_applied);
     }
@@ -560,20 +568,30 @@ router.post('/:id/apply', authMiddleware, async (req, res) => {
       });
     }
 
-    // Check if already applied
-    const existing = await Application.findOne({ campaign_id: campaignId, influencer_id: influencerId });
+    // Defensive check for existing application (handles string & ObjectId)
+    const campIdObj = mongoose.Types.ObjectId.isValid(campaignId) ? new mongoose.Types.ObjectId(campaignId) : campaignId;
+    const infIdObj = mongoose.Types.ObjectId.isValid(influencerId) ? new mongoose.Types.ObjectId(influencerId) : influencerId;
+
+    const existing = await Application.findOne({
+      $or: [
+        { campaign_id: campaignId, influencer_id: influencerId },
+        { campaign_id: campIdObj, influencer_id: infIdObj },
+        { campaign_id: String(campaignId), influencer_id: String(influencerId) }
+      ]
+    });
 
     if (existing) {
       return res.status(400).json({ 
         success: false, 
-        message: 'You have already applied to this campaign' 
+        already_applied: true,
+        message: '⚠️ You have already applied to this campaign! You can track your application status in your Creator Dashboard.' 
       });
     }
 
     // Create application
     const result = await Application.create({
-      campaign_id: campaignId,
-      influencer_id: influencerId,
+      campaign_id: campIdObj,
+      influencer_id: infIdObj,
       message: message || '',
       status: 'pending'
     });
