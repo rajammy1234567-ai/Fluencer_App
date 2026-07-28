@@ -32,6 +32,10 @@ const influencerProfileSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  followers: {
+    type: String,
+    default: '125K'
+  },
   followers_count: {
     type: Number,
     default: 0
