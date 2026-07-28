@@ -2,8 +2,20 @@ import 'react-native-reanimated';
 import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { Platform } from "react-native";
 import { isAuthenticated } from "../utils/storage";
 import GlobalErrorBoundary from "../components/GlobalErrorBoundary";
+
+// Suppress ExponentImagePicker web warning globally
+if (Platform.OS === 'web' && typeof window !== 'undefined') {
+  const originalWarn = console.warn;
+  console.warn = (...args) => {
+    if (args[0] && typeof args[0] === 'string' && args[0].includes('ExponentImagePicker')) {
+      return;
+    }
+    originalWarn(...args);
+  };
+}
 
 export default function RootLayout() {
   const [isLoggedIn, setIsLoggedIn] = useState(null);
