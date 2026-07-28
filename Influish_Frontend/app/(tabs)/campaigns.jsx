@@ -170,7 +170,7 @@ export default function InfluencerCampaigns() {
   const formattedCampaigns = campaigns.map(item => ({
     id: item.id,
     name: item.campaign_name, // Main Title
-    image: { uri: item.brand_image || item.company_logo || 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&q=80' }, // Fallback image
+    image: { uri: item.product_image || (item.reference_images && item.reference_images[0]) || item.brand_image || item.company_logo || 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&q=80' },
     rating: item.brand_rating || 'New',
     description: item.description || `Looking for ${item.content_type} creators in ${item.influencer_location}`,
     category: item.content_type?.toUpperCase(),

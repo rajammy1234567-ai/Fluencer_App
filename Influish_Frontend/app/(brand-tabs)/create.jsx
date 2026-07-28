@@ -62,6 +62,7 @@ export default function CreateCampaign() {
   const [costPerInfluencer, setCostPerInfluencer] = useState('');
   const [description, setDescription] = useState('');
   const [productImage, setProductImage] = useState('');
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const handlePickGalleryImage = async () => {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
@@ -72,15 +73,17 @@ export default function CreateCampaign() {
         const file = e.target.files?.[0];
         if (file) {
           try {
-            setLoading(true);
+            setUploadingImage(true);
             const uploadedUrl = await uploadToCloudinary(file);
             if (uploadedUrl) {
               setProductImage(uploadedUrl);
+              Alert.alert('🎉 Uploaded', 'Product image uploaded to Cloudinary successfully!');
             }
           } catch (err) {
             console.error('Web file upload error:', err);
+            Alert.alert('Error', 'Failed to upload image to Cloudinary');
           } finally {
-            setLoading(false);
+            setUploadingImage(false);
           }
         }
       };
@@ -101,14 +104,23 @@ export default function CreateCampaign() {
       }
       const result = await ImagePicker.launchImageLibraryAsync({
         allowsEditing: false,
-        quality: 0.7,
+        quality: 0.8,
       });
       if (!result.canceled && result.assets?.[0]?.uri) {
-        setProductImage(result.assets[0].uri);
+        setUploadingImage(true);
+        const uploadedUrl = await uploadToCloudinary(result.assets[0].uri);
+        if (uploadedUrl) {
+          setProductImage(uploadedUrl);
+          Alert.alert('🎉 Uploaded', 'Product image uploaded to Cloudinary successfully!');
+        } else {
+          setProductImage(result.assets[0].uri);
+        }
       }
     } catch (err) {
       console.error('Gallery pick error:', err);
       Alert.alert('Error', 'Failed to pick image from gallery');
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -122,15 +134,17 @@ export default function CreateCampaign() {
         const file = e.target.files?.[0];
         if (file) {
           try {
-            setLoading(true);
+            setUploadingImage(true);
             const uploadedUrl = await uploadToCloudinary(file);
             if (uploadedUrl) {
               setProductImage(uploadedUrl);
+              Alert.alert('🎉 Uploaded', 'Product image uploaded to Cloudinary successfully!');
             }
           } catch (err) {
             console.error('Web camera upload error:', err);
+            Alert.alert('Error', 'Failed to upload image to Cloudinary');
           } finally {
-            setLoading(false);
+            setUploadingImage(false);
           }
         }
       };
@@ -151,14 +165,23 @@ export default function CreateCampaign() {
       }
       const result = await ImagePicker.launchCameraAsync({
         allowsEditing: false,
-        quality: 0.7,
+        quality: 0.8,
       });
       if (!result.canceled && result.assets?.[0]?.uri) {
-        setProductImage(result.assets[0].uri);
+        setUploadingImage(true);
+        const uploadedUrl = await uploadToCloudinary(result.assets[0].uri);
+        if (uploadedUrl) {
+          setProductImage(uploadedUrl);
+          Alert.alert('🎉 Uploaded', 'Product image uploaded to Cloudinary successfully!');
+        } else {
+          setProductImage(result.assets[0].uri);
+        }
       }
     } catch (err) {
       console.error('Camera capture error:', err);
       Alert.alert('Error', 'Failed to capture photo from camera');
+    } finally {
+      setUploadingImage(false);
     }
   };
 
