@@ -296,23 +296,7 @@ export default function ApplicationsScreen() {
             </View>
           </View>
 
-          {/* Stats */}
-          <View style={styles.statsContainer}>
-            <View style={styles.statBox}>
-              <MaterialCommunityIcons name="account-group" size={24} color={BRAND_COLORS.primary} />
-              <Text style={styles.statNumber}>
-                {(item.followers && item.followers !== '0') ? item.followers : (item.followers_count && item.followers_count > 0) ? (item.followers_count >= 1000 ? (item.followers_count / 1000).toFixed(1) + 'K' : item.followers_count) : '125K'}
-              </Text>
-              <Text style={styles.statLabel}>Followers</Text>
-            </View>
-            {item.categories && typeof item.categories === 'string' && (
-              <View style={styles.statBox}>
-                <MaterialCommunityIcons name="tag-multiple" size={24} color={COLORS.secondary} />
-                <Text style={styles.statNumber}>{item.categories.split(',').length}</Text>
-                <Text style={styles.statLabel}>Categories</Text>
-              </View>
-            )}
-          </View>
+
 
           {/* Categories Tags */}
           {item.categories && typeof item.categories === 'string' && (
