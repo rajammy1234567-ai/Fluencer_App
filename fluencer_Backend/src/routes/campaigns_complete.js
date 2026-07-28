@@ -394,6 +394,7 @@ router.get('/applications/all', authMiddleware, async (req, res) => {
       app.campaign_name = c ? c.campaign_name : '';
       app.influencer_name = profile ? profile.name : 'Influencer';
       app.profile_image = profile ? profile.profile_image : null;
+      app.followers = profile ? (profile.followers || (profile.followers_count ? (profile.followers_count >= 1000 ? (profile.followers_count / 1000).toFixed(1) + 'K' : String(profile.followers_count)) : '0')) : '0';
       app.followers_count = profile ? profile.followers_count : 0;
       app.location = profile ? profile.location : '';
       app.categories = profile ? profile.categories : [];

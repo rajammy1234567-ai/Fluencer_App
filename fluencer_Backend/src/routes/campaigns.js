@@ -314,7 +314,8 @@ router.get('/:id/applications', authMiddleware, async (req, res) => {
         influencer_name: ip ? (ip.name || 'Ananya Sharma') : 'Influencer',
         location: ip ? ip.location : 'Mumbai, MH',
         categories: ip ? ip.categories : ['Fashion'],
-        followers_count: ip ? (ip.followers_count || 125000) : 125000,
+        followers: ip ? (ip.followers || (ip.followers_count ? (ip.followers_count >= 1000 ? (ip.followers_count / 1000).toFixed(1) + 'K' : String(ip.followers_count)) : '0')) : '0',
+        followers_count: ip ? (ip.followers_count || 0) : 0,
         profile_image: ip ? ip.profile_image : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
         influencer_email: user ? user.email : 'influencer@fluencer.app'
       };
