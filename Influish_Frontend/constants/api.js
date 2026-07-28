@@ -41,6 +41,7 @@ export const API = {
     UPDATE_PROFILE: '/api/brands/profile',
     PROFILE_EXISTS: '/api/brands/profile-exists',
     UPLOAD_IMAGE: '/api/brands/upload-image',
+    LIST: '/api/brands/all',
   },
   CAMPAIGNS: {
     CREATE: '/api/campaigns',

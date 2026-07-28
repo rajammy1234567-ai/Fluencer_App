@@ -1,46 +1,42 @@
 /**
- * Cloudinary Image Upload Helper
+ * Cloudinary Image & Video Upload Helper
  * 
- * 100% Crash-Free HTTPS REST Upload Service
+ * 100% Crash-Free HTTPS REST Upload Service for Photos & Videos (MP4/MOV)
  * Supports User's Cloudinary Accounts: hrqmdn4c, dxyvn9gig
  */
 
-const CLOUDINARY_CLOUDS = ['hrqmdn4c', 'dxyvn9gig', 'dvyh3e9xs'];
-const PRESETS_TO_TRY = ['ml_default', 'unsigned', 'preset_fluencer', 'fluencer'];
+export const uploadToCloudinary = async (fileOrUri) => {
+  if (!fileOrUri) return fileOrUri;
 
-/**
- * Upload an image (base64 string, local file uri, or remote url) to Cloudinary
- * @param {string} imageUri - Image URI, base64 data URI, or URL
- * @returns {Promise<string>} Uploaded Cloudinary HTTPS URL
- */
-export const uploadToCloudinary = async (imageUri) => {
-  if (!imageUri || typeof imageUri !== 'string') {
-    throw new Error('Invalid image URI provided');
+  // If already HTTPS URL, return as is
+  if (typeof fileOrUri === 'string' && (fileOrUri.startsWith('http://') || fileOrUri.startsWith('https://'))) {
+    return fileOrUri;
   }
 
-  // If it's already an HTTP/HTTPS URL, return directly
-  if (imageUri.startsWith('http://') || imageUri.startsWith('https://')) {
-    return imageUri;
-  }
+  const CLOUDINARY_CLOUDS = ['hrqmdn4c', 'dxyvn9gig', 'dvyh3e9xs'];
+  const PRESETS_TO_TRY = ['ml_default', 'unsigned', 'preset_fluencer', 'fluencer'];
 
   for (const cloudName of CLOUDINARY_CLOUDS) {
     for (const preset of PRESETS_TO_TRY) {
       try {
         const formData = new FormData();
 
-        // Prepare image payload
-        if (imageUri.startsWith('data:image')) {
-          formData.append('file', imageUri);
+        if (typeof File !== 'undefined' && fileOrUri instanceof File) {
+          formData.append('file', fileOrUri);
+        } else if (typeof fileOrUri === 'string' && fileOrUri.startsWith('data:')) {
+          formData.append('file', fileOrUri);
         } else {
-          const filename = imageUri.split('/').pop() || 'upload.jpg';
+          const filename = String(fileOrUri).split('/').pop() || 'upload.mp4';
           const match = /\.(\w+)$/.exec(filename);
-          const type = match ? `image/${match[1]}` : 'image/jpeg';
-          formData.append('file', { uri: imageUri, name: filename, type });
+          const ext = match ? match[1].toLowerCase() : 'mp4';
+          const isVideo = ['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(ext);
+          const type = isVideo ? `video/${ext}` : `image/${ext === 'png' ? 'png' : 'jpeg'}`;
+          formData.append('file', { uri: fileOrUri, name: filename, type });
         }
 
         formData.append('upload_preset', preset);
 
-        const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, {
           method: 'POST',
           body: formData,
         });
@@ -52,11 +48,10 @@ export const uploadToCloudinary = async (imageUri) => {
           return data.secure_url;
         }
       } catch (error) {
-        console.warn(`⚠️ Cloudinary ${cloudName}:${preset} failed:`, error);
+        console.warn(`⚠️ Cloudinary ${cloudName}:${preset} upload error:`, error);
       }
     }
   }
 
-  // Fallback to original imageUri
-  return imageUri;
+  return typeof fileOrUri === 'string' ? fileOrUri : '';
 };

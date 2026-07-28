@@ -84,9 +84,33 @@ export default function Profile() {
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [previewMedia, setPreviewMedia] = useState(null);
 
-  // Cloudinary image picker handler for portfolio photos
-  const handlePickPortfolioPhoto = async () => {
+  // Local File (Photo / Video MP4) picker for Cloudinary upload
+  const handlePickLocalFile = async (typeToPick) => {
     try {
+      setUploadingMedia(true);
+
+      // Web Browser Native File Input
+      if (Platform.OS === 'web' && typeof document !== 'undefined') {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = typeToPick === 'reel' ? 'video/mp4,video/quicktime,video/*' : 'image/*';
+        input.onchange = async (e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            console.log('📁 Local file selected:', file.name);
+            const uploadedUrl = await uploadToCloudinary(file);
+            if (uploadedUrl) {
+              setMediaUrl(uploadedUrl);
+              setMediaType(typeToPick);
+            }
+          }
+          setUploadingMedia(false);
+        };
+        input.click();
+        return;
+      }
+
+      // Mobile Native Expo ImagePicker
       let ImagePicker = null;
       try {
         const { NativeModules } = require('react-native');
@@ -98,25 +122,22 @@ export default function Profile() {
       if (ImagePicker) {
         const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (permission?.granted) {
-          const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: false, quality: 0.7 });
+          const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: typeToPick === 'reel' ? ImagePicker.MediaTypeOptions.Videos : ImagePicker.MediaTypeOptions.Images,
+            quality: 0.7,
+          });
           if (!result.canceled && result.assets?.[0]?.uri) {
-            setUploadingMedia(true);
             const uploadedUrl = await uploadToCloudinary(result.assets[0].uri);
-            setMediaUrl(uploadedUrl);
-            setUploadingMedia(false);
-            return;
+            if (uploadedUrl) {
+              setMediaUrl(uploadedUrl);
+              setMediaType(typeToPick);
+            }
           }
         }
       }
-
-      if (Platform.OS === 'web' && typeof window !== 'undefined') {
-        const url = window.prompt('Enter Image or Cloudinary Photo URL:');
-        if (url) setMediaUrl(url);
-      } else {
-        Alert.alert('Notice', 'Please paste your Photo URL directly in the input box below.');
-      }
     } catch (err) {
-      console.error('Pick photo error:', err);
+      console.error('Pick local file error:', err);
+    } finally {
       setUploadingMedia(false);
     }
   };
@@ -731,6 +752,97 @@ export default function Profile() {
               </TouchableOpacity>
 
               <TouchableOpacity
+                style={{ flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: '#2563EB', alignItems: 'center' }}
+                onPress={handleUpdateFollowers}
+                disabled={updatingFollowers}
+              >
+                {updatingFollowers ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={{ fontSize: 16, fontWeight: '700', color: '#FFFFFF' }}>Save</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ADD MEDIA MODAL */}
+      <Modal
+        visible={addMediaModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setAddMediaModalVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <View style={{ width: '100%', maxWidth: 450, backgroundColor: '#FFFFFF', borderRadius: 24, padding: 24, elevation: 8 }}>
+            <Text style={{ fontSize: 20, fontWeight: '700', color: '#1E293B', marginBottom: 6, textAlign: 'center' }}>
+              ✨ Add Portfolio Photo / Video Reel
+            </Text>
+            <Text style={{ fontSize: 14, color: '#64748B', marginBottom: 18, textAlign: 'center' }}>
+              Upload local photos & videos or paste media URLs to showcase on your profile
+            </Text>
+
+            {/* Type Selector */}
+            <View style={{ flexDirection: 'row', backgroundColor: '#F1F5F9', borderRadius: 12, padding: 4, marginBottom: 16 }}>
+              <TouchableOpacity
+                style={{ flex: 1, paddingVertical: 10, borderRadius: 10, backgroundColor: mediaType === 'photo' ? '#FFFFFF' : 'transparent', alignItems: 'center', elevation: mediaType === 'photo' ? 2 : 0 }}
+                onPress={() => setMediaType('photo')}
+              >
+                <Text style={{ fontSize: 14, fontWeight: '700', color: mediaType === 'photo' ? '#2563EB' : '#64748B' }}>📸 Photo</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{ flex: 1, paddingVertical: 10, borderRadius: 10, backgroundColor: mediaType === 'reel' ? '#FFFFFF' : 'transparent', alignItems: 'center', elevation: mediaType === 'reel' ? 2 : 0 }}
+                onPress={() => setMediaType('reel')}
+              >
+                <Text style={{ fontSize: 14, fontWeight: '700', color: mediaType === 'reel' ? '#E11D48' : '#64748B' }}>🎬 Reel / Video</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Local File Upload Button */}
+            <TouchableOpacity
+              style={{ width: '100%', backgroundColor: mediaType === 'reel' ? '#FFF1F2' : '#EFF6FF', borderWidth: 1, borderColor: mediaType === 'reel' ? '#FECDD3' : '#BFDBFE', borderRadius: 12, paddingVertical: 12, alignItems: 'center', marginBottom: 14, flexDirection: 'row', justifyContent: 'center', gap: 8 }}
+              onPress={() => handlePickLocalFile(mediaType)}
+              disabled={uploadingMedia}
+            >
+              {uploadingMedia ? (
+                <ActivityIndicator color={mediaType === 'reel' ? '#E11D48' : '#2563EB'} />
+              ) : (
+                <>
+                  <MaterialCommunityIcons name="folder-upload" size={22} color={mediaType === 'reel' ? '#E11D48' : '#2563EB'} />
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: mediaType === 'reel' ? '#BE123C' : '#1E40AF' }}>
+                    Choose Local {mediaType === 'reel' ? 'Video File (MP4/MOV)' : 'Photo'}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            {/* URL Input */}
+            <Text style={{ fontSize: 13, fontWeight: '600', color: '#475569', marginBottom: 6 }}>
+              {mediaType === 'photo' ? 'Photo URL / Cloudinary Link' : 'Reel / Video URL (Instagram / YouTube / Cloudinary)'}
+            </Text>
+            <TextInput
+              style={{ width: '100%', backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 15, color: '#1E293B', marginBottom: 14 }}
+              placeholder={mediaType === 'photo' ? 'https://res.cloudinary.com/...' : 'https://instagram.com/reel/...'}
+              placeholderTextColor="#94A3B8"
+              value={mediaUrl}
+              onChangeText={setMediaUrl}
+            />
+
+            {/* Title Input */}
+            <Text style={{ fontSize: 13, fontWeight: '600', color: '#475569', marginBottom: 6 }}>Title / Description (Optional)</Text>
+            <TextInput
+              style={{ width: '100%', backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 15, color: '#1E293B', marginBottom: 20 }}
+              placeholder="e.g. Summer Shoot, Skincare Reel"
+              placeholderTextColor="#94A3B8"
+              value={mediaTitle}
+              onChangeText={setMediaTitle}
+            />
+
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <TouchableOpacity
+                style={{ flex: 1, paddingVertical: 14, borderRadius: 12, borderWidth: 1, borderColor: '#CBD5E1', alignItems: 'center' }}
                 onPress={() => setAddMediaModalVisible(false)}
               >
                 <Text style={{ fontSize: 15, fontWeight: '600', color: '#64748B' }}>Cancel</Text>
