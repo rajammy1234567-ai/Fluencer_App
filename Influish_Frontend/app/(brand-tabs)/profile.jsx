@@ -37,6 +37,8 @@ import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { API, API_CONFIG } from '../../constants/api';
 import { storage } from '../../utils/storage';
+import { uploadToCloudinary } from '../../utils/cloudinary';
+import * as RNImagePicker from 'react-native-image-picker';
 
 const PRIMARY_COLOR = '#3b82f6';
 const FALLBACK_LOGO = require('../../assets/images/icon.png');
@@ -69,7 +71,77 @@ export default function BrandProfile() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+
+  // Change Brand Profile Picture / Logo using react-native-image-picker
+  const handleChangeBrandLogo = async () => {
+    try {
+      setUploadingLogo(true);
+
+      if (Platform.OS === 'web' && typeof document !== 'undefined') {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = async (e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            const uploadedUrl = await uploadToCloudinary(file);
+            if (uploadedUrl) {
+              await saveBrandLogo(uploadedUrl);
+            }
+          }
+          setUploadingLogo(false);
+        };
+        input.click();
+        return;
+      }
+
+      RNImagePicker.launchImageLibrary(
+        { mediaType: 'photo', quality: 0.8, selectionLimit: 1 },
+        async (response) => {
+          if (response.didCancel || response.errorCode) {
+            setUploadingLogo(false);
+            return;
+          }
+          const selectedUri = response.assets?.[0]?.uri;
+          if (selectedUri) {
+            const uploadedUrl = await uploadToCloudinary(selectedUri);
+            if (uploadedUrl) {
+              await saveBrandLogo(uploadedUrl);
+            } else {
+              await saveBrandLogo(selectedUri);
+            }
+          }
+          setUploadingLogo(false);
+        }
+      );
+    } catch (err) {
+      console.error('Change brand logo error:', err);
+      setUploadingLogo(false);
+    }
+  };
+
+  const saveBrandLogo = async (newUrl) => {
+    try {
+      const token = await storage.getToken();
+      const res = await fetch(`${API_CONFIG.BASE_URL}${API.BRANDS.PROFILE}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ profile_image: newUrl, logo: newUrl })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setProfile(prev => ({ ...prev, profile_image: newUrl, logo: newUrl }));
+        Alert.alert('🎉 Success', 'Company logo / profile image updated successfully!');
+      }
+    } catch (err) {
+      console.error('Save brand logo error:', err);
+    }
+  };
+
   // Lifecycle safety
   const isMountedRef = useRef(true);
 
@@ -360,7 +432,12 @@ export default function BrandProfile() {
         >
           {/* Header Section */}
           <View style={styles.header}>
-            <View style={styles.logoContainer}>
+            <TouchableOpacity
+              style={styles.logoContainer}
+              onPress={handleChangeBrandLogo}
+              disabled={uploadingLogo}
+              activeOpacity={0.8}
+            >
               {hasValidLogo() ? (
                 <Image
                   source={getBrandLogoSource()}
@@ -372,7 +449,10 @@ export default function BrandProfile() {
                   <Text style={styles.logoInitialText}>{getBrandInitial()}</Text>
                 </View>
               )}
-            </View>
+              <View style={{ position: 'absolute', bottom: 0, right: 0, backgroundColor: '#2563EB', padding: 6, borderRadius: 16, borderWidth: 2, borderColor: '#FFFFFF' }}>
+                <MaterialCommunityIcons name="camera-plus" size={16} color="#FFFFFF" />
+              </View>
+            </TouchableOpacity>
             <Text style={styles.brandName}>{brandName}</Text>
             {brandBio ? (
               <Text style={styles.brandBio}>{brandBio}</Text>

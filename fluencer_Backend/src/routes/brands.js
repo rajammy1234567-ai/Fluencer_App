@@ -104,12 +104,17 @@ router.put('/profile', authMiddleware, (req, res) => {
 
       // Handle fields update
       if (req.body.companyName) profile.company_name = req.body.companyName;
+      if (req.body.company_name) profile.company_name = req.body.company_name;
       if (req.body.category) profile.category = req.body.category;
       if (req.body.address) profile.address = req.body.address;
       if (req.body.website) profile.website = req.body.website;
       if (req.body.phone) profile.phone = req.body.phone;
+      if (req.body.profile_image || req.body.profileImage) {
+        profile.profile_image = req.body.profile_image || req.body.profileImage;
+        profile.logo = req.body.profile_image || req.body.profileImage;
+      }
       
-      // Handle uploaded image
+      // Handle uploaded image file
       if (req.file) {
         profile.profile_image = `/uploads/profiles/${req.file.filename}`;
       }

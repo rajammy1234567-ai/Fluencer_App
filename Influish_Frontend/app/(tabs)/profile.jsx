@@ -86,6 +86,75 @@ export default function Profile() {
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [previewMedia, setPreviewMedia] = useState(null);
 
+  // Change Profile Picture Handler using react-native-image-picker
+  const handleChangeProfilePicture = async () => {
+    try {
+      setUploadingMedia(true);
+
+      if (Platform.OS === 'web' && typeof document !== 'undefined') {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = async (e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            const uploadedUrl = await uploadToCloudinary(file);
+            if (uploadedUrl) {
+              await saveCreatorProfilePicture(uploadedUrl);
+            }
+          }
+          setUploadingMedia(false);
+        };
+        input.click();
+        return;
+      }
+
+      RNImagePicker.launchImageLibrary(
+        { mediaType: 'photo', quality: 0.8, selectionLimit: 1 },
+        async (response) => {
+          if (response.didCancel || response.errorCode) {
+            setUploadingMedia(false);
+            return;
+          }
+          const selectedUri = response.assets?.[0]?.uri;
+          if (selectedUri) {
+            const uploadedUrl = await uploadToCloudinary(selectedUri);
+            if (uploadedUrl) {
+              await saveCreatorProfilePicture(uploadedUrl);
+            } else {
+              await saveCreatorProfilePicture(selectedUri);
+            }
+          }
+          setUploadingMedia(false);
+        }
+      );
+    } catch (err) {
+      console.error('Change profile picture error:', err);
+      setUploadingMedia(false);
+    }
+  };
+
+  const saveCreatorProfilePicture = async (newUrl) => {
+    try {
+      const token = await storage.getToken();
+      const res = await fetch(`${API_CONFIG.BASE_URL}${API.INFLUENCERS.PROFILE}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ profile_picture: newUrl, logo: newUrl })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setProfile(prev => ({ ...prev, profile_picture: newUrl, logo: newUrl }));
+        Alert.alert('🎉 Success', 'Profile picture updated successfully!');
+      }
+    } catch (err) {
+      console.error('Save profile picture error:', err);
+    }
+  };
+
   // Local File (Photo / Video MP4) picker using react-native-image-picker
   const handlePickLocalFile = async (typeToPick) => {
     try {
@@ -531,7 +600,12 @@ export default function Profile() {
         >
           {/* Header Section */}
           <View style={styles.header}>
-            <View style={styles.logoContainer}>
+            <TouchableOpacity
+              style={styles.logoContainer}
+              onPress={handleChangeProfilePicture}
+              disabled={uploadingMedia}
+              activeOpacity={0.8}
+            >
               {hasValidProfilePicture() ? (
                 <Image
                   source={getInfluencerProfilePicture()}
@@ -543,7 +617,10 @@ export default function Profile() {
                   <Text style={styles.logoInitialText}>{getInfluencerInitial()}</Text>
                 </View>
               )}
-            </View>
+              <View style={{ position: 'absolute', bottom: 0, right: 0, backgroundColor: '#2563EB', padding: 6, borderRadius: 16, borderWidth: 2, borderColor: '#FFFFFF' }}>
+                <MaterialCommunityIcons name="camera-plus" size={16} color="#FFFFFF" />
+              </View>
+            </TouchableOpacity>
             <Text style={styles.profileName}>{influencerName}</Text>
             {influencerBio ? (
               <Text style={styles.profileBio}>{influencerBio}</Text>
