@@ -1,4 +1,3 @@
-import 'react-native-reanimated';
 import { Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
