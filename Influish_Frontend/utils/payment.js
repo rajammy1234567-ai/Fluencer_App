@@ -1,10 +1,26 @@
-import { Alert } from 'react-native';
-import * as WebBrowser from 'expo-web-browser';
+import { Alert, Platform } from 'react-native';
 import { getAuthHeader } from './storage';
-import { API, getApiUrl } from '../constants/api';
+import { getApiUrl } from '../constants/api';
+
+const RAZORPAY_KEY_ID = 'rzp_test_SkPmXr8gR0tgca';
 
 /**
- * Initialize Razorpay payment
+ * Load official Razorpay JS Checkout script dynamically for Web
+ */
+const loadRazorpayScript = () => {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined') return resolve(false);
+    if (window.Razorpay) return resolve(true);
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+};
+
+/**
+ * Initialize Official Razorpay Payment
  * @param {Object} paymentData - Payment details
  * @param {number} paymentData.amount - Amount in rupees
  * @param {string} paymentData.description - Payment description
@@ -12,16 +28,59 @@ import { API, getApiUrl } from '../constants/api';
  * @param {Function} onSuccess - Success callback
  * @param {Function} onFailure - Failure callback
  */
-export const initiatePayment = ({
+export const initiatePayment = async ({
   amount,
   description,
   campaignId = null,
   onSuccess,
   onFailure,
 }) => {
-  const orderId = 'order_rzp_' + Math.floor(100000 + Math.random() * 900000);
+  // Web Environment: Load Official Razorpay Checkout Modal
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    const isLoaded = await loadRazorpayScript();
+    if (isLoaded && window.Razorpay) {
+      const options = {
+        key: RAZORPAY_KEY_ID,
+        amount: amount * 100, // Amount in paise (e.g. 49900 = ₹499)
+        currency: 'INR',
+        name: 'Fluencer App',
+        description: description || '₹499 Pro Membership Pass',
+        image: 'https://images.unsplash.com/photo-1511556532299-8f662fc26c06?w=200',
+        handler: function (response) {
+          Alert.alert('✅ Payment Successful', `₹${amount} paid via Razorpay!\nPayment ID: ${response.razorpay_payment_id}`);
+          if (onSuccess) onSuccess({ paymentId: response.razorpay_payment_id });
+        },
+        prefill: {
+          name: 'Fluencer Creator',
+          email: 'creator@fluencer.app',
+          contact: '9876543210'
+        },
+        theme: {
+          color: '#7C3AED'
+        },
+        modal: {
+          ondismiss: function () {
+            if (onFailure) onFailure({ message: 'Payment cancelled by user' });
+          }
+        }
+      };
 
-  // Show Payment Gateway Checkout (Razorpay Standard Modal) INSTANTLY
+      try {
+        const rzp = new window.Razorpay(options);
+        rzp.on('payment.failed', function (response) {
+          Alert.alert('Payment Failed', response.error?.description || 'Transaction failed');
+          if (onFailure) onFailure(response.error);
+        });
+        rzp.open();
+        return;
+      } catch (e) {
+        console.warn('Razorpay JS init error, using fallback:', e);
+      }
+    }
+  }
+
+  // Mobile / Native Fallback Modal
+  const orderId = 'order_rzp_' + Math.floor(100000 + Math.random() * 900000);
   Alert.alert(
     '💳 Secure Razorpay Checkout',
     `Order ID: ${orderId}\nTotal Amount: ₹${amount}\n\n${description}\n\nSelect payment action:`,
@@ -49,32 +108,4 @@ export const initiatePayment = ({
       },
     ]
   );
-};
-
-/**
- * Calculate campaign creation cost
- * @param {Object} campaignData - Campaign details
- * @returns {number} Total cost
- */
-export const calculateCampaignCost = (campaignData) => {
-  const { number_of_seats, cost_per_influencer, campaign_type } = campaignData;
-  
-  if (campaign_type === 'barter') {
-    return 0; // Barter campaigns are free or have different pricing
-  }
-  
-  const influencerCost = number_of_seats * cost_per_influencer;
-  const platformFee = influencerCost * 0.1; // 10% platform fee
-  const gst = (influencerCost + platformFee) * 0.18; // 18% GST
-  
-  return Math.round(influencerCost + platformFee + gst);
-};
-
-/**
- * Format currency amount
- * @param {number} amount - Amount in rupees
- * @returns {string} Formatted amount
- */
-export const formatCurrency = (amount) => {
-  return `₹${amount.toLocaleString('en-IN')}`;
 };
