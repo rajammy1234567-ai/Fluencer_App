@@ -11,6 +11,7 @@ import {
   Alert,
   Image,
   Modal,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -77,12 +78,12 @@ export default function ApplicationsScreen() {
   const fetchApplications = async () => {
     try {
       const headers = await getAuthHeader();
-      
+
       // If campaignId is provided, fetch only for that campaign
-      const url = campaignId 
+      const url = campaignId
         ? getApiUrl(`/api/campaigns/${campaignId}/applications`)
         : getApiUrl('/api/campaigns/applications/all');
-      
+
       const response = await fetch(url, { headers });
 
       const data = await response.json();
@@ -117,7 +118,7 @@ export default function ApplicationsScreen() {
 
   const confirmAccept = async () => {
     if (!selectedApplication) return;
-    
+
     setShowAcceptModal(false);
     setProcessing((prev) => ({ ...prev, [selectedApplication]: true }));
 
@@ -137,7 +138,7 @@ export default function ApplicationsScreen() {
         const chatId = data.chatId;
         // Auto-refresh the list first
         await fetchApplications();
-        
+
         // APK SAFETY: Validate chatId exists before navigation to prevent Hermes crash
         if (!chatId || chatId === 'undefined') {
           console.error('❌ Accept succeeded but chatId is invalid:', chatId);
@@ -195,7 +196,7 @@ export default function ApplicationsScreen() {
 
   const confirmReject = async () => {
     if (!selectedApplication) return;
-    
+
     setShowRejectModal(false);
     setProcessing((prev) => ({ ...prev, [selectedApplication]: true }));
 
@@ -242,7 +243,7 @@ export default function ApplicationsScreen() {
           end={{ x: 1, y: 0 }}
           style={styles.cardTopBorder}
         />
-        
+
         <View style={styles.cardContent}>
           {/* Status Badge */}
           <View style={[
@@ -266,153 +267,153 @@ export default function ApplicationsScreen() {
             </Text>
           </View>
 
-        {/* Influencer Profile Card */}
-        <TouchableOpacity 
-          style={styles.profileCard}
-          onPress={() => handleOpenCreatorProfile(item.influencer_id || item.user_id)}
-          activeOpacity={0.9}
-        >
-          <View style={styles.profileHeader}>
-            <View style={styles.avatarWrapper}>
-              <LinearGradient
-                colors={BRAND_COLORS.gradientPrimary}
-                style={styles.avatarGradientBorder}
-              >
-                <Image
-                  source={{ 
-                    uri: item.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.influencer_name)}&size=200&background=5483b3&color=fff`
-                  }}
-                  style={styles.profileAvatar}
-                />
-              </LinearGradient>
+          {/* Influencer Profile Card */}
+          <TouchableOpacity
+            style={styles.profileCard}
+            onPress={() => handleOpenCreatorProfile(item.influencer_id || item.user_id)}
+            activeOpacity={0.9}
+          >
+            <View style={styles.profileHeader}>
+              <View style={styles.avatarWrapper}>
+                <LinearGradient
+                  colors={BRAND_COLORS.gradientPrimary}
+                  style={styles.avatarGradientBorder}
+                >
+                  <Image
+                    source={{
+                      uri: item.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.influencer_name)}&size=200&background=5483b3&color=fff`
+                    }}
+                    style={styles.profileAvatar}
+                  />
+                </LinearGradient>
+              </View>
+              <View style={styles.profileInfo}>
+                <Text style={styles.profileName}>{item.influencer_name}</Text>
+                <Text style={styles.profileEmail}>{item.email}</Text>
+                {item.location && (
+                  <View style={styles.locationRow}>
+                    <MaterialCommunityIcons name="map-marker" size={14} color={BRAND_COLORS.primary} />
+                    <Text style={styles.locationText}>{item.location}</Text>
+                  </View>
+                )}
+              </View>
             </View>
-            <View style={styles.profileInfo}>
-              <Text style={styles.profileName}>{item.influencer_name}</Text>
-              <Text style={styles.profileEmail}>{item.email}</Text>
-              {item.location && (
-                <View style={styles.locationRow}>
-                  <MaterialCommunityIcons name="map-marker" size={14} color={BRAND_COLORS.primary} />
-                  <Text style={styles.locationText}>{item.location}</Text>
-                </View>
-              )}
-            </View>
-          </View>
 
 
 
-          {/* Categories Tags */}
-          {item.categories && typeof item.categories === 'string' && (
-            <View style={styles.tagsContainer}>
-              {item.categories.split(',').slice(0, 3).map((cat, index) => (
-                <View key={index} style={styles.tag}>
-                  <Text style={styles.tagText}>{cat.trim()}</Text>
-                </View>
-              ))}
+            {/* Categories Tags */}
+            {item.categories && typeof item.categories === 'string' && (
+              <View style={styles.tagsContainer}>
+                {item.categories.split(',').slice(0, 3).map((cat, index) => (
+                  <View key={index} style={styles.tag}>
+                    <Text style={styles.tagText}>{cat.trim()}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* View Profile & Portfolio Button */}
+            <TouchableOpacity
+              style={styles.viewProfileBtn}
+              onPress={() => handleOpenCreatorProfile(item.influencer_id || item.user_id)}
+            >
+              <MaterialCommunityIcons name="account-eye" size={18} color="#2563EB" />
+              <Text style={styles.viewProfileBtnText}>View Creator Profile & Portfolio (Photos & Reels) ➔</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+
+          {/* Proposal Message */}
+          {item.message && (
+            <View style={styles.proposalCard}>
+              <View style={styles.proposalHeader}>
+                <MaterialCommunityIcons name="message-text" size={20} color={BRAND_COLORS.primary} />
+                <Text style={styles.proposalTitle}>Proposal</Text>
+              </View>
+              <Text style={styles.proposalText}>{item.message}</Text>
             </View>
           )}
 
-          {/* View Profile & Portfolio Button */}
-          <TouchableOpacity
-            style={styles.viewProfileBtn}
-            onPress={() => handleOpenCreatorProfile(item.influencer_id || item.user_id)}
-          >
-            <MaterialCommunityIcons name="account-eye" size={18} color="#2563EB" />
-            <Text style={styles.viewProfileBtnText}>View Creator Profile & Portfolio (Photos & Reels) ➔</Text>
-          </TouchableOpacity>
-        </TouchableOpacity>
+          {/* Application Date */}
+          <View style={styles.dateRow}>
+            <MaterialCommunityIcons name="calendar" size={16} color={COLORS.textGray} />
+            <Text style={styles.dateLabel}>Applied on: </Text>
+            <Text style={styles.dateValue}>
+              {new Date(item.created_at).toLocaleDateString('en-US', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric'
+              })}
+            </Text>
+          </View>
 
-        {/* Proposal Message */}
-        {item.message && (
-          <View style={styles.proposalCard}>
-            <View style={styles.proposalHeader}>
-              <MaterialCommunityIcons name="message-text" size={20} color={BRAND_COLORS.primary} />
-              <Text style={styles.proposalTitle}>Proposal</Text>
+          {/* Action Buttons - Only for Pending */}
+          {isPending && (
+            <View style={styles.actionButtons}>
+              <TouchableOpacity
+                style={styles.rejectButton}
+                onPress={() => handleReject(item.id)}
+                disabled={isProcessing}
+                activeOpacity={0.7}
+              >
+                {isProcessing ? (
+                  <ActivityIndicator size="small" color="#DC2626" />
+                ) : (
+                  <>
+                    <MaterialCommunityIcons name="close-circle-outline" size={20} color="#DC2626" />
+                    <Text style={styles.rejectButtonText}>Reject</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.acceptButton}
+                onPress={() => handleAccept(item.id)}
+                disabled={isProcessing}
+                activeOpacity={0.7}
+              >
+                {isProcessing ? (
+                  <ActivityIndicator size="small" color={COLORS.white} />
+                ) : (
+                  <LinearGradient
+                    colors={['#059669', '#10B981']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.acceptGradient}
+                  >
+                    <MaterialCommunityIcons name="check-circle-outline" size={20} color={COLORS.white} />
+                    <Text style={styles.acceptButtonText}>Accept</Text>
+                  </LinearGradient>
+                )}
+              </TouchableOpacity>
             </View>
-            <Text style={styles.proposalText}>{item.message}</Text>
-          </View>
-        )}
+          )}
 
-        {/* Application Date */}
-        <View style={styles.dateRow}>
-          <MaterialCommunityIcons name="calendar" size={16} color={COLORS.textGray} />
-          <Text style={styles.dateLabel}>Applied on: </Text>
-          <Text style={styles.dateValue}>
-            {new Date(item.created_at).toLocaleDateString('en-US', {
-              day: 'numeric',
-              month: 'short',
-              year: 'numeric'
-            })}
-          </Text>
-        </View>
-
-        {/* Action Buttons - Only for Pending */}
-        {isPending && (
-          <View style={styles.actionButtons}>
+          {/* Chat Button - Only for Accepted */}
+          {isAccepted && (
             <TouchableOpacity
-              style={styles.rejectButton}
-              onPress={() => handleReject(item.id)}
-              disabled={isProcessing}
+              style={styles.chatButton}
+              onPress={() => {
+                const targetChatId = item.chat_id || item.id || item._id;
+                console.log('Opening chat with targetChatId:', targetChatId);
+                if (targetChatId) {
+                  router.push(`/conversation?chatId=${targetChatId}`);
+                } else {
+                  Alert.alert('Info', 'Chat will be available soon');
+                }
+              }}
               activeOpacity={0.7}
             >
-              {isProcessing ? (
-                <ActivityIndicator size="small" color="#DC2626" />
-              ) : (
-                <>
-                  <MaterialCommunityIcons name="close-circle-outline" size={20} color="#DC2626" />
-                  <Text style={styles.rejectButtonText}>Reject</Text>
-                </>
-              )}
+              <LinearGradient
+                colors={BRAND_COLORS.gradientPrimary}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.chatGradient}
+              >
+                <MaterialCommunityIcons name="chat" size={20} color={COLORS.white} />
+                <Text style={styles.chatButtonText}>Open Chat</Text>
+              </LinearGradient>
             </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.acceptButton}
-              onPress={() => handleAccept(item.id)}
-              disabled={isProcessing}
-              activeOpacity={0.7}
-            >
-              {isProcessing ? (
-                <ActivityIndicator size="small" color={COLORS.white} />
-              ) : (
-                <LinearGradient
-                  colors={['#059669', '#10B981']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.acceptGradient}
-                >
-                  <MaterialCommunityIcons name="check-circle-outline" size={20} color={COLORS.white} />
-                  <Text style={styles.acceptButtonText}>Accept</Text>
-                </LinearGradient>
-              )}
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Chat Button - Only for Accepted */}
-        {isAccepted && (
-          <TouchableOpacity
-            style={styles.chatButton}
-            onPress={() => {
-              const targetChatId = item.chat_id || item.id || item._id;
-              console.log('Opening chat with targetChatId:', targetChatId);
-              if (targetChatId) {
-                router.push(`/conversation?chatId=${targetChatId}`);
-              } else {
-                Alert.alert('Info', 'Chat will be available soon');
-              }
-            }}
-            activeOpacity={0.7}
-          >
-            <LinearGradient
-              colors={BRAND_COLORS.gradientPrimary}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.chatGradient}
-            >
-              <MaterialCommunityIcons name="chat" size={20} color={COLORS.white} />
-              <Text style={styles.chatButtonText}>Open Chat</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        )}
+          )}
         </View>
       </View>
     );
@@ -439,7 +440,7 @@ export default function ApplicationsScreen() {
       {/* Header with Back Button */}
       <LinearGradient colors={BRAND_COLORS.gradientPrimary} style={styles.header}>
         <View style={styles.headerTop}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.backButton}
             onPress={handleGoBack}
           >
@@ -481,14 +482,14 @@ export default function ApplicationsScreen() {
             />
             <Text style={styles.emptyText}>No Applications Yet</Text>
             <Text style={styles.emptySubtext}>
-              {campaignId 
+              {campaignId
                 ? 'No one has applied to this campaign yet'
                 : 'Applications from influencers will appear here'}
             </Text>
           </View>
         }
       />
-      
+
       {/* Custom Accept Modal */}
       <Modal
         visible={showAcceptModal}
@@ -510,7 +511,7 @@ export default function ApplicationsScreen() {
 
             {/* Title */}
             <Text style={styles.modalTitle}>Accept Influencer</Text>
-            
+
             {/* Message */}
             <Text style={styles.modalMessage}>
               Accept this influencer for your campaign? A chat room will be created to start collaboration.
@@ -565,7 +566,7 @@ export default function ApplicationsScreen() {
 
             {/* Title */}
             <Text style={styles.modalTitle}>Reject Application</Text>
-            
+
             {/* Message */}
             <Text style={styles.modalMessage}>
               Are you sure you want to reject this application? This action cannot be undone.
@@ -685,7 +686,7 @@ export default function ApplicationsScreen() {
                       onPress={() => setCreatorPortfolioFilter('all')}
                     >
                       <Text style={{ fontSize: 12, fontWeight: '600', color: creatorPortfolioFilter === 'all' ? '#FFFFFF' : '#64748B' }}>
-                        All ({(selectedCreatorProfile.portfolio || []).length})
+                        All ({(selectedCreatorProfile?.portfolio || []).length})
                       </Text>
                     </TouchableOpacity>
 
@@ -694,7 +695,7 @@ export default function ApplicationsScreen() {
                       onPress={() => setCreatorPortfolioFilter('photo')}
                     >
                       <Text style={{ fontSize: 12, fontWeight: '600', color: creatorPortfolioFilter === 'photo' ? '#FFFFFF' : '#64748B' }}>
-                        📸 Photos ({(selectedCreatorProfile.portfolio || []).filter(i => i.type === 'photo').length})
+                        📸 Photos ({(selectedCreatorProfile?.portfolio || []).filter(i => i.type === 'photo').length})
                       </Text>
                     </TouchableOpacity>
 
@@ -703,13 +704,13 @@ export default function ApplicationsScreen() {
                       onPress={() => setCreatorPortfolioFilter('reel')}
                     >
                       <Text style={{ fontSize: 12, fontWeight: '600', color: creatorPortfolioFilter === 'reel' ? '#FFFFFF' : '#64748B' }}>
-                        🎬 Reels ({(selectedCreatorProfile.portfolio || []).filter(i => i.type === 'reel').length})
+                        🎬 Reels ({(selectedCreatorProfile?.portfolio || []).filter(i => i.type === 'reel').length})
                       </Text>
                     </TouchableOpacity>
                   </View>
 
                   {/* Instagram-Style 3-Column Profile Media Feed Grid */}
-                  {((selectedCreatorProfile.portfolio || []).filter(item => creatorPortfolioFilter === 'all' || item.type === creatorPortfolioFilter)).length === 0 ? (
+                  {((selectedCreatorProfile?.portfolio || []).filter(item => creatorPortfolioFilter === 'all' || item.type === creatorPortfolioFilter)).length === 0 ? (
                     <View style={{ padding: 28, alignItems: 'center', backgroundColor: '#F8FAFC', borderRadius: 16, borderWidth: 1, borderColor: '#E2E8F0', borderStyle: 'dashed' }}>
                       <MaterialCommunityIcons name="image-off-outline" size={40} color="#94A3B8" />
                       <Text style={{ fontSize: 15, fontWeight: '700', color: '#334155', marginTop: 8 }}>No portfolio media added yet</Text>
@@ -717,7 +718,7 @@ export default function ApplicationsScreen() {
                     </View>
                   ) : (
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                      {((selectedCreatorProfile.portfolio || []).filter(item => creatorPortfolioFilter === 'all' || item.type === creatorPortfolioFilter)).map((item, idx) => (
+                      {((selectedCreatorProfile?.portfolio || []).filter(item => creatorPortfolioFilter === 'all' || item.type === creatorPortfolioFilter)).map((item, idx) => (
                         <TouchableOpacity
                           key={item.id || idx}
                           style={{ width: '31.8%', aspectRatio: 1, borderRadius: 8, overflow: 'hidden', backgroundColor: '#0F172A', position: 'relative' }}
@@ -1117,7 +1118,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
   },
-  
+
   // Modal Styles
   modalOverlay: {
     flex: 1,

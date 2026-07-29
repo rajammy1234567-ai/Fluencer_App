@@ -41,7 +41,7 @@ import { API, API_CONFIG } from '../../constants/api';
 import { storage } from '../../utils/storage';
 import { uploadToCloudinary } from '../../utils/cloudinary';
 import { Video, ResizeMode } from 'expo-av';
-import * as RNImagePicker from 'react-native-image-picker';
+import * as ImagePicker from 'expo-image-picker';
 
 const PRIMARY_COLOR = '#3b82f6';
 const FALLBACK_LOGO = require('../../assets/images/icon.png');
@@ -87,7 +87,7 @@ export default function Profile() {
   const [previewMedia, setPreviewMedia] = useState(null);
   const [profilePicModalVisible, setProfilePicModalVisible] = useState(false);
 
-  // Change Profile Picture Handler using react-native-image-picker
+  // Change Profile Picture Handler using expo-image-picker
   const handleChangeProfilePicture = async () => {
     try {
       setUploadingMedia(true);
@@ -110,27 +110,31 @@ export default function Profile() {
         return;
       }
 
-      RNImagePicker.launchImageLibrary(
-        { mediaType: 'photo', quality: 0.8, selectionLimit: 1 },
-        async (response) => {
-          if (response.didCancel || response.errorCode) {
-            setUploadingMedia(false);
-            return;
-          }
-          const selectedUri = response.assets?.[0]?.uri;
-          if (selectedUri) {
-            const uploadedUrl = await uploadToCloudinary(selectedUri);
-            if (uploadedUrl) {
-              await saveCreatorProfilePicture(uploadedUrl);
-            } else {
-              await saveCreatorProfilePicture(selectedUri);
-            }
-          }
-          setUploadingMedia(false);
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (permissionResult.status !== 'granted') {
+        Alert.alert('Permission Required', 'Permission to access media library is required.');
+        setUploadingMedia(false);
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.8,
+        allowsEditing: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const selectedUri = result.assets[0].uri;
+        const uploadedUrl = await uploadToCloudinary(selectedUri);
+        if (uploadedUrl) {
+          await saveCreatorProfilePicture(uploadedUrl);
+        } else {
+          await saveCreatorProfilePicture(selectedUri);
         }
-      );
+      }
     } catch (err) {
       console.error('Change profile picture error:', err);
+    } finally {
       setUploadingMedia(false);
     }
   };
@@ -156,7 +160,7 @@ export default function Profile() {
     }
   };
 
-  // Local File (Photo / Video MP4) picker using react-native-image-picker
+  // Local File (Photo / Video MP4) picker using expo-image-picker
   const handlePickLocalFile = async (typeToPick) => {
     try {
       setUploadingMedia(true);
@@ -182,45 +186,46 @@ export default function Profile() {
         return;
       }
 
-      // Mobile Native react-native-image-picker
-      const mediaTypeOption = typeToPick === 'reel' ? 'video' : 'photo';
-      RNImagePicker.launchImageLibrary(
-        { mediaType: mediaTypeOption, quality: 0.7, selectionLimit: 1 },
-        async (response) => {
-          if (response.didCancel) {
-            setUploadingMedia(false);
-            return;
+      const mediaTypeOption = typeToPick === 'reel' 
+        ? ImagePicker.MediaTypeOptions.Videos 
+        : ImagePicker.MediaTypeOptions.Images;
+
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (permissionResult.status !== 'granted') {
+        Alert.alert('Permission Required', 'Permission to access media library is required.');
+        setUploadingMedia(false);
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: mediaTypeOption,
+        quality: 0.8,
+        allowsEditing: false,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const selectedUri = result.assets[0].uri;
+        console.log('📱 Mobile local file selected:', selectedUri);
+        try {
+          const uploadedUrl = await uploadToCloudinary(selectedUri);
+          if (uploadedUrl) {
+            setMediaUrl(uploadedUrl);
+            setMediaType(typeToPick);
+            Alert.alert('🎉 Uploaded to Cloudinary', `${typeToPick === 'reel' ? 'Video' : 'Photo'} uploaded successfully! Click "Save Media" to finish.`);
+          } else {
+            setMediaUrl(selectedUri);
+            setMediaType(typeToPick);
           }
-          if (response.errorCode) {
-            Alert.alert('Upload Error', response.errorMessage || 'Could not process media file.');
-            setUploadingMedia(false);
-            return;
-          }
-          const selectedUri = response.assets?.[0]?.uri;
-          if (selectedUri) {
-            console.log('📱 Mobile local file selected:', selectedUri);
-            try {
-              const uploadedUrl = await uploadToCloudinary(selectedUri);
-              if (uploadedUrl) {
-                setMediaUrl(uploadedUrl);
-                setMediaType(typeToPick);
-                Alert.alert('🎉 Uploaded to Cloudinary', `${typeToPick === 'reel' ? 'Video' : 'Photo'} uploaded successfully! Click "Save Media" to finish.`);
-              } else {
-                setMediaUrl(selectedUri);
-                setMediaType(typeToPick);
-              }
-            } catch (uploadErr) {
-              console.error('Cloudinary error:', uploadErr);
-              setMediaUrl(selectedUri);
-              setMediaType(typeToPick);
-            }
-          }
-          setUploadingMedia(false);
+        } catch (uploadErr) {
+          console.error('Cloudinary error:', uploadErr);
+          setMediaUrl(selectedUri);
+          setMediaType(typeToPick);
         }
-      );
+      }
     } catch (err) {
       console.error('Pick local file error:', err);
       Alert.alert('Upload Error', 'Could not process media file. Please try again.');
+    } finally {
       setUploadingMedia(false);
     }
   };

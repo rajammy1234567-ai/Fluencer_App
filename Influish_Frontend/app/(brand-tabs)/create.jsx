@@ -22,13 +22,7 @@ import { getAuthHeader } from '../../utils/storage';
 import { API, getApiUrl } from '../../constants/api';
 import { uploadToCloudinary } from '../../utils/cloudinary';
 
-import * as RNImagePicker from 'react-native-image-picker';
-
-// Safe lazy getter for react-native-image-picker
-const getRNImagePicker = () => {
-  if (Platform.OS === 'web') return null;
-  return RNImagePicker;
-};
+import * as ImagePicker from 'expo-image-picker';
 
 const THEME = {
   primary: '#3B82F6',
@@ -64,7 +58,7 @@ export default function CreateCampaign() {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
       const input = document.createElement('input');
       input.type = 'file';
-      input.accept = 'image/*';
+      input.accept = 'image/*,video/*';
       input.onchange = async (e) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -73,11 +67,11 @@ export default function CreateCampaign() {
             const uploadedUrl = await uploadToCloudinary(file);
             if (uploadedUrl) {
               setProductImage(uploadedUrl);
-              Alert.alert('🎉 Uploaded', 'Product image uploaded to Cloudinary successfully!');
+              Alert.alert('🎉 Uploaded', 'Media uploaded to Cloudinary successfully!');
             }
           } catch (err) {
             console.error('Web file upload error:', err);
-            Alert.alert('Error', 'Failed to upload image to Cloudinary');
+            Alert.alert('Error', 'Failed to upload media to Cloudinary');
           } finally {
             setUploadingImage(false);
           }
@@ -88,41 +82,38 @@ export default function CreateCampaign() {
     }
 
     try {
-      const picker = getRNImagePicker();
-      if (!picker) {
-        Alert.alert('Notice', 'Gallery picker is unavailable. You can paste an image URL directly below.');
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (permissionResult.status !== 'granted') {
+        Alert.alert('Permission Required', 'Permission to access media library is required to pick photos/videos.');
         return;
       }
-      picker.launchImageLibrary(
-        { mediaType: 'photo', quality: 0.8, selectionLimit: 1 },
-        async (response) => {
-          if (response.didCancel) return;
-          if (response.errorCode) {
-            Alert.alert('Error', response.errorMessage || 'Failed to pick image from gallery');
-            return;
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        quality: 0.8,
+        allowsEditing: false,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const selectedUri = result.assets[0].uri;
+        setUploadingImage(true);
+        try {
+          const uploadedUrl = await uploadToCloudinary(selectedUri);
+          if (uploadedUrl) {
+            setProductImage(uploadedUrl);
+            Alert.alert('🎉 Uploaded', 'Campaign media uploaded successfully!');
+          } else {
+            setProductImage(selectedUri);
           }
-          const selectedUri = response.assets?.[0]?.uri;
-          if (selectedUri) {
-            setUploadingImage(true);
-            try {
-              const uploadedUrl = await uploadToCloudinary(selectedUri);
-              if (uploadedUrl) {
-                setProductImage(uploadedUrl);
-                Alert.alert('🎉 Uploaded', 'Product image uploaded to Cloudinary successfully!');
-              } else {
-                setProductImage(selectedUri);
-              }
-            } catch (err) {
-              console.error('Cloudinary upload error:', err);
-            } finally {
-              setUploadingImage(false);
-            }
-          }
+        } catch (err) {
+          console.error('Cloudinary upload error:', err);
+        } finally {
+          setUploadingImage(false);
         }
-      );
+      }
     } catch (err) {
       console.error('Gallery pick error:', err);
-      Alert.alert('Error', 'Failed to pick image from gallery');
+      Alert.alert('Error', 'Failed to pick media from gallery');
     } finally {
       setUploadingImage(false);
     }
@@ -132,7 +123,7 @@ export default function CreateCampaign() {
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
       const input = document.createElement('input');
       input.type = 'file';
-      input.accept = 'image/*';
+      input.accept = 'image/*,video/*';
       input.capture = 'environment';
       input.onchange = async (e) => {
         const file = e.target.files?.[0];
@@ -142,11 +133,11 @@ export default function CreateCampaign() {
             const uploadedUrl = await uploadToCloudinary(file);
             if (uploadedUrl) {
               setProductImage(uploadedUrl);
-              Alert.alert('🎉 Uploaded', 'Product image uploaded to Cloudinary successfully!');
+              Alert.alert('🎉 Uploaded', 'Media uploaded to Cloudinary successfully!');
             }
           } catch (err) {
             console.error('Web camera upload error:', err);
-            Alert.alert('Error', 'Failed to upload image to Cloudinary');
+            Alert.alert('Error', 'Failed to upload media to Cloudinary');
           } finally {
             setUploadingImage(false);
           }
@@ -157,41 +148,38 @@ export default function CreateCampaign() {
     }
 
     try {
-      const picker = getRNImagePicker();
-      if (!picker) {
-        Alert.alert('Notice', 'Camera is unavailable. You can paste an image URL directly below.');
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      if (permissionResult.status !== 'granted') {
+        Alert.alert('Permission Required', 'Permission to access camera is required.');
         return;
       }
-      picker.launchCamera(
-        { mediaType: 'photo', quality: 0.8, saveToPhotos: false },
-        async (response) => {
-          if (response.didCancel) return;
-          if (response.errorCode) {
-            Alert.alert('Error', response.errorMessage || 'Failed to capture photo from camera');
-            return;
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        quality: 0.8,
+        allowsEditing: false,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const capturedUri = result.assets[0].uri;
+        setUploadingImage(true);
+        try {
+          const uploadedUrl = await uploadToCloudinary(capturedUri);
+          if (uploadedUrl) {
+            setProductImage(uploadedUrl);
+            Alert.alert('🎉 Uploaded', 'Media captured and uploaded successfully!');
+          } else {
+            setProductImage(capturedUri);
           }
-          const capturedUri = response.assets?.[0]?.uri;
-          if (capturedUri) {
-            setUploadingImage(true);
-            try {
-              const uploadedUrl = await uploadToCloudinary(capturedUri);
-              if (uploadedUrl) {
-                setProductImage(uploadedUrl);
-                Alert.alert('🎉 Uploaded', 'Product image uploaded to Cloudinary successfully!');
-              } else {
-                setProductImage(capturedUri);
-              }
-            } catch (err) {
-              console.error('Cloudinary camera upload error:', err);
-            } finally {
-              setUploadingImage(false);
-            }
-          }
+        } catch (err) {
+          console.error('Cloudinary camera upload error:', err);
+        } finally {
+          setUploadingImage(false);
         }
-      );
+      }
     } catch (err) {
       console.error('Camera capture error:', err);
-      Alert.alert('Error', 'Failed to capture photo from camera');
+      Alert.alert('Error', 'Failed to capture media from camera');
     } finally {
       setUploadingImage(false);
     }

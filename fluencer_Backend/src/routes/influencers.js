@@ -24,7 +24,7 @@ router.post('/upload-image', authMiddleware, (req, res) => {
 
     try {
       // Return file URL
-      const fileUrl = `/uploads/profiles/${req.file.filename}`;
+      const fileUrl = req.fileUrl; // Cloudinary secure URL
       const userId = req.user.userId;
 
       // Update profile in database

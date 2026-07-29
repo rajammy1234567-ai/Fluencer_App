@@ -38,7 +38,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { API, API_CONFIG } from '../../constants/api';
 import { storage } from '../../utils/storage';
 import { uploadToCloudinary } from '../../utils/cloudinary';
-import * as RNImagePicker from 'react-native-image-picker';
+import * as ImagePicker from 'expo-image-picker';
 
 const PRIMARY_COLOR = '#3b82f6';
 const FALLBACK_LOGO = require('../../assets/images/icon.png');
@@ -73,7 +73,7 @@ export default function BrandProfile() {
   const [error, setError] = useState(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
 
-  // Change Brand Profile Picture / Logo using react-native-image-picker
+  // Change Brand Profile Picture / Logo using expo-image-picker
   const handleChangeBrandLogo = async () => {
     try {
       setUploadingLogo(true);
@@ -96,27 +96,31 @@ export default function BrandProfile() {
         return;
       }
 
-      RNImagePicker.launchImageLibrary(
-        { mediaType: 'photo', quality: 0.8, selectionLimit: 1 },
-        async (response) => {
-          if (response.didCancel || response.errorCode) {
-            setUploadingLogo(false);
-            return;
-          }
-          const selectedUri = response.assets?.[0]?.uri;
-          if (selectedUri) {
-            const uploadedUrl = await uploadToCloudinary(selectedUri);
-            if (uploadedUrl) {
-              await saveBrandLogo(uploadedUrl);
-            } else {
-              await saveBrandLogo(selectedUri);
-            }
-          }
-          setUploadingLogo(false);
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (permissionResult.status !== 'granted') {
+        Alert.alert('Permission Required', 'Permission to access media library is required.');
+        setUploadingLogo(false);
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.8,
+        allowsEditing: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const selectedUri = result.assets[0].uri;
+        const uploadedUrl = await uploadToCloudinary(selectedUri);
+        if (uploadedUrl) {
+          await saveBrandLogo(uploadedUrl);
+        } else {
+          await saveBrandLogo(selectedUri);
         }
-      );
+      }
     } catch (err) {
       console.error('Change brand logo error:', err);
+    } finally {
       setUploadingLogo(false);
     }
   };

@@ -20,6 +20,8 @@ import { COLORS } from '../../constants/colors';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { API, API_CONFIG } from '../../constants/api';
 import { getToken } from '../../utils/storage';
+import * as ImagePicker from 'expo-image-picker';
+import { uploadToCloudinary } from '../../utils/cloudinary';
 
 const BRAND_CATEGORIES = [
   'Fashion', 'Beauty & Cosmetics', 'Technology', 'Food & Beverage',
@@ -47,9 +49,44 @@ const CompleteBrandProfile = () => {
     }).start();
   }, []);
 
-  const handleImagePicker = () => {
-    // TODO: Implement image picker
-    Alert.alert('Coming Soon', 'Image upload will be implemented with expo-image-picker');
+  const handleImagePicker = async () => {
+    try {
+      if (Platform.OS === 'web' && typeof document !== 'undefined') {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = async (e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            const uploadedUrl = await uploadToCloudinary(file);
+            if (uploadedUrl) setProfileImage(uploadedUrl);
+          }
+        };
+        input.click();
+        return;
+      }
+
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (permissionResult.status !== 'granted') {
+        Alert.alert('Permission Required', 'Permission to access media library is required.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.8,
+        allowsEditing: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const selectedUri = result.assets[0].uri;
+        const uploadedUrl = await uploadToCloudinary(selectedUri);
+        setProfileImage(uploadedUrl || selectedUri);
+      }
+    } catch (err) {
+      console.error('Pick image error:', err);
+      Alert.alert('Error', 'Failed to pick brand profile image.');
+    }
   };
 
   const handleComplete = async () => {

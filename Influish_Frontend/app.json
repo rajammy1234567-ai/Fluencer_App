@@ -1,13 +1,14 @@
 {
   "expo": {
+    "sdkVersion": "57.0.0",
+
     "name": "Fluencer",
     "slug": "Influish_Frontend",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/logo_fluencer.png",
+    "icon": "./assets/images/icon.png",
     "scheme": "fluencer",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
