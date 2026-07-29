@@ -7,13 +7,13 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/fluenc
 // Connect to MongoDB with fallback
 const connectDB = async () => {
   try {
-    await mongoose.connect(MONGODB_URI, { serverSelectionTimeoutMS: 5000 });
+    await mongoose.connect(MONGODB_URI, { serverSelectionTimeoutMS: 2000 });
     console.log('✅ Primary MongoDB connected successfully');
   } catch (err) {
     console.error('⚠️ Primary MongoDB connection failed:', err.message);
     try {
       console.log('🔄 Attempting fallback to local MongoDB database...');
-      await mongoose.connect('mongodb://127.0.0.1:27017/fluencer_db', { serverSelectionTimeoutMS: 5000 });
+      await mongoose.connect('mongodb://127.0.0.1:27017/fluencer_db', { serverSelectionTimeoutMS: 2000 });
       console.log('✅ Local Fallback MongoDB connected successfully');
     } catch (localErr) {
       console.error('❌ Local Fallback MongoDB connection failed:', localErr.message);

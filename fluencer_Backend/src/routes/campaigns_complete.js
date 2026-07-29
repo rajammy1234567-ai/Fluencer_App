@@ -7,7 +7,7 @@ import BrandProfile from '../models/BrandProfile.js';
 import InfluencerProfile from '../models/InfluencerProfile.js';
 import User from '../models/User.js';
 import WalletTransaction from '../models/WalletTransaction.js';
-import authMiddleware from '../middleware/auth.js';
+import authMiddleware, { optionalAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -483,7 +483,7 @@ router.post('/applications/:applicationId/reject', authMiddleware, async (req, r
 });
 
 // Get all active campaigns (Filtered for influencers to hide already-applied campaigns)
-router.get('/active/all', authMiddleware, async (req, res) => {
+router.get('/active/all', optionalAuth, async (req, res) => {
   try {
     const userId = req.user?.userId || req.user?.id;
     const userRole = req.user?.role;

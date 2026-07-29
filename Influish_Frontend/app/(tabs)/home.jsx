@@ -148,16 +148,18 @@ const BannerSlider = () => {
     const fetchBanners = async () => {
       try {
         const response = await fetch(`${API_CONFIG.BASE_URL}${API.CAMPAIGNS.ACTIVE_ALL}`);
-        const data = await response.json();
-        const activeList = data.campaigns || data.data || [];
-        if (activeList.length > 0) {
-          const mappedBanners = activeList.map(c => ({
-            id: c.id || c._id,
-            title: c.campaign_name || c.name || 'Active Campaign Drop',
-            subtitle: `${c.company_name || 'Krishna Private Limited'} • ₹${c.cost_per_influencer || 5000} Payout`,
-            image_url: c.product_image || (c.reference_images && c.reference_images[0]) || INDIAN_FASHION.saree
-          }));
-          setBanners(mappedBanners);
+        if (response.ok) {
+          const data = await response.json();
+          const activeList = data.campaigns || data.data || [];
+          if (activeList.length > 0) {
+            const mappedBanners = activeList.map(c => ({
+              id: c.id || c._id,
+              title: c.campaign_name || c.name || 'Active Campaign Drop',
+              subtitle: `${c.company_name || 'Krishna Private Limited'} • ₹${c.cost_per_influencer || 5000} Payout`,
+              image_url: c.product_image || (c.reference_images && c.reference_images[0]) || INDIAN_FASHION.saree
+            }));
+            setBanners(mappedBanners);
+          }
         }
       } catch (err) {
         console.warn('Failed to fetch active campaign banners:', err);
@@ -338,12 +340,15 @@ const BrandsSection = () => {
     );
   }
 
-  if (error || !brands.length) {
-    return null;
-  }
+  const displayBrands = brands.length > 0 ? brands : [
+    { id: 'b1', company_name: 'Krishna Silk', profile_image: INDIAN_FASHION.saree, companyName: 'Krishna Silk' },
+    { id: 'b2', company_name: 'GlowAura Beauty', profile_image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=500', companyName: 'GlowAura Beauty' },
+    { id: 'b3', company_name: 'UrbanThread Denim', profile_image: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=500', companyName: 'UrbanThread Denim' },
+    { id: 'b4', company_name: 'Apex Pro Fitness', profile_image: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=500', companyName: 'Apex Pro Fitness' },
+  ];
 
   // Triple the brands for infinite scroll effect
-  const infiniteBrands = [...brands, ...brands, ...brands];
+  const infiniteBrands = [...displayBrands, ...displayBrands, ...displayBrands];
 
   return (
     <View style={styles.brandsWrapper}>
