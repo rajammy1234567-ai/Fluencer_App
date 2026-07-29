@@ -85,6 +85,7 @@ export default function Profile() {
   const [mediaTitle, setMediaTitle] = useState('');
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [previewMedia, setPreviewMedia] = useState(null);
+  const [profilePicModalVisible, setProfilePicModalVisible] = useState(false);
 
   // Change Profile Picture Handler using react-native-image-picker
   const handleChangeProfilePicture = async () => {
@@ -602,9 +603,9 @@ export default function Profile() {
           <View style={styles.header}>
             <TouchableOpacity
               style={styles.logoContainer}
-              onPress={handleChangeProfilePicture}
+              onPress={() => setProfilePicModalVisible(true)}
               disabled={uploadingMedia}
-              activeOpacity={0.8}
+              activeOpacity={0.85}
             >
               {hasValidProfilePicture() ? (
                 <Image
@@ -1043,6 +1044,65 @@ export default function Profile() {
               </TouchableOpacity>
             </View>
           )}
+        </View>
+      </Modal>
+
+      {/* PROFILE PICTURE FULL-SCREEN PREVIEW MODAL */}
+      <Modal
+        visible={profilePicModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setProfilePicModalVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <TouchableOpacity
+            style={{ position: 'absolute', top: 40, right: 20, zIndex: 10, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20, padding: 8 }}
+            onPress={() => setProfilePicModalVisible(false)}
+          >
+            <MaterialCommunityIcons name="close" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+
+          <View style={{ width: '100%', maxWidth: 450, alignItems: 'center' }}>
+            <Text style={{ color: '#FFFFFF', fontSize: 20, fontWeight: '800', marginBottom: 16 }}>
+              👤 Profile Picture
+            </Text>
+
+            {hasValidProfilePicture() ? (
+              <Image
+                source={getInfluencerProfilePicture()}
+                style={{ width: 260, height: 260, borderRadius: 130, borderWidth: 4, borderColor: '#3B82F6', marginBottom: 24, resizeMode: 'cover' }}
+              />
+            ) : (
+              <View style={{ width: 220, height: 220, borderRadius: 110, backgroundColor: '#3B82F6', justifyContent: 'center', alignItems: 'center', marginBottom: 24, borderWidth: 4, borderColor: '#FFFFFF' }}>
+                <Text style={{ color: '#FFFFFF', fontSize: 72, fontWeight: '800' }}>{getInfluencerInitial()}</Text>
+              </View>
+            )}
+
+            <TouchableOpacity
+              style={{ width: '100%', backgroundColor: '#2563EB', paddingVertical: 14, borderRadius: 14, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginBottom: 12 }}
+              onPress={async () => {
+                setProfilePicModalVisible(false);
+                await handleChangeProfilePicture();
+              }}
+              disabled={uploadingMedia}
+            >
+              {uploadingMedia ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <>
+                  <MaterialCommunityIcons name="camera-plus" size={20} color="#FFFFFF" />
+                  <Text style={{ color: '#FFFFFF', fontSize: 15, fontWeight: '700' }}>Upload New Photo from Gallery</Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.15)', paddingVertical: 12, borderRadius: 14, alignItems: 'center' }}
+              onPress={() => setProfilePicModalVisible(false)}
+            >
+              <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '600' }}>Close Preview</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </Modal>
     </SafeAreaView>

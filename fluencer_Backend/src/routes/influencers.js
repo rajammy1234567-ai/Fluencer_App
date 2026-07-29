@@ -127,6 +127,44 @@ router.post('/profile', authMiddleware, async (req, res) => {
   }
 });
 
+// Update influencer profile details (PUT method with image & field support)
+router.put('/profile', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.userId || req.user.id;
+    const { profile_picture, profile_image, logo, name, bio, followers, location, instagram, youtube, twitter } = req.body;
+
+    const updateData = {};
+    if (profile_picture || profile_image || logo) {
+      const picUrl = profile_picture || profile_image || logo;
+      updateData.profile_picture = picUrl;
+      updateData.profile_image = picUrl;
+      updateData.logo = picUrl;
+    }
+    if (name) updateData.name = name;
+    if (bio !== undefined) updateData.bio = bio;
+    if (followers) updateData.followers = followers;
+    if (location) updateData.location = location;
+    if (instagram !== undefined) updateData.instagram = instagram;
+    if (youtube !== undefined) updateData.youtube = youtube;
+    if (twitter !== undefined) updateData.twitter = twitter;
+
+    const profile = await InfluencerProfile.findOneAndUpdate(
+      { user_id: userId },
+      { $set: updateData },
+      { new: true, upsert: true }
+    );
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully!',
+      profile
+    });
+  } catch (error) {
+    console.error('Influencer PUT profile error:', error);
+    res.status(500).json({ success: false, message: 'Failed to update influencer profile', error: error.message });
+  }
+});
+
 // Get influencer profile details
 router.get('/profile', authMiddleware, async (req, res) => {
   try {
