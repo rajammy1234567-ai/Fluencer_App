@@ -18,7 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useLocalSearchParams, useFocusEffect, useRouter } from 'expo-router';
 
 import BrandSwipeCard from '../../components/BrandSwipeCard';
 import { COLORS } from '../../constants/colors';
@@ -33,11 +33,18 @@ import { initiatePayment } from '../../utils/payment';
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function InfluencerCampaigns() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
   const [isProMember, setIsProMember] = useState(false);
+  const [showProModal, setShowProModal] = useState(true);
   const [unlockingPro, setUnlockingPro] = useState(false);
   const [campaigns, setCampaigns] = useState([]);
+
+  const handleBackToHome = () => {
+    setShowProModal(false);
+    router.replace('/(tabs)/home');
+  };
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [swipeDirection, setSwipeDirection] = useState(null);
@@ -68,6 +75,7 @@ export default function InfluencerCampaigns() {
 
   useFocusEffect(
     React.useCallback(() => {
+      setShowProModal(true);
       checkProStatus();
       fetchCampaigns();
     }, [params.campaignId])
@@ -92,7 +100,7 @@ export default function InfluencerCampaigns() {
     }
   };
 
-  const handleUnlockProPass = async () => {
+  const handleUnlockProPass = () => {
     setUnlockingPro(true);
     initiatePayment({
       amount: 499,
@@ -108,15 +116,16 @@ export default function InfluencerCampaigns() {
           console.warn('Unlock pass API warning:', err);
         }
         setIsProMember(true);
-        Alert.alert('🎉 Access Unlocked!', 'Payment of ₹499 successful via Razorpay! You now have unlimited access to all brand campaigns.');
-        fetchCampaigns();
         setUnlockingPro(false);
+        fetchCampaigns();
       },
       onFailure: (err) => {
         setUnlockingPro(false);
         console.log('Payment cancelled/failed:', err);
       }
     });
+    // Immediately stop button spinner so Razorpay Alert is active
+    setTimeout(() => setUnlockingPro(false), 300);
   };
 
 
@@ -654,14 +663,22 @@ export default function InfluencerCampaigns() {
 
       {/* Creator Pro Pass Unlock Modal (₹499) */}
       <Modal
-        visible={!isProMember && !loading}
+        visible={!isProMember && !loading && showProModal}
         transparent={true}
         animationType="slide"
-        onRequestClose={() => {}}
+        onRequestClose={handleBackToHome}
       >
         <View style={styles.proModalOverlay}>
           <View style={styles.proModalCard}>
             <LinearGradient colors={['#7C3AED', '#6D28FF']} style={styles.proHeaderGradient}>
+              <TouchableOpacity 
+                style={styles.proBackButton}
+                onPress={handleBackToHome}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
+              </TouchableOpacity>
+
               <MaterialCommunityIcons name="crown" size={48} color="#FFD700" />
               <Text style={styles.proHeaderTitle}>FLUENCER CREATOR PRO</Text>
               <Text style={styles.proHeaderSubtitle}>Unlock Premium Campaigns Pass</Text>
@@ -981,6 +998,19 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
     paddingHorizontal: 20,
     alignItems: 'center',
+    position: 'relative',
+  },
+  proBackButton: {
+    position: 'absolute',
+    top: 14,
+    left: 14,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
   },
   proHeaderTitle: {
     fontSize: 20,
