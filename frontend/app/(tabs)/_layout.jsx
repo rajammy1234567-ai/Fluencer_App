@@ -76,7 +76,9 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* Removed unintended extra tab - Notifications page exists but not rendered as tab */}
+      {/* Hide legacy / non-tab routes still present under (tabs)/ */}
+      <Tabs.Screen name="search" options={{ href: null }} />
+      <Tabs.Screen name="campaigns_old_swipe" options={{ href: null }} />
     </Tabs>
   );
 }

@@ -209,7 +209,7 @@ const VerifyOTP = () => {
                 </View>
                 <Text style={styles.title}>Verify Email</Text>
                 <Text style={styles.subtitle}>
-                  We've sent a verification code to
+                  {"We've sent a verification code to"}
                 </Text>
                 <Text style={styles.emailText}>{email}</Text>
               </View>
@@ -332,7 +332,7 @@ const VerifyOTP = () => {
                   disabled={loading}
                 >
                   <Text style={styles.resendText}>
-                    Didn't receive the code?{' '}
+                    {"Didn't receive the code?"}{' '}
                     <Text style={styles.resendLink}>Resend</Text>
                   </Text>
                 </TouchableOpacity>

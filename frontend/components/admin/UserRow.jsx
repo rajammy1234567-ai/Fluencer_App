@@ -50,7 +50,7 @@ const UserRow = ({
         <MaterialCommunityIcons 
           name="chevron-right" 
           size={20} 
-          color={COLORS.gray} 
+          color={COLORS.gray[500]} 
           style={styles.chevron}
         />
       </View>
@@ -93,12 +93,12 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 13,
-    color: COLORS.gray,
+    color: COLORS.gray[500],
     marginBottom: 2,
   },
   stat: {
     fontSize: 12,
-    color: COLORS.gray,
+    color: COLORS.gray[500],
   },
   statValue: {
     fontWeight: '600',

@@ -14,7 +14,7 @@ const EmptyState = ({ icon, message }) => {
       <MaterialCommunityIcons 
         name={icon || 'inbox'} 
         size={48} 
-        color={COLORS.gray} 
+        color={COLORS.gray[500]} 
       />
       <Text style={styles.message}>{message || 'No data available'}</Text>
     </View>

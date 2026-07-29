@@ -24,7 +24,7 @@ const DisputeCard = ({ dispute, onPress }) => {
       Resolved: COLORS.success,
       Rejected: COLORS.error,
     };
-    return colors[status] || COLORS.gray;
+    return colors[status] || COLORS.gray[500];
   };
 
   const getTypeIcon = (type) => {
@@ -82,7 +82,7 @@ const DisputeCard = ({ dispute, onPress }) => {
           <MaterialCommunityIcons
             name="office-building"
             size={16}
-            color={COLORS.gray}
+            color={COLORS.gray[500]}
           />
           <Text style={styles.label}>Brand:</Text>
           <Text style={styles.value} numberOfLines={1}>
@@ -94,7 +94,7 @@ const DisputeCard = ({ dispute, onPress }) => {
           <MaterialCommunityIcons
             name="account-star"
             size={16}
-            color={COLORS.gray}
+            color={COLORS.gray[500]}
           />
           <Text style={styles.label}>Influencer:</Text>
           <Text style={styles.value} numberOfLines={1}>
@@ -106,7 +106,7 @@ const DisputeCard = ({ dispute, onPress }) => {
           <MaterialCommunityIcons
             name="bullhorn"
             size={16}
-            color={COLORS.gray}
+            color={COLORS.gray[500]}
           />
           <Text style={styles.label}>Campaign:</Text>
           <Text style={styles.value} numberOfLines={1}>
@@ -121,14 +121,14 @@ const DisputeCard = ({ dispute, onPress }) => {
           <MaterialCommunityIcons
             name="calendar"
             size={14}
-            color={COLORS.gray}
+            color={COLORS.gray[500]}
           />
           <Text style={styles.dateText}>{formatDate(dispute.createdAt)}</Text>
         </View>
         <MaterialCommunityIcons
           name="chevron-right"
           size={20}
-          color={COLORS.gray}
+          color={COLORS.gray[500]}
         />
       </View>
     </TouchableOpacity>
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 13,
-    color: COLORS.gray,
+    color: COLORS.gray[500],
     fontWeight: '500',
   },
   value: {
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 12,
-    color: COLORS.gray,
+    color: COLORS.gray[500],
   },
 });
 

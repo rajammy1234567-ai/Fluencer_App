@@ -17,7 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS } from '../constants/colors';
 import { FONTS } from '../constants/fonts';
-import { getAuthHeader } from '../utils/adminStorage';
+import { getAuthHeader } from '../utils/storage';
 import { API, getApiUrl } from '../constants/api';
 import { router, useNavigation } from 'expo-router';
 

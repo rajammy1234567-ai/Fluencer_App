@@ -126,7 +126,7 @@ const CompleteBrandProfile = () => {
               {/* Header */}
               <View style={styles.header}>
                 <Text style={styles.title}>Setup Your Brand</Text>
-                <Text style={styles.subtitle}>Let's create your brand profile</Text>
+                <Text style={styles.subtitle}>{"Let's create your brand profile"}</Text>
               </View>
 
               {/* Form */}

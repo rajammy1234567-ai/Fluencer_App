@@ -6,7 +6,7 @@ export default function NotFoundScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>404</Text>
-      <Text style={styles.message}>This screen doesn't exist.</Text>
+      <Text style={styles.message}>{"This screen doesn't exist."}</Text>
       <Link href="/" asChild>
         <TouchableOpacity style={styles.button}>
           <Text style={styles.buttonText}>Go to home screen</Text>

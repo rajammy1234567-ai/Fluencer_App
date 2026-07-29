@@ -110,7 +110,7 @@ const AdminDecisionBar = ({
     if (actionType === 'influencer') return COLORS.success;
     if (actionType === 'brand') return COLORS.primary;
     if (actionType === 'reject') return COLORS.error;
-    return COLORS.gray;
+    return COLORS.gray[500];
   };
 
   return (
@@ -198,7 +198,7 @@ const AdminDecisionBar = ({
               <TextInput
                 style={styles.reasonInput}
                 placeholder="Enter your reason..."
-                placeholderTextColor={COLORS.gray}
+                placeholderTextColor={COLORS.gray[500]}
                 value={reason}
                 onChangeText={setReason}
                 multiline
@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
   },
   instructionText: {
     fontSize: 14,
-    color: COLORS.gray,
+    color: COLORS.gray[500],
     marginBottom: 12,
     lineHeight: 20,
   },
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
   },
   charCount: {
     fontSize: 12,
-    color: COLORS.gray,
+    color: COLORS.gray[500],
     textAlign: 'right',
     marginBottom: 20,
   },
@@ -336,13 +336,13 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.gray,
+    borderColor: COLORS.gray[500],
     alignItems: 'center',
   },
   cancelButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.gray,
+    color: COLORS.gray[500],
   },
   submitButton: {
     flex: 1,

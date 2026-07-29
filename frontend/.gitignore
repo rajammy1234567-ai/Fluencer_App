@@ -42,3 +42,6 @@ app-example
 /ios
 /android
 .env
+# Local export/build check
+.tmp-export-check/
+

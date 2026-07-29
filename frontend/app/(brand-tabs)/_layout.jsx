@@ -67,6 +67,8 @@ export default function BrandTabLayout() {
           ),
         }}
       />
+      {/* Notifications lives outside tabs (icon entry); keep file but hide from tab bar */}
+      <Tabs.Screen name="notifications" options={{ href: null }} />
     </Tabs>
   );
 }

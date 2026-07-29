@@ -11,6 +11,7 @@ import {
   Alert,
   Image,
   Modal,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -648,7 +649,7 @@ export default function ApplicationsScreen() {
 
                   {selectedCreatorProfile.bio ? (
                     <Text style={{ fontSize: 14, color: '#475569', lineHeight: 20, marginBottom: 14 }}>
-                      "{selectedCreatorProfile.bio}"
+                      {`"${selectedCreatorProfile.bio}"`}
                     </Text>
                   ) : null}
 
@@ -711,7 +712,7 @@ export default function ApplicationsScreen() {
                     <View style={{ padding: 24, alignItems: 'center', backgroundColor: '#14141C', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', borderStyle: 'dashed' }}>
                       <MaterialCommunityIcons name="image-off-outline" size={40} color="rgba(255,255,255,0.45)" />
                       <Text style={{ fontSize: 15, fontWeight: '700', color: '#334155', marginTop: 8 }}>No portfolio media added yet</Text>
-                      <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', textAlign: 'center', marginTop: 4 }}>This creator hasn't uploaded sample photos or reels yet.</Text>
+                      <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', textAlign: 'center', marginTop: 4 }}>{"This creator hasn't uploaded sample photos or reels yet."}</Text>
                     </View>
                   ) : (
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>

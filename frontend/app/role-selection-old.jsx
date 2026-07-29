@@ -105,7 +105,7 @@ export default function RoleSelection() {
                 <View style={styles.iconContainer}>
                   <MaterialCommunityIcons name="account-star" size={56} color={COLORS?.white || '#FFFFFF'} />
                 </View>
-                <Text style={styles.roleTitle}>I'm an Influencer</Text>
+                <Text style={styles.roleTitle}>{"I'm an Influencer"}</Text>
                 <Text style={styles.roleDescription}>
                   Connect with top brands and grow your influence
                 </Text>
@@ -138,7 +138,7 @@ export default function RoleSelection() {
                 <View style={styles.iconContainer}>
                   <MaterialCommunityIcons name="office-building" size={56} color={COLORS?.white || '#FFFFFF'} />
                 </View>
-                <Text style={styles.roleTitle}>I'm a Brand</Text>
+                <Text style={styles.roleTitle}>{"I'm a Brand"}</Text>
                 <Text style={styles.roleDescription}>
                   Find perfect influencers for your campaigns
                 </Text>

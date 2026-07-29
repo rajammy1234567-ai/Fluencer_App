@@ -1335,9 +1335,9 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   metaText: {
-    fontSize: 13,
-    color: THEME.gray,
-    fontWeight: '600',
+    color: THEME.primary,
+    fontWeight: '700',
+    fontSize: 15,
   },
   metaDivider: {
     width: 1,
@@ -1470,13 +1470,6 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 3,
   },
-  metaText: {
-    color: THEME.primary,
-    fontWeight: '700',
-    fontSize: 15, // Increased from default
-    fontSize: 15,
-  },
-  
   // Premium Opportunities Styles
   opportunityCardPremium: {
     backgroundColor: '#14141C',
@@ -1490,12 +1483,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 16,
     elevation: 4,
-  },
-  opportunityHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
   },
   compensationBadgePremium: {
     backgroundColor: 'rgba(168, 85, 247, 0.16)',

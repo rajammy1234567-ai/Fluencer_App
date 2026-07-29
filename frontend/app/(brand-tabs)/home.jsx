@@ -463,7 +463,7 @@ const MetaFooter = () => {
       
       <Text style={styles.metaTitle}>Find desired and</Text>
       <Text style={styles.metaTitle}>verified influencers.</Text>
-        <Text style={styles.metaText}>Backed by Official META API'S</Text>
+        <Text style={styles.metaText}>{"Backed by Official META API'S"}</Text>
               
     </View>
   );

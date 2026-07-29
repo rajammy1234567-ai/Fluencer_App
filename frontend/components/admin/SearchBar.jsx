@@ -14,7 +14,7 @@ const SearchBar = ({ value, onChangeText, placeholder }) => {
       <MaterialCommunityIcons 
         name="magnify" 
         size={20} 
-        color={COLORS.gray} 
+        color={COLORS.gray[500]} 
         style={styles.icon}
       />
       <TextInput
@@ -22,13 +22,13 @@ const SearchBar = ({ value, onChangeText, placeholder }) => {
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder || 'Search...'}
-        placeholderTextColor={COLORS.gray}
+        placeholderTextColor={COLORS.gray[500]}
       />
       {value ? (
         <MaterialCommunityIcons 
           name="close-circle" 
           size={20} 
-          color={COLORS.gray} 
+          color={COLORS.gray[500]} 
           style={styles.clearIcon}
           onPress={() => onChangeText('')}
         />

@@ -621,7 +621,7 @@ export default function InfluencerCampaigns() {
 
                   {!!selectedCampaign.guidelines && (
                     <View style={{ marginTop: 10, backgroundColor: '#FEF3C7', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#FDE68A' }}>
-                      <Text style={{ fontWeight: '700', color: '#92400E', marginBottom: 4 }}>📋 Brand Guidelines & Do's/Don'ts:</Text>
+                      <Text style={{ fontWeight: '700', color: '#92400E', marginBottom: 4 }}>{"📋 Brand Guidelines & Do's/Don'ts:"}</Text>
                       <Text style={{ color: '#78350F', fontSize: 13 }}>{selectedCampaign.guidelines}</Text>
                     </View>
                   )}

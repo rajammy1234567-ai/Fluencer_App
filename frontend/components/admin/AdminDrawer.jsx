@@ -177,7 +177,7 @@ const AdminDrawer = ({ visible, onClose }) => {
               </View>
             </View>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-              <MaterialCommunityIcons name="close" size={24} color={COLORS.gray} />
+              <MaterialCommunityIcons name="close" size={24} color={COLORS.gray[500]} />
             </TouchableOpacity>
           </View>
 
@@ -199,7 +199,7 @@ const AdminDrawer = ({ visible, onClose }) => {
                   <MaterialCommunityIcons
                     name={item.icon}
                     size={22}
-                    color={active ? COLORS.primary : COLORS.gray}
+                    color={active ? COLORS.primary : COLORS.gray[500]}
                   />
                   <Text
                     style={[
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 12,
-    color: COLORS.gray,
+    color: COLORS.gray[500],
   },
   closeButton: {
     padding: 4,
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
   menuHeaderText: {
     fontSize: 11,
     fontWeight: '700',
-    color: COLORS.gray,
+    color: COLORS.gray[500],
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 11,
-    color: COLORS.gray,
+    color: COLORS.gray[500],
   },
 });
 

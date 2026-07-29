@@ -38,18 +38,18 @@ const BrandSwipeCard = ({ brand, onSwipeRight, onSwipeLeft, index = 0, isTop = f
     .onEnd((event) => {
       if (event.translationX > SWIPE_THRESHOLD) {
         // Swipe right - liked
-        translateX.value = withTiming(SCREEN_WIDTH + 100, { duration: 300 });
-        runOnJS(setIsRemoved)(true);
-        setTimeout(() => {
-          runOnJS(onSwipeRight)(brand);
-        }, 300);
+        translateX.value = withTiming(SCREEN_WIDTH + 100, { duration: 300 }, (finished) => {
+          if (!finished) return;
+          runOnJS(setIsRemoved)(true);
+          if (onSwipeRight) runOnJS(onSwipeRight)(brand);
+        });
       } else if (event.translationX < -SWIPE_THRESHOLD) {
         // Swipe left - rejected
-        translateX.value = withTiming(-SCREEN_WIDTH - 100, { duration: 300 });
-        runOnJS(setIsRemoved)(true);
-        setTimeout(() => {
+        translateX.value = withTiming(-SCREEN_WIDTH - 100, { duration: 300 }, (finished) => {
+          if (!finished) return;
+          runOnJS(setIsRemoved)(true);
           if (onSwipeLeft) runOnJS(onSwipeLeft)(brand);
-        }, 300);
+        });
       } else {
         // Return to original position
         translateX.value = withSpring(0);

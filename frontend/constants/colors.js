@@ -50,6 +50,8 @@ export const COLORS = {
   textWhite: '#FFFFFF',
   darkGray: 'rgba(255,255,255,0.55)',
   mutedGray: 'rgba(255,255,255,0.42)',
+  // String aliases (admin + older screens use COLORS.gray as a color, not a palette)
+  lightGray: 'rgba(255,255,255,0.16)',
 
   border: 'rgba(255,255,255,0.10)',
   divider: 'rgba(255,255,255,0.08)',

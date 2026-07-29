@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 12,
-    color: COLORS.gray,
+    color: COLORS.gray[500],
     marginBottom: 8,
     marginLeft: 28,
   },
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
   },
   noLink: {
     fontSize: 13,
-    color: COLORS.gray,
+    color: COLORS.gray[500],
     fontStyle: 'italic',
     marginLeft: 28,
   },
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
   },
   notesText: {
     fontSize: 13,
-    color: COLORS.gray,
+    color: COLORS.gray[500],
     lineHeight: 20,
     marginLeft: 28,
     fontStyle: 'italic',

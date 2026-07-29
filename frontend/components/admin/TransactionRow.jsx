@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
   },
   date: {
     fontSize: 12,
-    color: COLORS.gray,
+    color: COLORS.gray[500],
   },
   amount: {
     fontSize: 16,

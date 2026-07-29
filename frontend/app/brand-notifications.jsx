@@ -197,7 +197,7 @@ export default function BrandNotifications() {
             <MaterialCommunityIcons name="bell-off" size={64} color={THEME.textLight} />
             <Text style={styles.emptyText}>No notifications yet</Text>
             <Text style={styles.emptySubtext}>
-              We'll notify you when something important happens
+              {"We'll notify you when something important happens"}
             </Text>
           </View>
         }

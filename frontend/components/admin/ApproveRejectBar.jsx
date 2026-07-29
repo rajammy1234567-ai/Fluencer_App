@@ -82,7 +82,7 @@ const ApproveRejectBar = ({ onApprove, onReject, disabled = false }) => {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Rejection Reason</Text>
               <TouchableOpacity onPress={() => setRejectModalVisible(false)}>
-                <MaterialCommunityIcons name="close" size={24} color={COLORS.gray} />
+                <MaterialCommunityIcons name="close" size={24} color={COLORS.gray[500]} />
               </TouchableOpacity>
             </View>
 
@@ -98,7 +98,7 @@ const ApproveRejectBar = ({ onApprove, onReject, disabled = false }) => {
               multiline
               numberOfLines={4}
               textAlignVertical="top"
-              placeholderTextColor={COLORS.gray}
+              placeholderTextColor={COLORS.gray[500]}
             />
 
             <Text style={styles.charCount}>
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
   },
   modalSubtitle: {
     fontSize: 14,
-    color: COLORS.gray,
+    color: COLORS.gray[500],
     marginBottom: 16,
     lineHeight: 20,
   },
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   },
   charCount: {
     fontSize: 12,
-    color: COLORS.gray,
+    color: COLORS.gray[500],
     marginTop: 8,
     textAlign: 'right',
   },

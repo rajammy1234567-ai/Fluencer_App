@@ -173,7 +173,7 @@ const Campaigns = () => {
             <Text style={styles.emptyIcon}>🎉</Text>
             <Text style={styles.emptyTitle}>All Done!</Text>
             <Text style={styles.emptyText}>
-              You've reviewed all brands in the selected categories
+              {"You've reviewed all brands in the selected categories"}
             </Text>
           </View>
         ) : currentIndex >= filteredBrands.length ? (
@@ -181,7 +181,7 @@ const Campaigns = () => {
             <Text style={styles.emptyIcon}>🎉</Text>
             <Text style={styles.emptyTitle}>All Done!</Text>
             <Text style={styles.emptyText}>
-              You've reviewed all {filteredBrands.length} brands!
+              {"You've reviewed all "}{filteredBrands.length}{" brands!"}
             </Text>
             <TouchableOpacity 
               style={styles.resetButton}
