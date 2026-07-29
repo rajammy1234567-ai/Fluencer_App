@@ -20,22 +20,20 @@ import { FONTS } from '../constants/fonts';
 import { getAuthHeader } from '../utils/storage';
 import { API, getApiUrl } from '../constants/api';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Video, ResizeMode } from 'expo-av';
 
 // Brand color scheme
 const BRAND_COLORS = {
-  primary: '#3b82f6',
-  primaryDark: '#2563EB',
-  gradientPrimary: ['#3b82f6', '#2563EB'],
+  primary: '#7C3AED',
+  primaryDark: '#6D28FF',
+  gradientPrimary: ['#7C3AED', '#6D28FF'],
   white: '#FFFFFF',
   textGray: COLORS.textGray || '#6B7280',
-  text: COLORS.text || '#1E293B',
+  text: COLORS.text || '#FFFFFF',
   background: COLORS.background || '#F8FBFF',
 };
 
 export default function ApplicationsScreen() {
-  const params = useLocalSearchParams();
-  const campaignId = Array.isArray(params?.campaignId) ? params.campaignId[0] : (params?.campaignId || params?.id || '');
+  const { campaignId } = useLocalSearchParams();
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -78,12 +76,12 @@ export default function ApplicationsScreen() {
   const fetchApplications = async () => {
     try {
       const headers = await getAuthHeader();
-
+      
       // If campaignId is provided, fetch only for that campaign
-      const url = campaignId
+      const url = campaignId 
         ? getApiUrl(`/api/campaigns/${campaignId}/applications`)
         : getApiUrl('/api/campaigns/applications/all');
-
+      
       const response = await fetch(url, { headers });
 
       const data = await response.json();
@@ -118,7 +116,7 @@ export default function ApplicationsScreen() {
 
   const confirmAccept = async () => {
     if (!selectedApplication) return;
-
+    
     setShowAcceptModal(false);
     setProcessing((prev) => ({ ...prev, [selectedApplication]: true }));
 
@@ -138,7 +136,7 @@ export default function ApplicationsScreen() {
         const chatId = data.chatId;
         // Auto-refresh the list first
         await fetchApplications();
-
+        
         // APK SAFETY: Validate chatId exists before navigation to prevent Hermes crash
         if (!chatId || chatId === 'undefined') {
           console.error('❌ Accept succeeded but chatId is invalid:', chatId);
@@ -196,7 +194,7 @@ export default function ApplicationsScreen() {
 
   const confirmReject = async () => {
     if (!selectedApplication) return;
-
+    
     setShowRejectModal(false);
     setProcessing((prev) => ({ ...prev, [selectedApplication]: true }));
 
@@ -243,7 +241,7 @@ export default function ApplicationsScreen() {
           end={{ x: 1, y: 0 }}
           style={styles.cardTopBorder}
         />
-
+        
         <View style={styles.cardContent}>
           {/* Status Badge */}
           <View style={[
@@ -267,153 +265,153 @@ export default function ApplicationsScreen() {
             </Text>
           </View>
 
-          {/* Influencer Profile Card */}
-          <TouchableOpacity
-            style={styles.profileCard}
-            onPress={() => handleOpenCreatorProfile(item.influencer_id || item.user_id)}
-            activeOpacity={0.9}
-          >
-            <View style={styles.profileHeader}>
-              <View style={styles.avatarWrapper}>
-                <LinearGradient
-                  colors={BRAND_COLORS.gradientPrimary}
-                  style={styles.avatarGradientBorder}
-                >
-                  <Image
-                    source={{
-                      uri: item.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.influencer_name)}&size=200&background=5483b3&color=fff`
-                    }}
-                    style={styles.profileAvatar}
-                  />
-                </LinearGradient>
-              </View>
-              <View style={styles.profileInfo}>
-                <Text style={styles.profileName}>{item.influencer_name}</Text>
-                <Text style={styles.profileEmail}>{item.email}</Text>
-                {item.location && (
-                  <View style={styles.locationRow}>
-                    <MaterialCommunityIcons name="map-marker" size={14} color={BRAND_COLORS.primary} />
-                    <Text style={styles.locationText}>{item.location}</Text>
-                  </View>
-                )}
-              </View>
-            </View>
-
-
-
-            {/* Categories Tags */}
-            {item.categories && typeof item.categories === 'string' && (
-              <View style={styles.tagsContainer}>
-                {item.categories.split(',').slice(0, 3).map((cat, index) => (
-                  <View key={index} style={styles.tag}>
-                    <Text style={styles.tagText}>{cat.trim()}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {/* View Profile & Portfolio Button */}
-            <TouchableOpacity
-              style={styles.viewProfileBtn}
-              onPress={() => handleOpenCreatorProfile(item.influencer_id || item.user_id)}
-            >
-              <MaterialCommunityIcons name="account-eye" size={18} color="#2563EB" />
-              <Text style={styles.viewProfileBtnText}>View Creator Profile & Portfolio (Photos & Reels) ➔</Text>
-            </TouchableOpacity>
-          </TouchableOpacity>
-
-          {/* Proposal Message */}
-          {item.message && (
-            <View style={styles.proposalCard}>
-              <View style={styles.proposalHeader}>
-                <MaterialCommunityIcons name="message-text" size={20} color={BRAND_COLORS.primary} />
-                <Text style={styles.proposalTitle}>Proposal</Text>
-              </View>
-              <Text style={styles.proposalText}>{item.message}</Text>
-            </View>
-          )}
-
-          {/* Application Date */}
-          <View style={styles.dateRow}>
-            <MaterialCommunityIcons name="calendar" size={16} color={COLORS.textGray} />
-            <Text style={styles.dateLabel}>Applied on: </Text>
-            <Text style={styles.dateValue}>
-              {new Date(item.created_at).toLocaleDateString('en-US', {
-                day: 'numeric',
-                month: 'short',
-                year: 'numeric'
-              })}
-            </Text>
-          </View>
-
-          {/* Action Buttons - Only for Pending */}
-          {isPending && (
-            <View style={styles.actionButtons}>
-              <TouchableOpacity
-                style={styles.rejectButton}
-                onPress={() => handleReject(item.id)}
-                disabled={isProcessing}
-                activeOpacity={0.7}
-              >
-                {isProcessing ? (
-                  <ActivityIndicator size="small" color="#DC2626" />
-                ) : (
-                  <>
-                    <MaterialCommunityIcons name="close-circle-outline" size={20} color="#DC2626" />
-                    <Text style={styles.rejectButtonText}>Reject</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.acceptButton}
-                onPress={() => handleAccept(item.id)}
-                disabled={isProcessing}
-                activeOpacity={0.7}
-              >
-                {isProcessing ? (
-                  <ActivityIndicator size="small" color={COLORS.white} />
-                ) : (
-                  <LinearGradient
-                    colors={['#059669', '#10B981']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.acceptGradient}
-                  >
-                    <MaterialCommunityIcons name="check-circle-outline" size={20} color={COLORS.white} />
-                    <Text style={styles.acceptButtonText}>Accept</Text>
-                  </LinearGradient>
-                )}
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {/* Chat Button - Only for Accepted */}
-          {isAccepted && (
-            <TouchableOpacity
-              style={styles.chatButton}
-              onPress={() => {
-                const targetChatId = item.chat_id || item.id || item._id;
-                console.log('Opening chat with targetChatId:', targetChatId);
-                if (targetChatId) {
-                  router.push(`/conversation?chatId=${targetChatId}`);
-                } else {
-                  Alert.alert('Info', 'Chat will be available soon');
-                }
-              }}
-              activeOpacity={0.7}
-            >
+        {/* Influencer Profile Card */}
+        <TouchableOpacity 
+          style={styles.profileCard}
+          onPress={() => handleOpenCreatorProfile(item.influencer_id || item.user_id)}
+          activeOpacity={0.9}
+        >
+          <View style={styles.profileHeader}>
+            <View style={styles.avatarWrapper}>
               <LinearGradient
                 colors={BRAND_COLORS.gradientPrimary}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.chatGradient}
+                style={styles.avatarGradientBorder}
               >
-                <MaterialCommunityIcons name="chat" size={20} color={COLORS.white} />
-                <Text style={styles.chatButtonText}>Open Chat</Text>
+                <Image
+                  source={{ 
+                    uri: item.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.influencer_name)}&size=200&background=5483b3&color=fff`
+                  }}
+                  style={styles.profileAvatar}
+                />
               </LinearGradient>
-            </TouchableOpacity>
+            </View>
+            <View style={styles.profileInfo}>
+              <Text style={styles.profileName}>{item.influencer_name}</Text>
+              <Text style={styles.profileEmail}>{item.email}</Text>
+              {item.location && (
+                <View style={styles.locationRow}>
+                  <MaterialCommunityIcons name="map-marker" size={14} color={BRAND_COLORS.primary} />
+                  <Text style={styles.locationText}>{item.location}</Text>
+                </View>
+              )}
+            </View>
+          </View>
+
+
+
+          {/* Categories Tags */}
+          {item.categories && typeof item.categories === 'string' && (
+            <View style={styles.tagsContainer}>
+              {item.categories.split(',').slice(0, 3).map((cat, index) => (
+                <View key={index} style={styles.tag}>
+                  <Text style={styles.tagText}>{cat.trim()}</Text>
+                </View>
+              ))}
+            </View>
           )}
+
+          {/* View Profile & Portfolio Button */}
+          <TouchableOpacity
+            style={styles.viewProfileBtn}
+            onPress={() => handleOpenCreatorProfile(item.influencer_id || item.user_id)}
+          >
+            <MaterialCommunityIcons name="account-eye" size={18} color="#6D28FF" />
+            <Text style={styles.viewProfileBtnText}>View Creator Profile & Portfolio (Photos & Reels) ➔</Text>
+          </TouchableOpacity>
+        </TouchableOpacity>
+
+        {/* Proposal Message */}
+        {item.message && (
+          <View style={styles.proposalCard}>
+            <View style={styles.proposalHeader}>
+              <MaterialCommunityIcons name="message-text" size={20} color={BRAND_COLORS.primary} />
+              <Text style={styles.proposalTitle}>Proposal</Text>
+            </View>
+            <Text style={styles.proposalText}>{item.message}</Text>
+          </View>
+        )}
+
+        {/* Application Date */}
+        <View style={styles.dateRow}>
+          <MaterialCommunityIcons name="calendar" size={16} color={COLORS.textGray} />
+          <Text style={styles.dateLabel}>Applied on: </Text>
+          <Text style={styles.dateValue}>
+            {new Date(item.created_at).toLocaleDateString('en-US', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric'
+            })}
+          </Text>
+        </View>
+
+        {/* Action Buttons - Only for Pending */}
+        {isPending && (
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              style={styles.rejectButton}
+              onPress={() => handleReject(item.id)}
+              disabled={isProcessing}
+              activeOpacity={0.7}
+            >
+              {isProcessing ? (
+                <ActivityIndicator size="small" color="#DC2626" />
+              ) : (
+                <>
+                  <MaterialCommunityIcons name="close-circle-outline" size={20} color="#DC2626" />
+                  <Text style={styles.rejectButtonText}>Reject</Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.acceptButton}
+              onPress={() => handleAccept(item.id)}
+              disabled={isProcessing}
+              activeOpacity={0.7}
+            >
+              {isProcessing ? (
+                <ActivityIndicator size="small" color={COLORS.white} />
+              ) : (
+                <LinearGradient
+                  colors={['#059669', '#10B981']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.acceptGradient}
+                >
+                  <MaterialCommunityIcons name="check-circle-outline" size={20} color={COLORS.white} />
+                  <Text style={styles.acceptButtonText}>Accept</Text>
+                </LinearGradient>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Chat Button - Only for Accepted */}
+        {isAccepted && (
+          <TouchableOpacity
+            style={styles.chatButton}
+            onPress={() => {
+              const targetChatId = item.chat_id || item.id || item._id;
+              console.log('Opening chat with targetChatId:', targetChatId);
+              if (targetChatId) {
+                router.push(`/conversation?chatId=${targetChatId}`);
+              } else {
+                Alert.alert('Info', 'Chat will be available soon');
+              }
+            }}
+            activeOpacity={0.7}
+          >
+            <LinearGradient
+              colors={BRAND_COLORS.gradientPrimary}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.chatGradient}
+            >
+              <MaterialCommunityIcons name="chat" size={20} color={COLORS.white} />
+              <Text style={styles.chatButtonText}>Open Chat</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
         </View>
       </View>
     );
@@ -440,7 +438,7 @@ export default function ApplicationsScreen() {
       {/* Header with Back Button */}
       <LinearGradient colors={BRAND_COLORS.gradientPrimary} style={styles.header}>
         <View style={styles.headerTop}>
-          <TouchableOpacity
+          <TouchableOpacity 
             style={styles.backButton}
             onPress={handleGoBack}
           >
@@ -482,14 +480,14 @@ export default function ApplicationsScreen() {
             />
             <Text style={styles.emptyText}>No Applications Yet</Text>
             <Text style={styles.emptySubtext}>
-              {campaignId
+              {campaignId 
                 ? 'No one has applied to this campaign yet'
                 : 'Applications from influencers will appear here'}
             </Text>
           </View>
         }
       />
-
+      
       {/* Custom Accept Modal */}
       <Modal
         visible={showAcceptModal}
@@ -511,7 +509,7 @@ export default function ApplicationsScreen() {
 
             {/* Title */}
             <Text style={styles.modalTitle}>Accept Influencer</Text>
-
+            
             {/* Message */}
             <Text style={styles.modalMessage}>
               Accept this influencer for your campaign? A chat room will be created to start collaboration.
@@ -566,7 +564,7 @@ export default function ApplicationsScreen() {
 
             {/* Title */}
             <Text style={styles.modalTitle}>Reject Application</Text>
-
+            
             {/* Message */}
             <Text style={styles.modalMessage}>
               Are you sure you want to reject this application? This action cannot be undone.
@@ -608,9 +606,9 @@ export default function ApplicationsScreen() {
         onRequestClose={() => setCreatorModalVisible(false)}
       >
         <View style={{ flex: 1, backgroundColor: 'rgba(15,23,42,0.75)', justifyContent: 'flex-end' }}>
-          <View style={{ width: '100%', height: '88%', backgroundColor: '#F8FAFC', borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden' }}>
+          <View style={{ width: '100%', height: '88%', backgroundColor: '#14141C', borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: 'hidden' }}>
             {/* Header Bar */}
-            <View style={{ backgroundColor: '#2563EB', paddingHorizontal: 20, paddingVertical: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <View style={{ backgroundColor: '#6D28FF', paddingHorizontal: 20, paddingVertical: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                 <MaterialCommunityIcons name="account-star" size={26} color="#FFFFFF" />
                 <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '700' }}>Creator Profile & Portfolio</Text>
@@ -626,37 +624,37 @@ export default function ApplicationsScreen() {
 
             {loadingCreatorProfile ? (
               <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                <ActivityIndicator size="large" color="#2563EB" />
-                <Text style={{ marginTop: 12, color: '#64748B', fontWeight: '600' }}>Loading Creator Portfolio...</Text>
+                <ActivityIndicator size="large" color="#6D28FF" />
+                <Text style={{ marginTop: 12, color: 'rgba(255,255,255,0.55)', fontWeight: '600' }}>Loading Creator Portfolio...</Text>
               </View>
             ) : selectedCreatorProfile ? (
               <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
                 {/* Profile Overview Card */}
-                <View style={{ backgroundColor: '#FFFFFF', borderRadius: 20, padding: 20, marginBottom: 20, elevation: 2 }}>
+                <View style={{ backgroundColor: '#14141C', borderRadius: 20, padding: 20, marginBottom: 20, elevation: 2 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 16 }}>
                     <Image
                       source={{ uri: selectedCreatorProfile.profile_image || selectedCreatorProfile.profile_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedCreatorProfile.name || 'Creator')}&size=200` }}
-                      style={{ width: 72, height: 72, borderRadius: 36, borderWidth: 2, borderColor: '#2563EB' }}
+                      style={{ width: 72, height: 72, borderRadius: 36, borderWidth: 2, borderColor: '#6D28FF' }}
                     />
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 20, fontWeight: '700', color: '#1E293B' }}>{selectedCreatorProfile.name}</Text>
-                      <Text style={{ fontSize: 13, color: '#64748B', marginTop: 2 }}>{selectedCreatorProfile.location || 'Location Not Set'}</Text>
+                      <Text style={{ fontSize: 20, fontWeight: '700', color: '#FFFFFF' }}>{selectedCreatorProfile.name}</Text>
+                      <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', marginTop: 2 }}>{selectedCreatorProfile.location || 'Location Not Set'}</Text>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
                         <MaterialCommunityIcons name="star" size={18} color="#F59E0B" />
-                        <Text style={{ fontSize: 14, fontWeight: '700', color: '#1E293B' }}>{selectedCreatorProfile.rating || 4.9}</Text>
-                        <Text style={{ fontSize: 13, color: '#64748B' }}>• {(selectedCreatorProfile.followers && selectedCreatorProfile.followers !== '0') ? selectedCreatorProfile.followers : (selectedCreatorProfile.followers_count && selectedCreatorProfile.followers_count > 0) ? (selectedCreatorProfile.followers_count >= 1000 ? (selectedCreatorProfile.followers_count / 1000).toFixed(1) + 'K' : selectedCreatorProfile.followers_count) : '125K'} Followers</Text>
+                        <Text style={{ fontSize: 14, fontWeight: '700', color: '#FFFFFF' }}>{selectedCreatorProfile.rating || 4.9}</Text>
+                        <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)' }}>• {(selectedCreatorProfile.followers && selectedCreatorProfile.followers !== '0') ? selectedCreatorProfile.followers : (selectedCreatorProfile.followers_count && selectedCreatorProfile.followers_count > 0) ? (selectedCreatorProfile.followers_count >= 1000 ? (selectedCreatorProfile.followers_count / 1000).toFixed(1) + 'K' : selectedCreatorProfile.followers_count) : '125K'} Followers</Text>
                       </View>
                     </View>
                   </View>
 
                   {selectedCreatorProfile.bio ? (
                     <Text style={{ fontSize: 14, color: '#475569', lineHeight: 20, marginBottom: 14 }}>
-                      "{selectedCreatorProfile.bio}"
+                      {`"${selectedCreatorProfile.bio}"`}
                     </Text>
                   ) : null}
 
                   {/* Social Handles */}
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 10, borderTopWidth: 1, borderColor: '#F1F5F9' }}>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 10, borderTopWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}>
                     {selectedCreatorProfile.instagram ? (
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#FDF2F8', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12 }}>
                         <MaterialCommunityIcons name="instagram" size={16} color="#E11D48" />
@@ -674,75 +672,72 @@ export default function ApplicationsScreen() {
                 </View>
 
                 {/* Portfolio & Reels Showcase Section */}
-                <View style={{ backgroundColor: '#FFFFFF', borderRadius: 20, padding: 20, elevation: 2 }}>
+                <View style={{ backgroundColor: '#14141C', borderRadius: 20, padding: 20, elevation: 2 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                    <Text style={{ fontSize: 17, fontWeight: '700', color: '#1E293B' }}>📸 Creator Portfolio & Reels</Text>
+                    <Text style={{ fontSize: 17, fontWeight: '700', color: '#FFFFFF' }}>📸 Creator Portfolio & Reels</Text>
                   </View>
 
                   {/* Filter Tabs */}
                   <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
                     <TouchableOpacity
-                      style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: creatorPortfolioFilter === 'all' ? '#2563EB' : '#F1F5F9' }}
+                      style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: creatorPortfolioFilter === 'all' ? '#6D28FF' : 'rgba(255,255,255,0.08)' }}
                       onPress={() => setCreatorPortfolioFilter('all')}
                     >
-                      <Text style={{ fontSize: 12, fontWeight: '600', color: creatorPortfolioFilter === 'all' ? '#FFFFFF' : '#64748B' }}>
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: creatorPortfolioFilter === 'all' ? '#FFFFFF' : 'rgba(255,255,255,0.55)' }}>
                         All ({(selectedCreatorProfile?.portfolio || []).length})
                       </Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                      style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: creatorPortfolioFilter === 'photo' ? '#2563EB' : '#F1F5F9' }}
+                      style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: creatorPortfolioFilter === 'photo' ? '#6D28FF' : 'rgba(255,255,255,0.08)' }}
                       onPress={() => setCreatorPortfolioFilter('photo')}
                     >
-                      <Text style={{ fontSize: 12, fontWeight: '600', color: creatorPortfolioFilter === 'photo' ? '#FFFFFF' : '#64748B' }}>
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: creatorPortfolioFilter === 'photo' ? '#FFFFFF' : 'rgba(255,255,255,0.55)' }}>
                         📸 Photos ({(selectedCreatorProfile?.portfolio || []).filter(i => i.type === 'photo').length})
                       </Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                      style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: creatorPortfolioFilter === 'reel' ? '#2563EB' : '#F1F5F9' }}
+                      style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: creatorPortfolioFilter === 'reel' ? '#6D28FF' : 'rgba(255,255,255,0.08)' }}
                       onPress={() => setCreatorPortfolioFilter('reel')}
                     >
-                      <Text style={{ fontSize: 12, fontWeight: '600', color: creatorPortfolioFilter === 'reel' ? '#FFFFFF' : '#64748B' }}>
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: creatorPortfolioFilter === 'reel' ? '#FFFFFF' : 'rgba(255,255,255,0.55)' }}>
                         🎬 Reels ({(selectedCreatorProfile?.portfolio || []).filter(i => i.type === 'reel').length})
                       </Text>
                     </TouchableOpacity>
                   </View>
 
-                  {/* Instagram-Style 3-Column Profile Media Feed Grid */}
+                  {/* Portfolio Grid */}
                   {((selectedCreatorProfile?.portfolio || []).filter(item => creatorPortfolioFilter === 'all' || item.type === creatorPortfolioFilter)).length === 0 ? (
-                    <View style={{ padding: 28, alignItems: 'center', backgroundColor: '#F8FAFC', borderRadius: 16, borderWidth: 1, borderColor: '#E2E8F0', borderStyle: 'dashed' }}>
-                      <MaterialCommunityIcons name="image-off-outline" size={40} color="#94A3B8" />
+                    <View style={{ padding: 24, alignItems: 'center', backgroundColor: '#14141C', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', borderStyle: 'dashed' }}>
+                      <MaterialCommunityIcons name="image-off-outline" size={40} color="rgba(255,255,255,0.45)" />
                       <Text style={{ fontSize: 15, fontWeight: '700', color: '#334155', marginTop: 8 }}>No portfolio media added yet</Text>
-                      <Text style={{ fontSize: 13, color: '#64748B', textAlign: 'center', marginTop: 4 }}>This creator hasn't uploaded sample photos or reels yet.</Text>
+                      <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', textAlign: 'center', marginTop: 4 }}>{"This creator hasn't uploaded sample photos or reels yet."}</Text>
                     </View>
                   ) : (
-                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
                       {((selectedCreatorProfile?.portfolio || []).filter(item => creatorPortfolioFilter === 'all' || item.type === creatorPortfolioFilter)).map((item, idx) => (
                         <TouchableOpacity
                           key={item.id || idx}
-                          style={{ width: '31.8%', aspectRatio: 1, borderRadius: 8, overflow: 'hidden', backgroundColor: '#0F172A', position: 'relative' }}
+                          style={{ width: '47%', height: 160, borderRadius: 14, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.08)', position: 'relative' }}
                           onPress={() => setCreatorPreviewMedia(item)}
                           activeOpacity={0.85}
                         >
                           <Image
-                            source={{ uri: item.url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80' }}
+                            source={{ uri: item.url || 'https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?auto=format&fit=crop&w=800&q=80' }}
                             style={{ width: '100%', height: '100%', resizeMode: 'cover' }}
                           />
 
-                          {/* Instagram Top-Right Media Badge */}
-                          <View style={{ position: 'absolute', top: 5, right: 5, backgroundColor: 'rgba(0,0,0,0.65)', borderRadius: 6, padding: 3 }}>
-                            <MaterialCommunityIcons
-                              name={item.type === 'reel' ? 'play-box-multiple' : 'image-multiple'}
-                              size={15}
-                              color="#FFFFFF"
-                            />
-                          </View>
+                          {item.type === 'reel' && (
+                            <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
+                              <MaterialCommunityIcons name="play-circle" size={32} color="#FFFFFF" />
+                              <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '800', marginTop: 2 }}>REEL</Text>
+                            </View>
+                          )}
 
-                          {/* Title Overlay at bottom if provided */}
                           {item.title ? (
-                            <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.65)', paddingHorizontal: 4, paddingVertical: 3 }}>
-                              <Text style={{ color: '#FFFFFF', fontSize: 10, fontWeight: '600' }} numberOfLines={1}>{item.title}</Text>
+                            <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(15,23,42,0.8)', paddingHorizontal: 8, paddingVertical: 4 }}>
+                              <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '600' }} numberOfLines={1}>{item.title}</Text>
                             </View>
                           ) : null}
                         </TouchableOpacity>
@@ -753,7 +748,7 @@ export default function ApplicationsScreen() {
               </ScrollView>
             ) : (
               <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-                <MaterialCommunityIcons name="account-search-outline" size={48} color="#94A3B8" />
+                <MaterialCommunityIcons name="account-search-outline" size={48} color="rgba(255,255,255,0.45)" />
                 <Text style={{ fontSize: 16, fontWeight: '700', color: '#334155', marginTop: 10 }}>Creator Profile Not Available</Text>
               </View>
             )}
@@ -778,27 +773,23 @@ export default function ApplicationsScreen() {
 
           {creatorPreviewMedia && (
             <View style={{ width: '100%', maxWidth: 500, alignItems: 'center' }}>
-              {creatorPreviewMedia.type === 'reel' ? (
-                <Video
-                  source={{ uri: creatorPreviewMedia.url || 'https://res.cloudinary.com/demo/video/upload/v1689240000/dog.mp4' }}
-                  style={{ width: '100%', height: 380, borderRadius: 16, backgroundColor: '#000' }}
-                  useNativeControls
-                  resizeMode={ResizeMode.CONTAIN}
-                  isLooping
-                  shouldPlay
-                />
-              ) : (
-                <Image
-                  source={{ uri: creatorPreviewMedia.url }}
-                  style={{ width: '100%', height: 380, borderRadius: 16, resizeMode: 'contain', backgroundColor: '#000' }}
-                />
-              )}
+              <Image
+                source={{ uri: creatorPreviewMedia.url }}
+                style={{ width: '100%', height: 380, borderRadius: 16, resizeMode: 'contain', backgroundColor: '#000' }}
+              />
 
               {creatorPreviewMedia.title ? (
                 <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600', marginTop: 14, textAlign: 'center' }}>
                   {creatorPreviewMedia.title}
                 </Text>
               ) : null}
+
+              {creatorPreviewMedia.type === 'reel' && (
+                <View style={{ marginTop: 12, backgroundColor: '#E11D48', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <MaterialCommunityIcons name="play-circle" size={20} color="#FFFFFF" />
+                  <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 14 }}>Sample Reel Video Preview</Text>
+                </View>
+              )}
             </View>
           )}
         </View>
@@ -814,9 +805,9 @@ const styles = StyleSheet.create({
   },
   viewProfileBtn: {
     marginTop: 12,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: 'rgba(168, 85, 247, 0.16)',
     borderWidth: 1,
-    borderColor: '#BFDBFE',
+    borderColor: '#A855F7',
     borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 12,
@@ -826,7 +817,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   viewProfileBtnText: {
-    color: '#1E40AF',
+    color: '#5B21B6',
     fontSize: 13,
     fontWeight: '700',
   },
@@ -866,7 +857,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   applicationCard: {
-    backgroundColor: COLORS.white,
+    backgroundColor: '#14141C',
     borderRadius: 20,
     padding: 0,
     marginBottom: 20,
@@ -966,12 +957,12 @@ const styles = StyleSheet.create({
   },
   statBox: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#14141C',
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: 'rgba(255,255,255,0.12)',
   },
   statNumber: {
     fontSize: 20,
@@ -991,12 +982,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tag: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: 'rgba(168, 85, 247, 0.16)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#BFDBFE',
+    borderColor: '#A855F7',
   },
   tagText: {
     fontSize: 12,
@@ -1118,7 +1109,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
   },
-
+  
   // Modal Styles
   modalOverlay: {
     flex: 1,
@@ -1128,7 +1119,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#14141C',
     borderRadius: 24,
     padding: 32,
     width: '100%',
