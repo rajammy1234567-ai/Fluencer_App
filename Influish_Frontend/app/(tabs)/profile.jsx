@@ -40,6 +40,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { API, API_CONFIG } from '../../constants/api';
 import { storage } from '../../utils/storage';
 import { uploadToCloudinary } from '../../utils/cloudinary';
+import { Video, ResizeMode } from 'expo-av';
+import * as RNImagePicker from 'react-native-image-picker';
 
 const PRIMARY_COLOR = '#3b82f6';
 const FALLBACK_LOGO = require('../../assets/images/icon.png');
@@ -84,7 +86,7 @@ export default function Profile() {
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [previewMedia, setPreviewMedia] = useState(null);
 
-  // Local File (Photo / Video MP4) picker for Cloudinary upload
+  // Local File (Photo / Video MP4) picker using react-native-image-picker
   const handlePickLocalFile = async (typeToPick) => {
     try {
       setUploadingMedia(true);
@@ -110,51 +112,45 @@ export default function Profile() {
         return;
       }
 
-      // Mobile Native Expo ImagePicker
-      let ImagePicker = null;
-      try {
-        ImagePicker = require('expo-image-picker');
-      } catch (e) {
-        ImagePicker = null;
-      }
-
-      if (ImagePicker) {
-        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (!permission?.granted) {
-          Alert.alert('Permission Required', 'Please allow gallery access permission to select photos and video reels.');
-          return;
-        }
-
-        let mediaTypeOption = ImagePicker.MediaTypeOptions.All;
-        if (typeToPick === 'reel' && ImagePicker.MediaTypeOptions?.Videos) {
-          mediaTypeOption = ImagePicker.MediaTypeOptions.Videos;
-        } else if (typeToPick === 'photo' && ImagePicker.MediaTypeOptions?.Images) {
-          mediaTypeOption = ImagePicker.MediaTypeOptions.Images;
-        }
-
-        const result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: mediaTypeOption,
-          allowsEditing: false,
-          quality: 0.7,
-        });
-
-        if (!result.canceled && result.assets?.[0]?.uri) {
-          console.log('📱 Mobile local file selected:', result.assets[0].uri);
-          const uploadedUrl = await uploadToCloudinary(result.assets[0].uri);
-          if (uploadedUrl) {
-            setMediaUrl(uploadedUrl);
-            setMediaType(typeToPick);
-            Alert.alert('🎉 Uploaded to Cloudinary', `${typeToPick === 'reel' ? 'Video' : 'Photo'} uploaded successfully! Click "Save Media" to finish.`);
-          } else {
-            setMediaUrl(result.assets[0].uri);
-            setMediaType(typeToPick);
+      // Mobile Native react-native-image-picker
+      const mediaTypeOption = typeToPick === 'reel' ? 'video' : 'photo';
+      RNImagePicker.launchImageLibrary(
+        { mediaType: mediaTypeOption, quality: 0.7, selectionLimit: 1 },
+        async (response) => {
+          if (response.didCancel) {
+            setUploadingMedia(false);
+            return;
           }
+          if (response.errorCode) {
+            Alert.alert('Upload Error', response.errorMessage || 'Could not process media file.');
+            setUploadingMedia(false);
+            return;
+          }
+          const selectedUri = response.assets?.[0]?.uri;
+          if (selectedUri) {
+            console.log('📱 Mobile local file selected:', selectedUri);
+            try {
+              const uploadedUrl = await uploadToCloudinary(selectedUri);
+              if (uploadedUrl) {
+                setMediaUrl(uploadedUrl);
+                setMediaType(typeToPick);
+                Alert.alert('🎉 Uploaded to Cloudinary', `${typeToPick === 'reel' ? 'Video' : 'Photo'} uploaded successfully! Click "Save Media" to finish.`);
+              } else {
+                setMediaUrl(selectedUri);
+                setMediaType(typeToPick);
+              }
+            } catch (uploadErr) {
+              console.error('Cloudinary error:', uploadErr);
+              setMediaUrl(selectedUri);
+              setMediaType(typeToPick);
+            }
+          }
+          setUploadingMedia(false);
         }
-      }
+      );
     } catch (err) {
       console.error('Pick local file error:', err);
       Alert.alert('Upload Error', 'Could not process media file. Please try again.');
-    } finally {
       setUploadingMedia(false);
     }
   };
@@ -939,23 +935,27 @@ export default function Profile() {
 
           {previewMedia && (
             <View style={{ width: '100%', maxWidth: 500, alignItems: 'center' }}>
-              <Image
-                source={{ uri: previewMedia.url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80' }}
-                style={{ width: '100%', height: 380, borderRadius: 16, resizeMode: 'contain', backgroundColor: '#000' }}
-              />
+              {previewMedia.type === 'reel' ? (
+                <Video
+                  source={{ uri: previewMedia.url || 'https://res.cloudinary.com/demo/video/upload/v1689240000/dog.mp4' }}
+                  style={{ width: '100%', height: 380, borderRadius: 16, backgroundColor: '#000' }}
+                  useNativeControls
+                  resizeMode={ResizeMode.CONTAIN}
+                  isLooping
+                  shouldPlay
+                />
+              ) : (
+                <Image
+                  source={{ uri: previewMedia.url || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80' }}
+                  style={{ width: '100%', height: 380, borderRadius: 16, resizeMode: 'contain', backgroundColor: '#000' }}
+                />
+              )}
 
               {previewMedia.title ? (
                 <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600', marginTop: 14, textAlign: 'center' }}>
                   {previewMedia.title}
                 </Text>
               ) : null}
-
-              {previewMedia.type === 'reel' && (
-                <View style={{ marginTop: 12, backgroundColor: '#E11D48', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <MaterialCommunityIcons name="play-circle" size={20} color="#FFFFFF" />
-                  <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 14 }}>Sample Reel Video Preview</Text>
-                </View>
-              )}
 
               <TouchableOpacity
                 style={{ marginTop: 20, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(239,68,68,0.2)', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 }}

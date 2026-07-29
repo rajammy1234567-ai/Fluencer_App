@@ -19,6 +19,7 @@ import { FONTS } from '../constants/fonts';
 import { getAuthHeader } from '../utils/storage';
 import { API, getApiUrl } from '../constants/api';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Video, ResizeMode } from 'expo-av';
 
 // Brand color scheme
 const BRAND_COLORS = {
@@ -776,23 +777,27 @@ export default function ApplicationsScreen() {
 
           {creatorPreviewMedia && (
             <View style={{ width: '100%', maxWidth: 500, alignItems: 'center' }}>
-              <Image
-                source={{ uri: creatorPreviewMedia.url }}
-                style={{ width: '100%', height: 380, borderRadius: 16, resizeMode: 'contain', backgroundColor: '#000' }}
-              />
+              {creatorPreviewMedia.type === 'reel' ? (
+                <Video
+                  source={{ uri: creatorPreviewMedia.url || 'https://res.cloudinary.com/demo/video/upload/v1689240000/dog.mp4' }}
+                  style={{ width: '100%', height: 380, borderRadius: 16, backgroundColor: '#000' }}
+                  useNativeControls
+                  resizeMode={ResizeMode.CONTAIN}
+                  isLooping
+                  shouldPlay
+                />
+              ) : (
+                <Image
+                  source={{ uri: creatorPreviewMedia.url }}
+                  style={{ width: '100%', height: 380, borderRadius: 16, resizeMode: 'contain', backgroundColor: '#000' }}
+                />
+              )}
 
               {creatorPreviewMedia.title ? (
                 <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600', marginTop: 14, textAlign: 'center' }}>
                   {creatorPreviewMedia.title}
                 </Text>
               ) : null}
-
-              {creatorPreviewMedia.type === 'reel' && (
-                <View style={{ marginTop: 12, backgroundColor: '#E11D48', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <MaterialCommunityIcons name="play-circle" size={20} color="#FFFFFF" />
-                  <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 14 }}>Sample Reel Video Preview</Text>
-                </View>
-              )}
             </View>
           )}
         </View>

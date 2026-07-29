@@ -22,14 +22,12 @@ import { getAuthHeader } from '../../utils/storage';
 import { API, getApiUrl } from '../../constants/api';
 import { uploadToCloudinary } from '../../utils/cloudinary';
 
-// Safe lazy getter for ImagePicker
-const getImagePicker = () => {
+import * as RNImagePicker from 'react-native-image-picker';
+
+// Safe lazy getter for react-native-image-picker
+const getRNImagePicker = () => {
   if (Platform.OS === 'web') return null;
-  try {
-    return require('expo-image-picker');
-  } catch (err) {
-    return null;
-  }
+  return RNImagePicker;
 };
 
 const THEME = {
@@ -90,30 +88,38 @@ export default function CreateCampaign() {
     }
 
     try {
-      const ImagePicker = getImagePicker();
-      if (!ImagePicker) {
+      const picker = getRNImagePicker();
+      if (!picker) {
         Alert.alert('Notice', 'Gallery picker is unavailable. You can paste an image URL directly below.');
         return;
       }
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission?.granted) {
-        Alert.alert('Permission Needed', 'Please grant gallery access permission to upload product photos.');
-        return;
-      }
-      const result = await ImagePicker.launchImageLibraryAsync({
-        allowsEditing: false,
-        quality: 0.8,
-      });
-      if (!result.canceled && result.assets?.[0]?.uri) {
-        setUploadingImage(true);
-        const uploadedUrl = await uploadToCloudinary(result.assets[0].uri);
-        if (uploadedUrl) {
-          setProductImage(uploadedUrl);
-          Alert.alert('🎉 Uploaded', 'Product image uploaded to Cloudinary successfully!');
-        } else {
-          setProductImage(result.assets[0].uri);
+      picker.launchImageLibrary(
+        { mediaType: 'photo', quality: 0.8, selectionLimit: 1 },
+        async (response) => {
+          if (response.didCancel) return;
+          if (response.errorCode) {
+            Alert.alert('Error', response.errorMessage || 'Failed to pick image from gallery');
+            return;
+          }
+          const selectedUri = response.assets?.[0]?.uri;
+          if (selectedUri) {
+            setUploadingImage(true);
+            try {
+              const uploadedUrl = await uploadToCloudinary(selectedUri);
+              if (uploadedUrl) {
+                setProductImage(uploadedUrl);
+                Alert.alert('🎉 Uploaded', 'Product image uploaded to Cloudinary successfully!');
+              } else {
+                setProductImage(selectedUri);
+              }
+            } catch (err) {
+              console.error('Cloudinary upload error:', err);
+            } finally {
+              setUploadingImage(false);
+            }
+          }
         }
-      }
+      );
     } catch (err) {
       console.error('Gallery pick error:', err);
       Alert.alert('Error', 'Failed to pick image from gallery');
@@ -151,30 +157,38 @@ export default function CreateCampaign() {
     }
 
     try {
-      const ImagePicker = getImagePicker();
-      if (!ImagePicker) {
+      const picker = getRNImagePicker();
+      if (!picker) {
         Alert.alert('Notice', 'Camera is unavailable. You can paste an image URL directly below.');
         return;
       }
-      const permission = await ImagePicker.requestCameraPermissionsAsync();
-      if (!permission?.granted) {
-        Alert.alert('Permission Needed', 'Please grant camera access permission to capture product photos.');
-        return;
-      }
-      const result = await ImagePicker.launchCameraAsync({
-        allowsEditing: false,
-        quality: 0.8,
-      });
-      if (!result.canceled && result.assets?.[0]?.uri) {
-        setUploadingImage(true);
-        const uploadedUrl = await uploadToCloudinary(result.assets[0].uri);
-        if (uploadedUrl) {
-          setProductImage(uploadedUrl);
-          Alert.alert('🎉 Uploaded', 'Product image uploaded to Cloudinary successfully!');
-        } else {
-          setProductImage(result.assets[0].uri);
+      picker.launchCamera(
+        { mediaType: 'photo', quality: 0.8, saveToPhotos: false },
+        async (response) => {
+          if (response.didCancel) return;
+          if (response.errorCode) {
+            Alert.alert('Error', response.errorMessage || 'Failed to capture photo from camera');
+            return;
+          }
+          const capturedUri = response.assets?.[0]?.uri;
+          if (capturedUri) {
+            setUploadingImage(true);
+            try {
+              const uploadedUrl = await uploadToCloudinary(capturedUri);
+              if (uploadedUrl) {
+                setProductImage(uploadedUrl);
+                Alert.alert('🎉 Uploaded', 'Product image uploaded to Cloudinary successfully!');
+              } else {
+                setProductImage(capturedUri);
+              }
+            } catch (err) {
+              console.error('Cloudinary camera upload error:', err);
+            } finally {
+              setUploadingImage(false);
+            }
+          }
         }
-      }
+      );
     } catch (err) {
       console.error('Camera capture error:', err);
       Alert.alert('Error', 'Failed to capture photo from camera');
