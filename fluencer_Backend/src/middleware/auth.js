@@ -55,5 +55,23 @@ export const authMiddleware = (req, res, next) => {
   }
 };
 
+export const optionalAuth = (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      const decoded = verifyToken(token);
+      if (decoded) req.user = decoded;
+    }
+    if (!req.user) {
+      req.user = { id: 'guest_user', userId: 'guest_user', role: 'guest' };
+    }
+    next();
+  } catch (error) {
+    req.user = { id: 'guest_user', userId: 'guest_user', role: 'guest' };
+    next();
+  }
+};
+
 export const authenticateToken = authMiddleware;
 export default authMiddleware;

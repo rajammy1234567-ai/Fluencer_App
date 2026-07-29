@@ -1,8 +1,0 @@
-BrandFooter.jsx
-BrandSwipeCard.jsx
-BrandTabBar.jsx
-CategorySelector.jsx
-SelectedBrandsModal.jsx
-SocialProofBanner.jsx
-UnlockFeatureCard.jsx
-bar.jsx

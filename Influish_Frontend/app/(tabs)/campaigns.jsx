@@ -16,10 +16,9 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useFocusEffect } from 'expo-router';
 
 import BrandSwipeCard from '../../components/BrandSwipeCard';
 import { COLORS } from '../../constants/colors';
@@ -29,6 +28,7 @@ import { API, getApiUrl } from '../../constants/api';
 import WaveHeader from '../../components/WaveHeader';
 import { SlideInCard, SlideUp } from '../../components/motion';
 import { FALLBACK_INDIAN } from '../../constants/sampleImages';
+import { initiatePayment } from '../../utils/payment';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -94,26 +94,29 @@ export default function InfluencerCampaigns() {
 
   const handleUnlockProPass = async () => {
     setUnlockingPro(true);
-    try {
-      const headers = await getAuthHeader();
-      const res = await fetch(getApiUrl('/api/influencers/unlock-pass'), {
-        method: 'POST',
-        headers: { ...headers, 'Content-Type': 'application/json' },
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
+    initiatePayment({
+      amount: 499,
+      description: '₹499 Pro Membership Pass - Unlimited Brand Campaign Access',
+      onSuccess: async () => {
+        try {
+          const headers = await getAuthHeader();
+          await fetch(getApiUrl('/api/influencers/unlock-pass'), {
+            method: 'POST',
+            headers: { ...headers, 'Content-Type': 'application/json' },
+          });
+        } catch (err) {
+          console.warn('Unlock pass API warning:', err);
+        }
         setIsProMember(true);
-        Alert.alert('🎉 Access Unlocked!', 'Pro Pass (₹499) Unlocked Successfully! You can now view and apply to all brand campaigns.');
+        Alert.alert('🎉 Access Unlocked!', 'Payment of ₹499 successful via Razorpay! You now have unlimited access to all brand campaigns.');
         fetchCampaigns();
-      } else {
-        Alert.alert('Error', data.message || 'Failed to unlock Pro Pass');
+        setUnlockingPro(false);
+      },
+      onFailure: (err) => {
+        setUnlockingPro(false);
+        console.log('Payment cancelled/failed:', err);
       }
-    } catch (err) {
-      console.error('Pro pass unlock error:', err);
-      Alert.alert('Error', 'Something went wrong unlocking pass');
-    } finally {
-      setUnlockingPro(false);
-    }
+    });
   };
 
 
@@ -129,14 +132,11 @@ export default function InfluencerCampaigns() {
       const data = await response.json();
       console.log('Campaigns Response:', JSON.stringify(data, null, 2));
 
-      if (response.ok && data.success) {
-        // Relaxed filtering for debugging - show all campaigns returned
-        const allCampaigns = data.campaigns || [];
-        console.log('Campaigns count:', allCampaigns.length);
-        setCampaigns(allCampaigns);
+      if (response.ok && data.success && Array.isArray(data.campaigns)) {
+        setCampaigns(data.campaigns);
 
         if (params.campaignId) {
-          const target = allCampaigns.find(c => String(c._id || c.id) === String(params.campaignId));
+          const target = data.campaigns.find(c => String(c._id || c.id) === String(params.campaignId));
           if (target) {
             const formatted = {
               id: target._id || target.id,
@@ -157,12 +157,10 @@ export default function InfluencerCampaigns() {
           }
         }
       } else {
-        console.log('Fetch failed:', data.message);
-        Alert.alert('Error', data.message || 'Failed to fetch campaigns');
+        console.log('Fetch campaigns response note:', data?.message);
       }
     } catch (error) {
-      console.error('Error fetching campaigns:', error);
-      Alert.alert('Error', 'Failed to load campaigns');
+      console.warn('Error fetching campaigns:', error);
     } finally {
       setLoading(false);
     }

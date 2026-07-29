@@ -82,7 +82,7 @@ export const storage = {
   async getAuthHeader() {
     try {
       const token = await this.getToken();
-      if (!token) return {};
+      if (!token || token === 'guest-skip-token' || token === 'demo-token' || token.startsWith('guest')) return {};
       return { Authorization: `Bearer ${token}` };
     } catch (error) {
       console.error('❌ Error getting auth header:', error);

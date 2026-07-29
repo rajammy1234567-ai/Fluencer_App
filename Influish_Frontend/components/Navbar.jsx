@@ -2,9 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Image, TouchableOpacity, Text, Animated, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useFocusEffect } from '@react-navigation/native';
+import { useRouter, useFocusEffect } from 'expo-router';
 
 import ImageCarousel from './ImageCarousel';
 import FilterModal from './FilterModal';

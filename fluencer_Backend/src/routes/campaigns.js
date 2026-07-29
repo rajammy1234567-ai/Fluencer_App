@@ -1,6 +1,6 @@
 import express from 'express';
 import { query } from '../config/database.js';
-import authMiddleware from '../middleware/auth.js';
+import authMiddleware, { optionalAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -163,7 +163,7 @@ router.get('/all', authMiddleware, async (req, res) => {
   }
 });
 
-router.get('/active/all', authMiddleware, async (req, res) => {
+router.get('/active/all', optionalAuth, async (req, res) => {
   try {
     const campaigns = await query(
       `SELECT 

@@ -1,10 +1,37 @@
 import express from 'express';
 import BrandProfile from '../models/BrandProfile.js';
 import User from '../models/User.js';
-import authMiddleware from '../middleware/auth.js';
+import authMiddleware, { optionalAuth } from '../middleware/auth.js';
 import { uploadProfileImage } from '../middleware/upload.js';
 
 const router = express.Router();
+
+// Get all brands for discovery
+router.get('/all', optionalAuth, async (req, res) => {
+  try {
+    const brands = await BrandProfile.find({}).lean();
+    res.status(200).json({
+      success: true,
+      brands: brands.map(b => ({
+        id: b._id.toString(),
+        brand_id: b.user_id,
+        company_name: b.company_name,
+        companyName: b.company_name,
+        category: b.category,
+        address: b.address,
+        profile_image: b.profile_image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80',
+        profileImage: b.profile_image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80',
+      }))
+    });
+  } catch (error) {
+    console.error('All brands fetch error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch brands',
+      error: error.message
+    });
+  }
+});
 
 // Upload profile image
 router.post('/upload-image', authMiddleware, (req, res) => {

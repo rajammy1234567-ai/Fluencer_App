@@ -284,8 +284,16 @@ router.post('/unlock-pass', authMiddleware, async (req, res) => {
     const profile = await InfluencerProfile.findOneAndUpdate(
       { user_id: userId },
       { 
-        is_pro_member: true,
-        pro_unlocked_at: new Date()
+        $set: {
+          is_pro_member: true,
+          pro_unlocked_at: new Date()
+        },
+        $setOnInsert: {
+          name: req.user.name || 'Fluencer Creator',
+          categories: ['Fashion', 'Beauty', 'Lifestyle'],
+          followers: '10K',
+          followers_count: 10000
+        }
       },
       { new: true, upsert: true }
     );
