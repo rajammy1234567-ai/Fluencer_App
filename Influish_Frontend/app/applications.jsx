@@ -32,7 +32,8 @@ const BRAND_COLORS = {
 };
 
 export default function ApplicationsScreen() {
-  const { campaignId } = useLocalSearchParams();
+  const params = useLocalSearchParams();
+  const campaignId = Array.isArray(params?.campaignId) ? params.campaignId[0] : (params?.campaignId || params?.id || '');
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
