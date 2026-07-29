@@ -113,30 +113,47 @@ export default function Profile() {
       // Mobile Native Expo ImagePicker
       let ImagePicker = null;
       try {
-        const { NativeModules } = require('react-native');
-        if (NativeModules.ExponentImagePicker || NativeModules.ExpoImagePicker) {
-          ImagePicker = require('expo-image-picker');
-        }
-      } catch (e) {}
+        ImagePicker = require('expo-image-picker');
+      } catch (e) {
+        ImagePicker = null;
+      }
 
       if (ImagePicker) {
         const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (permission?.granted) {
-          const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: typeToPick === 'reel' ? ImagePicker.MediaTypeOptions.Videos : ImagePicker.MediaTypeOptions.Images,
-            quality: 0.7,
-          });
-          if (!result.canceled && result.assets?.[0]?.uri) {
-            const uploadedUrl = await uploadToCloudinary(result.assets[0].uri);
-            if (uploadedUrl) {
-              setMediaUrl(uploadedUrl);
-              setMediaType(typeToPick);
-            }
+        if (!permission?.granted) {
+          Alert.alert('Permission Required', 'Please allow gallery access permission to select photos and video reels.');
+          return;
+        }
+
+        let mediaTypeOption = ImagePicker.MediaTypeOptions.All;
+        if (typeToPick === 'reel' && ImagePicker.MediaTypeOptions?.Videos) {
+          mediaTypeOption = ImagePicker.MediaTypeOptions.Videos;
+        } else if (typeToPick === 'photo' && ImagePicker.MediaTypeOptions?.Images) {
+          mediaTypeOption = ImagePicker.MediaTypeOptions.Images;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: mediaTypeOption,
+          allowsEditing: false,
+          quality: 0.7,
+        });
+
+        if (!result.canceled && result.assets?.[0]?.uri) {
+          console.log('📱 Mobile local file selected:', result.assets[0].uri);
+          const uploadedUrl = await uploadToCloudinary(result.assets[0].uri);
+          if (uploadedUrl) {
+            setMediaUrl(uploadedUrl);
+            setMediaType(typeToPick);
+            Alert.alert('🎉 Uploaded to Cloudinary', `${typeToPick === 'reel' ? 'Video' : 'Photo'} uploaded successfully! Click "Save Media" to finish.`);
+          } else {
+            setMediaUrl(result.assets[0].uri);
+            setMediaType(typeToPick);
           }
         }
       }
     } catch (err) {
       console.error('Pick local file error:', err);
+      Alert.alert('Upload Error', 'Could not process media file. Please try again.');
     } finally {
       setUploadingMedia(false);
     }
@@ -662,18 +679,20 @@ export default function Profile() {
                       style={styles.mediaThumbnail}
                     />
 
-                    {item.type === 'reel' && (
-                      <View style={styles.reelBadge}>
-                        <MaterialCommunityIcons name="play-circle" size={24} color="#FFFFFF" />
-                        <Text style={styles.reelBadgeText}>REEL</Text>
-                      </View>
-                    )}
+                    {/* Instagram Media Badge Top Right */}
+                    <View style={styles.reelBadge}>
+                      <MaterialCommunityIcons
+                        name={item.type === 'reel' ? 'play-box-multiple' : 'image-multiple'}
+                        size={15}
+                        color="#FFFFFF"
+                      />
+                    </View>
 
                     <TouchableOpacity
                       style={styles.deleteMediaBadge}
                       onPress={() => handleDeletePortfolioItem(item.id)}
                     >
-                      <MaterialCommunityIcons name="trash-can-outline" size={16} color="#FFFFFF" />
+                      <MaterialCommunityIcons name="trash-can-outline" size={14} color="#FFFFFF" />
                     </TouchableOpacity>
 
                     {item.title ? (
@@ -1235,17 +1254,15 @@ const styles = StyleSheet.create({
   portfolioGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 6,
   },
   mediaCard: {
-    width: '47%',
-    height: 160,
-    borderRadius: 14,
+    width: '31.8%',
+    aspectRatio: 1,
+    borderRadius: 8,
     overflow: 'hidden',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#0F172A',
     position: 'relative',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
   },
   mediaThumbnail: {
     width: '100%',
@@ -1254,29 +1271,25 @@ const styles = StyleSheet.create({
   },
   reelBadge: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 2,
+    top: 5,
+    right: 5,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    borderRadius: 6,
+    padding: 3,
   },
   reelBadgeText: {
     color: '#FFFFFF',
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '800',
-    letterSpacing: 1,
   },
   deleteMediaBadge: {
     position: 'absolute',
-    top: 8,
-    right: 8,
+    top: 5,
+    left: 5,
     backgroundColor: 'rgba(239, 68, 68, 0.85)',
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     justifyContent: 'center',
     alignItems: 'center',
   },

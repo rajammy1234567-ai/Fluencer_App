@@ -22,12 +22,10 @@ import { getAuthHeader } from '../../utils/storage';
 import { API, getApiUrl } from '../../constants/api';
 import { uploadToCloudinary } from '../../utils/cloudinary';
 
-// Safe lazy getter for ImagePicker using NativeModules check first to prevent JSI exceptions
+// Safe lazy getter for ImagePicker
 const getImagePicker = () => {
   if (Platform.OS === 'web') return null;
   try {
-    if (typeof NativeModules === 'undefined' || !NativeModules) return null;
-    if (!Object.prototype.hasOwnProperty.call(NativeModules, 'ExponentImagePicker')) return null;
     return require('expo-image-picker');
   } catch (err) {
     return null;
@@ -94,7 +92,7 @@ export default function CreateCampaign() {
     try {
       const ImagePicker = getImagePicker();
       if (!ImagePicker) {
-        Alert.alert('Notice', 'Photo library picker is not available on this device build. You can paste an image URL directly below.');
+        Alert.alert('Notice', 'Gallery picker is unavailable. You can paste an image URL directly below.');
         return;
       }
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -155,7 +153,7 @@ export default function CreateCampaign() {
     try {
       const ImagePicker = getImagePicker();
       if (!ImagePicker) {
-        Alert.alert('Notice', 'Camera is not available on this device build. You can paste an image URL directly below.');
+        Alert.alert('Notice', 'Camera is unavailable. You can paste an image URL directly below.');
         return;
       }
       const permission = await ImagePicker.requestCameraPermissionsAsync();

@@ -22,6 +22,7 @@
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
         "android.permission.CAMERA",
         "android.permission.ACCESS_MEDIA_LOCATION"
       ]
@@ -52,6 +53,7 @@
         "expo-image-picker",
         {
           "photosPermission": "Fluencer needs access to your photos.",
+          "videosPermission": "Fluencer needs access to your videos.",
           "cameraPermission": "Fluencer needs access to your camera."
         }
       ]

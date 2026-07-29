@@ -706,19 +706,19 @@ export default function ApplicationsScreen() {
                     </TouchableOpacity>
                   </View>
 
-                  {/* Portfolio Grid */}
+                  {/* Instagram-Style 3-Column Profile Media Feed Grid */}
                   {((selectedCreatorProfile.portfolio || []).filter(item => creatorPortfolioFilter === 'all' || item.type === creatorPortfolioFilter)).length === 0 ? (
-                    <View style={{ padding: 24, alignItems: 'center', backgroundColor: '#F8FAFC', borderRadius: 16, borderWidth: 1, borderColor: '#E2E8F0', borderStyle: 'dashed' }}>
+                    <View style={{ padding: 28, alignItems: 'center', backgroundColor: '#F8FAFC', borderRadius: 16, borderWidth: 1, borderColor: '#E2E8F0', borderStyle: 'dashed' }}>
                       <MaterialCommunityIcons name="image-off-outline" size={40} color="#94A3B8" />
                       <Text style={{ fontSize: 15, fontWeight: '700', color: '#334155', marginTop: 8 }}>No portfolio media added yet</Text>
                       <Text style={{ fontSize: 13, color: '#64748B', textAlign: 'center', marginTop: 4 }}>This creator hasn't uploaded sample photos or reels yet.</Text>
                     </View>
                   ) : (
-                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                       {((selectedCreatorProfile.portfolio || []).filter(item => creatorPortfolioFilter === 'all' || item.type === creatorPortfolioFilter)).map((item, idx) => (
                         <TouchableOpacity
                           key={item.id || idx}
-                          style={{ width: '47%', height: 160, borderRadius: 14, overflow: 'hidden', backgroundColor: '#F1F5F9', position: 'relative' }}
+                          style={{ width: '31.8%', aspectRatio: 1, borderRadius: 8, overflow: 'hidden', backgroundColor: '#0F172A', position: 'relative' }}
                           onPress={() => setCreatorPreviewMedia(item)}
                           activeOpacity={0.85}
                         >
@@ -727,16 +727,19 @@ export default function ApplicationsScreen() {
                             style={{ width: '100%', height: '100%', resizeMode: 'cover' }}
                           />
 
-                          {item.type === 'reel' && (
-                            <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
-                              <MaterialCommunityIcons name="play-circle" size={32} color="#FFFFFF" />
-                              <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '800', marginTop: 2 }}>REEL</Text>
-                            </View>
-                          )}
+                          {/* Instagram Top-Right Media Badge */}
+                          <View style={{ position: 'absolute', top: 5, right: 5, backgroundColor: 'rgba(0,0,0,0.65)', borderRadius: 6, padding: 3 }}>
+                            <MaterialCommunityIcons
+                              name={item.type === 'reel' ? 'play-box-multiple' : 'image-multiple'}
+                              size={15}
+                              color="#FFFFFF"
+                            />
+                          </View>
 
+                          {/* Title Overlay at bottom if provided */}
                           {item.title ? (
-                            <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(15,23,42,0.8)', paddingHorizontal: 8, paddingVertical: 4 }}>
-                              <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '600' }} numberOfLines={1}>{item.title}</Text>
+                            <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.65)', paddingHorizontal: 4, paddingVertical: 3 }}>
+                              <Text style={{ color: '#FFFFFF', fontSize: 10, fontWeight: '600' }} numberOfLines={1}>{item.title}</Text>
                             </View>
                           ) : null}
                         </TouchableOpacity>

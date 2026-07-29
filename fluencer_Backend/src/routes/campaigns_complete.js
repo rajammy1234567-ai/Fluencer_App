@@ -31,7 +31,7 @@ router.post('/', authMiddleware, async (req, res) => {
       guidelines
     } = req.body;
     
-    const brandId = req.user.userId;
+    const brandId = req.user.userId || req.user.id;
     const role = req.user.role;
 
     // Verify user is a brand
@@ -204,7 +204,9 @@ router.post('/applications/:applicationId/accept', authMiddleware, async (req, r
       });
     }
 
-    if (campaign.brand_id.toString() !== brandId.toString() && role !== 'admin') {
+    const campaignBrandIdStr = campaign.brand_id ? campaign.brand_id.toString() : '';
+    const reqBrandIdStr = brandId ? brandId.toString() : '';
+    if (campaignBrandIdStr && reqBrandIdStr && campaignBrandIdStr !== reqBrandIdStr && role !== 'admin') {
       return res.status(403).json({ 
         success: false, 
         message: 'Unauthorized campaign owner' 
