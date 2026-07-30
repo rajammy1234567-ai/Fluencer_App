@@ -17,7 +17,7 @@ export default function BrandTabBar({ state, descriptors, navigation }) {
 
   return (
     <View style={[styles.wrapper, { bottom: 12 + safeBottomInset }]}>
-      <BlurView intensity={40} tint="dark" style={styles.container}>
+      <BlurView intensity={40} tint="dark" style={[styles.container, { backgroundColor: 'rgba(18, 18, 24, 0.95)' }]}>
         <LinearGradient
           colors={["rgba(255,255,255,0.10)", "rgba(255,255,255,0.04)"]}
           style={StyleSheet.absoluteFill}
