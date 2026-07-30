@@ -37,6 +37,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Video, ResizeMode } from 'expo-av';
 import { API, API_CONFIG } from '../../constants/api';
 import { storage } from '../../utils/storage';
 import { uploadToCloudinary } from '../../utils/cloudinary';
@@ -111,31 +112,30 @@ export default function Profile() {
         return;
       }
 
-      // Mobile Native Expo ImagePicker
-      let ImagePicker = null;
-      try {
-        const { NativeModules } = require('react-native');
-        if (NativeModules.ExponentImagePicker || NativeModules.ExpoImagePicker) {
-          ImagePicker = require('expo-image-picker');
-        }
-      } catch (e) {}
+      // Mobile React Native Image Picker (react-native-image-picker)
+      const { launchImageLibrary } = require('react-native-image-picker');
+      const options = {
+        mediaType: typeToPick === 'reel' ? 'video' : 'photo',
+        quality: 0.8,
+        selectionLimit: 1,
+      };
 
-      if (ImagePicker) {
-        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (permission?.granted) {
-          const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: typeToPick === 'reel' ? ImagePicker.MediaTypeOptions.Videos : ImagePicker.MediaTypeOptions.Images,
-            quality: 0.7,
-          });
-          if (!result.canceled && result.assets?.[0]?.uri) {
-            const uploadedUrl = await uploadToCloudinary(result.assets[0].uri);
-            if (uploadedUrl) {
-              setMediaUrl(uploadedUrl);
-              setMediaType(typeToPick);
-            }
-          }
+      launchImageLibrary(options, async (response) => {
+        if (response.didCancel) return;
+        if (response.errorCode) {
+          console.warn('ImagePicker Error:', response.errorMessage);
+          return;
         }
-      }
+        if (response.assets?.[0]?.uri) {
+          setUploadingMedia(true);
+          const uploadedUrl = await uploadToCloudinary(response.assets[0].uri);
+          if (uploadedUrl) {
+            setMediaUrl(uploadedUrl);
+            setMediaType(typeToPick);
+          }
+          setUploadingMedia(false);
+        }
+      });
     } catch (err) {
       console.error('Pick local file error:', err);
     } finally {
@@ -932,10 +932,21 @@ export default function Profile() {
 
           {previewMedia && (
             <View style={{ width: '100%', maxWidth: 500, alignItems: 'center' }}>
-              <Image
-                source={{ uri: previewMedia.url || 'https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?auto=format&fit=crop&w=800&q=80' }}
-                style={{ width: '100%', height: 380, borderRadius: 16, resizeMode: 'contain', backgroundColor: '#000' }}
-              />
+              {previewMedia.type === 'reel' ? (
+                <Video
+                  source={{ uri: previewMedia.url }}
+                  useNativeControls
+                  resizeMode={ResizeMode.CONTAIN}
+                  isLooping
+                  shouldPlay
+                  style={{ width: '100%', height: 380, borderRadius: 16, backgroundColor: '#000' }}
+                />
+              ) : (
+                <Image
+                  source={{ uri: previewMedia.url || 'https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?auto=format&fit=crop&w=800&q=80' }}
+                  style={{ width: '100%', height: 380, borderRadius: 16, resizeMode: 'contain', backgroundColor: '#000' }}
+                />
+              )}
 
               {previewMedia.title ? (
                 <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600', marginTop: 14, textAlign: 'center' }}>
