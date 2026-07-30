@@ -232,13 +232,16 @@ export default function ApplicationsScreen() {
     const isAccepted = item.status === 'accepted';
     const isRejected = item.status === 'rejected';
 
+    const formattedDate = new Date(item.created_at || Date.now()).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+
     return (
       <View style={styles.applicationCard}>
-        {/* Left Purple Accent Stripe */}
-        <View style={styles.cardLeftStripe} />
-        
-        <View style={styles.cardContent}>
-          {/* Status Badge */}
+        {/* Card Header Row: Status Badge + Date */}
+        <View style={styles.cardHeaderRow}>
           <View style={[
             styles.statusBadge,
             isPending && styles.statusPending,
@@ -248,165 +251,162 @@ export default function ApplicationsScreen() {
             <MaterialCommunityIcons
               name={isPending ? "clock-outline" : isAccepted ? "check-circle-outline" : "close-circle-outline"}
               size={13}
-              color={isPending ? "#FBBF24" : isAccepted ? "#34D399" : "#F87171"}
+              color={isPending ? "#F59E0B" : isAccepted ? "#10B981" : "#EF4444"}
             />
             <Text style={[
               styles.statusText,
-              isPending && { color: '#FBBF24' },
-              isAccepted && { color: '#34D399' },
-              isRejected && { color: '#F87171' },
+              isPending && { color: '#F59E0B' },
+              isAccepted && { color: '#10B981' },
+              isRejected && { color: '#EF4444' },
             ]}>
-              {item.status.toUpperCase()}
+              {isPending ? 'PENDING REVIEW' : item.status.toUpperCase()}
             </Text>
           </View>
 
-          {/* Influencer Profile Card */}
-          <TouchableOpacity 
-            style={styles.profileCard}
-            onPress={() => handleOpenCreatorProfile(item.influencer_id || item.user_id)}
-            activeOpacity={0.85}
-          >
-            <View style={styles.profileHeader}>
-              <View style={styles.avatarWrapper}>
-                <LinearGradient
-                  colors={['#7C3AED', '#5B21B6']}
-                  style={styles.avatarGradientBorder}
-                >
-                  <Image
-                    source={{ 
-                      uri: item.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.influencer_name)}&size=200&background=7c3aed&color=fff`
-                    }}
-                    style={styles.profileAvatar}
-                  />
-                </LinearGradient>
-              </View>
-              <View style={styles.profileInfo}>
-                <Text style={styles.profileName} numberOfLines={1}>{item.influencer_name}</Text>
-                <Text style={styles.profileEmail} numberOfLines={1}>{item.email}</Text>
-                {item.location && (
-                  <View style={styles.locationRow}>
-                    <MaterialCommunityIcons name="map-marker" size={13} color="#C084FC" />
-                    <Text style={styles.locationText}>{item.location}</Text>
-                  </View>
-                )}
-              </View>
-            </View>
-
-            {/* Categories Tags */}
-            {item.categories && typeof item.categories === 'string' && (
-              <View style={styles.tagsContainer}>
-                {item.categories.split(',').slice(0, 3).map((cat, index) => (
-                  <View key={index} style={styles.tag}>
-                    <Text style={styles.tagText}>{cat.trim()}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {/* View Profile & Portfolio Button */}
-            <TouchableOpacity
-              style={styles.viewProfileBtn}
-              onPress={() => handleOpenCreatorProfile(item.influencer_id || item.user_id)}
-              activeOpacity={0.8}
-            >
-              <MaterialCommunityIcons name="account-search-outline" size={16} color="#C084FC" />
-              <Text style={styles.viewProfileBtnText}>View Creator Profile & Portfolio (Photos & Reels) ➔</Text>
-            </TouchableOpacity>
-          </TouchableOpacity>
-
-          {/* Proposal Message */}
-          {item.message && (
-            <View style={styles.proposalCard}>
-              <View style={styles.proposalHeader}>
-                <MaterialCommunityIcons name="message-text-outline" size={16} color="#A855F7" />
-                <Text style={styles.proposalTitle}>Proposal</Text>
-              </View>
-              <Text style={styles.proposalText}>{item.message}</Text>
-            </View>
-          )}
-
-          {/* Application Date */}
-          <View style={styles.dateRow}>
-            <MaterialCommunityIcons name="calendar-clock" size={14} color="rgba(255,255,255,0.4)" />
-            <Text style={styles.dateLabel}>Applied on: </Text>
-            <Text style={styles.dateValue}>
-              {new Date(item.created_at).toLocaleDateString('en-US', {
-                day: 'numeric',
-                month: 'short',
-                year: 'numeric'
-              })}
-            </Text>
+          <View style={styles.appliedDateRow}>
+            <MaterialCommunityIcons name="calendar-outline" size={13} color="rgba(255,255,255,0.45)" />
+            <Text style={styles.appliedDateText}>Applied on {formattedDate}</Text>
           </View>
-
-          {/* Action Buttons - Only for Pending */}
-          {isPending && (
-            <View style={styles.actionButtons}>
-              <TouchableOpacity
-                style={styles.rejectButton}
-                onPress={() => handleReject(item.id)}
-                disabled={isProcessing}
-                activeOpacity={0.7}
-              >
-                {isProcessing ? (
-                  <ActivityIndicator size="small" color="#F87171" />
-                ) : (
-                  <>
-                    <MaterialCommunityIcons name="close-circle-outline" size={18} color="#F87171" />
-                    <Text style={styles.rejectButtonText}>Reject</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.acceptButton}
-                onPress={() => handleAccept(item.id)}
-                disabled={isProcessing}
-                activeOpacity={0.7}
-              >
-                {isProcessing ? (
-                  <ActivityIndicator size="small" color={COLORS.white} />
-                ) : (
-                  <LinearGradient
-                    colors={['#059669', '#10B981']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.acceptGradient}
-                  >
-                    <MaterialCommunityIcons name="check-circle-outline" size={18} color={COLORS.white} />
-                    <Text style={styles.acceptButtonText}>Accept</Text>
-                  </LinearGradient>
-                )}
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {/* Chat Button - Only for Accepted */}
-          {isAccepted && (
-            <TouchableOpacity
-              style={styles.chatButton}
-              onPress={() => {
-                const targetChatId = item.chat_id || item.id || item._id;
-                console.log('Opening chat with targetChatId:', targetChatId);
-                if (targetChatId) {
-                  router.push(`/conversation?chatId=${targetChatId}`);
-                } else {
-                  Alert.alert('Info', 'Chat will be available soon');
-                }
-              }}
-              activeOpacity={0.7}
-            >
-              <LinearGradient
-                colors={['#7C3AED', '#6D28FF']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.chatGradient}
-              >
-                <MaterialCommunityIcons name="chat-outline" size={18} color={COLORS.white} />
-                <Text style={styles.chatButtonText}>Open Chat</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
         </View>
+
+        {/* Creator Main Header Info */}
+        <View style={styles.creatorHeader}>
+          <View style={styles.avatarWrap}>
+            <Image
+              source={{ 
+                uri: item.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.influencer_name || 'Creator')}&size=200&background=7c3aed&color=fff`
+              }}
+              style={styles.creatorAvatar}
+            />
+            {/* Rating Badge */}
+            <View style={styles.ratingBadge}>
+              <MaterialCommunityIcons name="star" size={11} color="#FBBF24" />
+              <Text style={styles.ratingText}>{item.rating || '4.9'}</Text>
+            </View>
+          </View>
+
+          <View style={styles.creatorMainInfo}>
+            <View style={styles.creatorNameRow}>
+              <Text style={styles.creatorName} numberOfLines={1}>{item.influencer_name}</Text>
+              <MaterialCommunityIcons name="check-decagram" size={17} color="#7C3AED" />
+            </View>
+            <Text style={styles.creatorCategory}>{item.categories || 'Fashion Creator'}</Text>
+            <View style={styles.creatorLocationRow}>
+              <MaterialCommunityIcons name="map-marker" size={13} color="#C084FC" />
+              <Text style={styles.creatorLocationText}>{item.location || 'India'}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* 3 Stats Row: Followers | Audience | Campaigns */}
+        <View style={styles.statsThreeColRow}>
+          <View style={styles.statCol}>
+            <View style={styles.statIconValRow}>
+              <MaterialCommunityIcons name="instagram" size={16} color="#C084FC" />
+              <Text style={styles.statValText}>{item.followers || '54K'}</Text>
+            </View>
+            <Text style={styles.statLblText}>Followers</Text>
+          </View>
+
+          <View style={styles.statCol}>
+            <View style={styles.statIconValRow}>
+              <MaterialCommunityIcons name="account-group-outline" size={16} color="#C084FC" />
+              <Text style={styles.statValText}>{item.audience || '2.3K'}</Text>
+            </View>
+            <Text style={styles.statLblText}>Audience</Text>
+          </View>
+
+          <View style={styles.statCol}>
+            <View style={styles.statIconValRow}>
+              <MaterialCommunityIcons name="shopping-outline" size={16} color="#C084FC" />
+              <Text style={styles.statValText}>{item.collabs || item.collaborations || '82'}</Text>
+            </View>
+            <Text style={styles.statLblText}>Campaigns</Text>
+          </View>
+        </View>
+
+        {/* View Profile & Portfolio Inner Card */}
+        <TouchableOpacity
+          style={styles.innerPortfolioBtnCard}
+          onPress={() => handleOpenCreatorProfile(item.influencer_id || item.user_id)}
+          activeOpacity={0.8}
+        >
+          <View style={styles.innerPortIconBox}>
+            <MaterialCommunityIcons name="image-multiple-outline" size={18} color="#C084FC" />
+          </View>
+          <View style={styles.innerPortTextCol}>
+            <Text style={styles.innerPortTitle}>View Profile & Portfolio</Text>
+            <Text style={styles.innerPortSub}>Photos • Reels • Collaborations</Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={20} color="rgba(255,255,255,0.4)" />
+        </TouchableOpacity>
+
+        {/* Proposal Message Card */}
+        {item.message && (
+          <View style={styles.proposalBox}>
+            <View style={styles.proposalTitleRow}>
+              <MaterialCommunityIcons name="message-text-outline" size={16} color="#A855F7" />
+              <Text style={styles.proposalHeaderTitle}>Proposal</Text>
+            </View>
+            <Text style={styles.proposalBodyText}>{item.message}</Text>
+          </View>
+        )}
+
+        {/* Action Buttons - Only for Pending */}
+        {isPending && (
+          <View style={styles.actionRow}>
+            <TouchableOpacity
+              style={styles.rejectOutlineBtn}
+              onPress={() => handleReject(item.id)}
+              disabled={isProcessing}
+              activeOpacity={0.75}
+            >
+              {isProcessing ? (
+                <ActivityIndicator size="small" color="#F87171" />
+              ) : (
+                <>
+                  <MaterialCommunityIcons name="close-circle-outline" size={18} color="#F87171" />
+                  <Text style={styles.rejectOutlineBtnText}>Reject</Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.acceptSolidBtn}
+              onPress={() => handleAccept(item.id)}
+              disabled={isProcessing}
+              activeOpacity={0.75}
+            >
+              {isProcessing ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <>
+                  <MaterialCommunityIcons name="check-circle-outline" size={18} color="#FFFFFF" />
+                  <Text style={styles.acceptSolidBtnText}>Accept</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Chat Button - Only for Accepted */}
+        {isAccepted && (
+          <TouchableOpacity
+            style={styles.chatSolidBtn}
+            onPress={() => {
+              const targetChatId = item.chat_id || item.id || item._id;
+              if (targetChatId) {
+                router.push(`/conversation?chatId=${targetChatId}`);
+              } else {
+                Alert.alert('Info', 'Chat will be available soon');
+              }
+            }}
+            activeOpacity={0.75}
+          >
+            <MaterialCommunityIcons name="chat-outline" size={18} color="#FFFFFF" />
+            <Text style={styles.chatSolidBtnText}>Open Chat</Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   };
@@ -444,14 +444,45 @@ export default function ApplicationsScreen() {
               {campaignName || 'Applications'}
             </Text>
             <View style={styles.headerSubtitleRow}>
-              <Text style={styles.subBadgePending}>{applications.filter(a => a.status === 'pending').length} pending</Text>
-              <Text style={styles.subDot}>•</Text>
-              <Text style={styles.subBadgeAccepted}>{applications.filter(a => a.status === 'accepted').length} accepted</Text>
-              <Text style={styles.subDot}>•</Text>
-              <Text style={styles.subBadgeRejected}>{applications.filter(a => a.status === 'rejected').length} rejected</Text>
+              <View style={styles.dotBadgePending} />
+              <Text style={styles.subBadgePending}>{applications.filter(a => a.status === 'pending').length} Pending</Text>
+              <Text style={styles.subDot}>|</Text>
+              <View style={styles.dotBadgeAccepted} />
+              <Text style={styles.subBadgeAccepted}>{applications.filter(a => a.status === 'accepted').length} Accepted</Text>
+              <Text style={styles.subDot}>|</Text>
+              <View style={styles.dotBadgeRejected} />
+              <Text style={styles.subBadgeRejected}>{applications.filter(a => a.status === 'rejected').length} Rejected</Text>
             </View>
           </View>
+          <TouchableOpacity style={styles.filterIconButton} activeOpacity={0.7}>
+            <MaterialCommunityIcons name="tune-variant" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
         </View>
+      </View>
+
+      {/* Top Banner Card */}
+      <View style={styles.topBannerCard}>
+        <View style={styles.topBannerLeftIcon}>
+          <MaterialCommunityIcons name="account-search-outline" size={22} color="#C084FC" />
+        </View>
+        <View style={styles.topBannerTextCol}>
+          <Text style={styles.topBannerTitle}>View Creator Profile & Portfolio</Text>
+          <Text style={styles.topBannerSubtitle}>Check photos, reels and previous brand collaborations.</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.topBannerBtn}
+          onPress={() => {
+            if (applications.length > 0) {
+              const firstApp = applications[0];
+              handleOpenCreatorProfile(firstApp.influencer_id || firstApp.user_id);
+            } else {
+              Alert.alert('Info', 'No creator applications available yet.');
+            }
+          }}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.topBannerBtnText}>View ➔</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Applications List */}
@@ -808,26 +839,32 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingTop: 54,
-    paddingBottom: 16,
+    paddingBottom: 14,
     paddingHorizontal: 20,
     backgroundColor: '#07080F',
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(124, 58, 237, 0.15)',
   },
   headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
   backButton: {
-    marginRight: 14,
     width: 38,
     height: 38,
     borderRadius: 12,
     backgroundColor: '#141422',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(124, 58, 237, 0.25)',
+    marginRight: 12,
+  },
+  filterIconButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: '#141422',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 12,
   },
   headerTextContainer: {
     flex: 1,
@@ -842,264 +879,363 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 4,
-    flexWrap: 'wrap',
     gap: 6,
+  },
+  dotBadgePending: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#F59E0B',
   },
   subBadgePending: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#FBBF24',
+    color: '#F59E0B',
+  },
+  dotBadgeAccepted: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
   },
   subBadgeAccepted: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#34D399',
+    color: '#10B981',
+  },
+  dotBadgeRejected: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#EF4444',
   },
   subBadgeRejected: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#F87171',
+    color: '#EF4444',
   },
   subDot: {
     fontSize: 11,
-    color: 'rgba(255,255,255,0.3)',
+    color: 'rgba(255,255,255,0.25)',
   },
+
+  // Top Action Banner Card
+  topBannerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0F111E',
+    borderRadius: 16,
+    padding: 14,
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(124, 58, 237, 0.22)',
+  },
+  topBannerLeftIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: 'rgba(124, 58, 237, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  topBannerTextCol: {
+    flex: 1,
+    marginRight: 10,
+  },
+  topBannerTitle: {
+    fontSize: 14.5,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  topBannerSubtitle: {
+    fontSize: 11.5,
+    color: 'rgba(255, 255, 255, 0.55)',
+    marginTop: 2,
+  },
+  topBannerBtn: {
+    backgroundColor: '#7C3AED',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  topBannerBtnText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+
   listContent: {
-    padding: 16,
+    paddingHorizontal: 16,
     paddingBottom: 100,
   },
   applicationCard: {
     backgroundColor: '#0F111E',
     borderRadius: 20,
+    padding: 16,
     marginBottom: 16,
     borderWidth: 1,
     borderColor: 'rgba(124, 58, 237, 0.22)',
-    position: 'relative',
-    overflow: 'hidden',
   },
-  cardLeftStripe: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 3.5,
-    backgroundColor: '#7C3AED',
-  },
-  cardContent: {
-    padding: 16,
-    paddingLeft: 18,
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
     paddingHorizontal: 10,
     paddingVertical: 4.5,
-    borderRadius: 8,
-    marginBottom: 14,
+    borderRadius: 10,
     gap: 5,
     borderWidth: 1,
   },
   statusPending: {
-    backgroundColor: 'rgba(217, 119, 6, 0.18)',
+    backgroundColor: '#1F170E',
     borderColor: 'rgba(245, 158, 11, 0.35)',
   },
   statusAccepted: {
-    backgroundColor: 'rgba(16, 185, 129, 0.18)',
+    backgroundColor: '#0E1F18',
     borderColor: 'rgba(16, 185, 129, 0.35)',
   },
   statusRejected: {
-    backgroundColor: 'rgba(239, 68, 68, 0.18)',
+    backgroundColor: '#1F0E12',
     borderColor: 'rgba(239, 68, 68, 0.35)',
   },
   statusText: {
-    fontSize: 11.5,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '800',
     letterSpacing: 0.5,
   },
-  profileCard: {
-    marginBottom: 14,
-  },
-  profileHeader: {
+  appliedDateRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 5,
   },
-  avatarWrapper: {
-    marginRight: 14,
+  appliedDateText: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.5)',
   },
-  avatarGradientBorder: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
-    justifyContent: 'center',
+
+  // Creator Header
+  creatorHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
-    padding: 2.5,
+    marginBottom: 14,
   },
-  profileAvatar: {
-    width: 57,
-    height: 57,
-    borderRadius: 28.5,
+  avatarWrap: {
+    position: 'relative',
+    marginRight: 14,
+    alignItems: 'center',
+  },
+  creatorAvatar: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    borderWidth: 2,
+    borderColor: 'rgba(124, 58, 237, 0.4)',
     backgroundColor: '#1E1B4B',
   },
-  profileInfo: {
+  ratingBadge: {
+    position: 'absolute',
+    bottom: -6,
+    backgroundColor: '#1E192D',
+    borderWidth: 1,
+    borderColor: '#7C3AED',
+    borderRadius: 10,
+    paddingHorizontal: 7,
+    paddingVertical: 1.5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  ratingText: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#FBBF24',
+  },
+  creatorMainInfo: {
     flex: 1,
   },
-  profileName: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#FFFFFF',
+  creatorNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
     marginBottom: 2,
   },
-  profileEmail: {
+  creatorName: {
+    fontSize: 17.5,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  creatorCategory: {
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: 'rgba(255, 255, 255, 0.65)',
     marginBottom: 4,
   },
-  locationRow: {
+  creatorLocationRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  locationText: {
+  creatorLocationText: {
     fontSize: 12.5,
     fontWeight: '600',
     color: '#C084FC',
   },
-  tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 10,
-  },
-  tag: {
-    backgroundColor: '#1C1536',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#3B296B',
-  },
-  tagText: {
-    fontSize: 11.5,
-    fontWeight: '600',
-    color: '#C084FC',
-  },
-  viewProfileBtn: {
-    marginTop: 12,
-    backgroundColor: '#1B1433',
-    borderWidth: 1,
-    borderColor: 'rgba(168, 85, 247, 0.35)',
-    borderRadius: 12,
-    paddingVertical: 9,
-    paddingHorizontal: 12,
+
+  // 3 Column Stats Row
+  statsThreeColRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  viewProfileBtnText: {
-    color: '#C084FC',
-    fontSize: 12.5,
-    fontWeight: '700',
-  },
-  proposalCard: {
-    backgroundColor: '#141829',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 14,
-    borderLeftWidth: 3.5,
-    borderLeftColor: '#7C3AED',
+    justifyContent: 'space-around',
+    backgroundColor: '#141727',
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    marginBottom: 12,
     borderWidth: 1,
-    borderColor: 'rgba(124, 58, 237, 0.2)',
+    borderColor: 'rgba(124, 58, 237, 0.15)',
   },
-  proposalHeader: {
+  statCol: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statIconValRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  statValText: {
+    fontSize: 14.5,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  statLblText: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginTop: 2,
+  },
+
+  // Inner Portfolio Button
+  innerPortfolioBtnCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#141727',
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(124, 58, 237, 0.22)',
+  },
+  innerPortIconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: 'rgba(124, 58, 237, 0.18)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  innerPortTextCol: {
+    flex: 1,
+  },
+  innerPortTitle: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  innerPortSub: {
+    fontSize: 11.5,
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginTop: 1,
+  },
+
+  // Proposal Box
+  proposalBox: {
+    backgroundColor: '#141727',
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(124, 58, 237, 0.22)',
+  },
+  proposalTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     marginBottom: 6,
   },
-  proposalTitle: {
+  proposalHeaderTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#A855F7',
+    color: '#C084FC',
   },
-  proposalText: {
-    fontSize: 13.5,
-    color: '#E2E8F0',
-    lineHeight: 20,
-    fontWeight: '500',
+  proposalBodyText: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.75)',
+    lineHeight: 19,
   },
-  dateRow: {
+
+  // Action Buttons
+  actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 14,
-  },
-  dateLabel: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.45)',
-  },
-  dateValue: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: 'rgba(255,255,255,0.85)',
-  },
-  actionButtons: {
-    flexDirection: 'row',
     gap: 10,
   },
-  rejectButton: {
+  rejectOutlineBtn: {
     flex: 1,
     height: 44,
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#7F1D1D',
+    backgroundColor: '#1A0B10',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.35)',
   },
-  rejectButtonText: {
+  rejectOutlineBtnText: {
     fontSize: 14,
     fontWeight: '700',
     color: '#F87171',
   },
-  acceptButton: {
+  acceptSolidBtn: {
     flex: 1.6,
     height: 44,
     borderRadius: 12,
-    overflow: 'hidden',
-  },
-  acceptGradient: {
-    flex: 1,
+    backgroundColor: '#064E3B',
+    borderWidth: 1,
+    borderColor: '#065F46',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
   },
-  acceptButtonText: {
+  acceptSolidBtnText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#34D399',
   },
-  chatButton: {
+  chatSolidBtn: {
     height: 44,
     borderRadius: 12,
-    overflow: 'hidden',
-  },
-  chatGradient: {
-    flex: 1,
+    backgroundColor: '#7C3AED',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
   },
-  chatButtonText: {
+  chatSolidBtnText: {
     fontSize: 14,
     fontWeight: '700',
     color: '#FFFFFF',
   },
+
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -1117,9 +1253,10 @@ const styles = StyleSheet.create({
     marginTop: 6,
     textAlign: 'center',
   },
+
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: 'rgba(0, 0, 0, 0.82)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
