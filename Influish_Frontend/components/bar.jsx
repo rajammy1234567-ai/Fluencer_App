@@ -18,6 +18,8 @@ export default function FloatingTabBar({ state, descriptors, navigation }) {
     return options.tabBarIconName !== undefined;
   });
 
+  const activeRoute = state.routes[state.index];
+
   return (
     <View style={[styles.wrapper, { bottom: 12 + insets.bottom }]}>
       <BlurView intensity={40} tint="dark" style={[styles.container, { backgroundColor: 'rgba(18, 18, 24, 0.95)' }]}>
@@ -28,7 +30,7 @@ export default function FloatingTabBar({ state, descriptors, navigation }) {
         <View style={styles.glowRing} />
         <View style={styles.tabContainer}>
           {visibleRoutes.map((route) => {
-            const focused = state.index === state.routes.indexOf(route);
+            const focused = activeRoute && activeRoute.key === route.key;
             const { options } = descriptors[route.key];
             const icon = options.tabBarIconName;
             const label = options.title;

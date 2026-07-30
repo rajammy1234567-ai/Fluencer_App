@@ -11,9 +11,12 @@ export default function BrandTabBar({ state, descriptors, navigation }) {
   const visibleRoutes = state.routes
     ? state.routes.filter((route) => {
         const { options } = descriptors[route.key] || {};
-        return options && options.href !== null;
+        if (options.href === null) return false;
+        return typeof options.tabBarIcon === 'function';
       })
     : [];
+
+  const activeRoute = state.routes[state.index];
 
   return (
     <View style={[styles.wrapper, { bottom: 12 + safeBottomInset }]}>
@@ -24,10 +27,10 @@ export default function BrandTabBar({ state, descriptors, navigation }) {
         />
         <View style={styles.tabContainer}>
           {visibleRoutes.map((route) => {
-            const focused = state.index === state.routes.indexOf(route);
-            const { options } = descriptors[route.key];
+            const focused = activeRoute && activeRoute.key === route.key;
+            const { options } = descriptors[route.key] || {};
             const icon = options.tabBarIcon;
-            const label = options.title;
+            const label = options.title || route.name;
 
             const onPress = () => {
               if (!focused) navigation.navigate(route.name);
@@ -42,7 +45,7 @@ export default function BrandTabBar({ state, descriptors, navigation }) {
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                   >
-                    {icon && icon({ color: "#FFFFFF", size: 20 })}
+                    {typeof icon === 'function' && icon({ color: "#FFFFFF", size: 20 })}
                     <Text style={styles.activeLabel}>{label}</Text>
                   </LinearGradient>
                 </View>
@@ -51,7 +54,7 @@ export default function BrandTabBar({ state, descriptors, navigation }) {
 
             return (
               <Pressable key={route.key} onPress={onPress} style={styles.inactiveTab}>
-                {icon && icon({ color: "rgba(255,255,255,0.42)", size: 22 })}
+                {typeof icon === 'function' && icon({ color: "rgba(255,255,255,0.42)", size: 22 })}
               </Pressable>
             );
           })}

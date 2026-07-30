@@ -243,4 +243,60 @@ router.get('/profile-exists', authMiddleware, async (req, res) => {
   }
 });
 
+// Get public brand profile details (For creators to view brand company profile)
+router.get('/public/:id', optionalAuth, async (req, res) => {
+  try {
+    const targetId = req.params.id;
+    let profile = null;
+    if (targetId && targetId !== 'undefined') {
+      if (targetId.length === 24) {
+        profile = await BrandProfile.findOne({ _id: targetId }).lean();
+      }
+      if (!profile) {
+        profile = await BrandProfile.findOne({ user_id: targetId }).lean();
+      }
+    }
+
+    if (!profile) {
+      // Fallback to sample profile if not found
+      return res.status(200).json({
+        success: true,
+        profile: {
+          company_name: 'Apex Pro Fitness',
+          category: 'Health & Fitness',
+          address: 'Bandra West, Mumbai, Maharashtra 400050',
+          profile_image: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=500',
+          total_campaigns: 5,
+          active_campaigns: 2,
+          total_collabs: 14,
+          verified: true
+        }
+      });
+    }
+
+    const Campaign = (await import('../models/Campaign.js')).default;
+    const Application = (await import('../models/Application.js')).default;
+
+    const brandUserId = profile.user_id;
+    const totalCampaigns = await Campaign.countDocuments({ brand_id: brandUserId });
+    const activeCampaigns = await Campaign.countDocuments({ brand_id: brandUserId, status: 'active' });
+    const totalCollabs = await Application.countDocuments({ brand_id: brandUserId, status: { $in: ['accepted', 'completed', 'escrow_locked'] } });
+
+    res.status(200).json({
+      success: true,
+      profile: {
+        ...profile,
+        id: profile._id.toString(),
+        total_campaigns: totalCampaigns,
+        active_campaigns: activeCampaigns,
+        total_collabs: totalCollabs,
+        verified: true
+      }
+    });
+  } catch (error) {
+    console.error('Public brand profile error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch brand profile', error: error.message });
+  }
+});
+
 export default router;

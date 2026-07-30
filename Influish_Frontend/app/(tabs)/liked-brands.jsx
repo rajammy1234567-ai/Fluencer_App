@@ -64,16 +64,20 @@ export default function LikedBrands() {
     ]);
   };
 
-  const handleViewCampaigns = (item) => {
+  const handleViewCompanyProfile = (item) => {
     router.push({
-      pathname: '/campaigns',
-      params: { campaignId: item.id || item._id, openApply: 'true' },
+      pathname: '/brand-detail',
+      params: {
+        brandId: item.id || item._id || item.brand_id,
+        name: item.name || item.company_name || item.companyName,
+        logo: item.logo || item.profile_image,
+      },
     });
   };
 
   const renderBrand = ({ item, index }) => (
     <StaggerItem index={index} baseDelay={60}>
-      <PressScale onPress={() => handleViewCampaigns(item)} style={styles.brandCard}>
+      <PressScale onPress={() => handleViewCompanyProfile(item)} style={styles.brandCard}>
         <View style={styles.brandHeader}>
           <View style={styles.brandLeft}>
             {item.logo ? (
@@ -110,7 +114,7 @@ export default function LikedBrands() {
         </View>
 
         <View style={styles.viewButton}>
-          <Text style={styles.viewButtonText}>View Campaigns</Text>
+          <Text style={styles.viewButtonText}>View Company Profile</Text>
           <MaterialCommunityIcons name="arrow-right" size={18} color={COLORS.primary} />
         </View>
       </PressScale>

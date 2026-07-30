@@ -327,8 +327,12 @@ const BrandsSection = () => {
 
   const handleBrandPress = (brand) => {
     router.push({
-      pathname: '/brand-profile',
-      params: { brandId: brand.id }
+      pathname: '/brand-detail',
+      params: { 
+        brandId: brand.id || brand._id,
+        name: brand.company_name || brand.companyName || brand.name,
+        logo: brand.profile_image || brand.logo
+      }
     });
   };
 
