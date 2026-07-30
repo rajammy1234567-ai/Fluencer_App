@@ -248,14 +248,14 @@ export default function BrandChat() {
           </View>
 
           {/* Campaign Title Row */}
-          {item.campaign_name && (
+          {Boolean(item.campaign_name) ? (
             <View style={styles.campaignRow}>
               <MaterialCommunityIcons name="bullhorn" size={13} color="#C084FC" />
               <Text style={styles.campaignTitleText} numberOfLines={1}>
                 {item.campaign_name}
               </Text>
             </View>
-          )}
+          ) : null}
 
           {/* Last Message / Escrow Status */}
           <Text style={styles.lastMessageText} numberOfLines={1}>
@@ -365,7 +365,7 @@ export default function BrandChat() {
         ListFooterComponent={() => (
           filteredConversations.length > 0 ? (
             <View style={styles.footerNoteContainer}>
-              <MaterialCommunityIcons name="sparkles" size={14} color="#A855F7" />
+              <MaterialCommunityIcons name="auto-fix" size={14} color="#A855F7" />
               <Text style={styles.footerNoteText}>All your conversations are secure</Text>
             </View>
           ) : null
