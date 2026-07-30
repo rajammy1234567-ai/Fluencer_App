@@ -37,9 +37,9 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/logo_fluencer.png",
+          "image": "./assets/images/splash-icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#0B0B10"
         }
       ],
       [
