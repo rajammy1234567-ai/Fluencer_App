@@ -37,7 +37,6 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Video, ResizeMode } from 'expo-av';
 import { API, API_CONFIG } from '../../constants/api';
 import { storage } from '../../utils/storage';
 import { uploadToCloudinary } from '../../utils/cloudinary';
@@ -932,21 +931,10 @@ export default function Profile() {
 
           {previewMedia && (
             <View style={{ width: '100%', maxWidth: 500, alignItems: 'center' }}>
-              {previewMedia.type === 'reel' ? (
-                <Video
-                  source={{ uri: previewMedia.url }}
-                  useNativeControls
-                  resizeMode={ResizeMode.CONTAIN}
-                  isLooping
-                  shouldPlay
-                  style={{ width: '100%', height: 380, borderRadius: 16, backgroundColor: '#000' }}
-                />
-              ) : (
-                <Image
-                  source={{ uri: previewMedia.url || 'https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?auto=format&fit=crop&w=800&q=80' }}
-                  style={{ width: '100%', height: 380, borderRadius: 16, resizeMode: 'contain', backgroundColor: '#000' }}
-                />
-              )}
+              <Image
+                source={{ uri: previewMedia.url || 'https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?auto=format&fit=crop&w=800&q=80' }}
+                style={{ width: '100%', height: 380, borderRadius: 16, resizeMode: 'contain', backgroundColor: '#000' }}
+              />
 
               {previewMedia.title ? (
                 <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600', marginTop: 14, textAlign: 'center' }}>
