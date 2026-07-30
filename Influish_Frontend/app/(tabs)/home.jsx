@@ -88,7 +88,7 @@ const AnimatedCard = ({ children, delay = 0 }) => {
 };
 
 // Signature Fluencer header — not a generic app bar
-const Navbar = ({ profileImage, onProfilePress, onBellPress }) => {
+const Navbar = ({ userName, profileImage, onProfilePress, onBellPress }) => {
   return (
     <View style={styles.navbarWrapper}>
       <LinearGradient
@@ -100,7 +100,7 @@ const Navbar = ({ profileImage, onProfilePress, onBellPress }) => {
       <View style={styles.navbar}>
         <View style={styles.navTop}>
           <View style={{ flex: 1, paddingRight: 12 }}>
-            <FluencerGreeting name="Creator" />
+            <FluencerGreeting name={userName || "Creator"} />
           </View>
           <View style={styles.navActions}>
             <TouchableOpacity style={styles.iconBtn} onPress={onBellPress}>
@@ -744,8 +744,18 @@ const InfluencerHome = () => {
   const [profile, setProfile] = useState(null);
   
   const fetchProfile = async () => {
-    // Placeholder for profile fetch logic
-    setProfile({ profile_image: null });
+    try {
+      const headers = await getAuthHeader();
+      const response = await fetch(`${API_CONFIG.BASE_URL}${API.INFLUENCER.PROFILE}`, { headers });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.profile) {
+          setProfile(data.profile);
+        }
+      }
+    } catch (e) {
+      console.warn('Profile fetch error in home:', e);
+    }
   };
 
   const handleProfilePress = () => {
@@ -770,7 +780,8 @@ const InfluencerHome = () => {
           bounces={true}
         >
           <Navbar
-            profileImage={profile?.profile_image}
+            userName={profile?.full_name || profile?.name}
+            profileImage={profile?.profile_image || profile?.avatar}
             onProfilePress={handleProfilePress}
             onBellPress={() => router.push('/notifications')}
           />
