@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { getAuthHeader } from '../../utils/storage';
-import { API, API_CONFIG } from '../../constants/api';
+import { API, API_CONFIG, getApiUrl } from '../../constants/api';
 import { SlideUp } from '../../components/motion';
 import { INDIAN_LIFESTYLE, INDIAN_FASHION } from '../../constants/sampleImages';
 import {
@@ -746,7 +746,8 @@ const InfluencerHome = () => {
   const fetchProfile = async () => {
     try {
       const headers = await getAuthHeader();
-      const response = await fetch(`${API_CONFIG.BASE_URL}${API.INFLUENCER.PROFILE}`, { headers });
+      const apiUrl = getApiUrl ? getApiUrl(API.INFLUENCERS.PROFILE) : `${API_CONFIG.BASE_URL}${API.INFLUENCERS.PROFILE}`;
+      const response = await fetch(apiUrl, { headers });
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.profile) {
