@@ -49,6 +49,14 @@
           "savePhotosPermission": "Allow Fluencer to save photos.",
           "isAccessMediaLocationEnabled": true
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Fluencer needs access to your photos.",
+          "videosPermission": "Fluencer needs access to your videos.",
+          "cameraPermission": "Fluencer needs access to your camera."
+        }
       ]
     ],
     "experiments": {
