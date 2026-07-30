@@ -1,5 +1,6 @@
 import express from 'express';
 import InfluencerProfile from '../models/InfluencerProfile.js';
+import User from '../models/User.js';
 import authMiddleware from '../middleware/auth.js';
 import { uploadProfileImage } from '../middleware/upload.js';
 
@@ -193,9 +194,14 @@ router.get('/profile', authMiddleware, async (req, res) => {
     profile.followers = profile.followers || '125K';
     profile.rating = profile.rating || 4.9;
 
-    const user = await User.findById(userId).lean();
-    profile.wallet_balance = (user && typeof user.wallet_balance === 'number') ? user.wallet_balance : 30000;
-    profile.escrow_balance = (user && typeof user.escrow_balance === 'number') ? user.escrow_balance : 0;
+    try {
+      const user = await User.findById(userId).lean();
+      profile.wallet_balance = (user && typeof user.wallet_balance === 'number') ? user.wallet_balance : 30000;
+      profile.escrow_balance = (user && typeof user.escrow_balance === 'number') ? user.escrow_balance : 0;
+    } catch (uErr) {
+      profile.wallet_balance = 30000;
+      profile.escrow_balance = 0;
+    }
 
     res.status(200).json({ 
       success: true, 
