@@ -26,16 +26,17 @@ const THEME = {
   primary: '#7C3AED',
   primaryDark: '#6D28FF',
   gradientStart: '#0B0B10',
-  gradientMid: 'rgba(168, 85, 247, 0.16)',
+  gradientMid: 'rgba(124, 58, 237, 0.18)',
   gradientEnd: '#0B0B10',
   blue: '#7C3AED',
   blueLight: '#A855F7',
   blueDark: '#6D28FF',
   pink: '#EC4899',
-  green: '#7C3AED',
-  cardBg: 'rgba(255, 255, 255, 0.98)',
+  green: '#10B981',
+  cardBg: '#14141F',
+  searchBg: '#181826',
   text: '#FFFFFF',
-  textLight: 'rgba(255,255,255,0.55)',
+  textLight: 'rgba(255,255,255,0.65)',
   white: '#FFFFFF',
   background: '#0B0B10',
   border: 'rgba(255,255,255,0.12)',
@@ -192,76 +193,99 @@ export default function BrandChat() {
   const renderConversation = ({ item, index }) => {
     if (!item) return null;
     
-    const displayName = item.influencer_name || item.campaign_name || 'Unknown';
-    const displayImage = item.influencer_image;
-    const messageCount = `${item.message_count || 0}/${item.max_messages || 10}`;
+    const displayName = item.influencer_name || item.brand_name || item.campaign_name || 'Brand';
+    const displayImage = item.influencer_image || item.brand_image;
+    const isLocked = item.is_active === 0;
     
     return (
       <StaggerItem index={index} baseDelay={55}>
       <TouchableOpacity
         style={styles.conversationCard}
-        activeOpacity={0.7}
+        activeOpacity={0.75}
         onPress={() => {
-          console.log('🔥 CHAT CLICKED! Opening chat ID:', item.id);
-          
-          // APK SAFETY: Validate chat ID exists before navigation to prevent Hermes crash
           if (!item.id || item.id === 'undefined') {
-            console.error('❌ Cannot navigate: Invalid chat ID');
             Alert.alert('Error', 'Cannot open chat. Invalid chat ID.');
             return;
           }
-
           try {
             router.push(`/conversation?chatId=${item.id}`);
-            console.log('✅ router.push() executed');
           } catch (error) {
-            console.error('❌ Navigation error:', error.message);
-            console.error('❌ Error stack:', error.stack);
-            Alert.alert('Error', 'Failed to open chat. Please try again.');
+            Alert.alert('Error', 'Failed to open chat.');
           }
         }}
       >
+        {/* Left Purple Stripe Accent */}
+        <View style={styles.leftStripeAccent} />
+
+        {/* Avatar with Online Indicator */}
         <View style={styles.avatarContainer}>
           {displayImage ? (
             <Image source={{ uri: displayImage }} style={styles.avatar} />
           ) : (
             <LinearGradient
-              colors={[THEME.primary, THEME.primaryDark]}
+              colors={['#7C3AED', '#4C1D95']}
               style={styles.avatar}
             >
               <Text style={styles.avatarText}>
-                {displayName?.charAt(0)?.toUpperCase() || 'C'}
+                {displayName?.charAt(0)?.toUpperCase() || 'B'}
               </Text>
             </LinearGradient>
           )}
-          {(item.unread_count || 0) > 0 && <View style={styles.onlineIndicator} />}
+          <View style={styles.onlineIndicator} />
         </View>
 
+        {/* Conversation Info */}
         <View style={styles.conversationContent}>
+          {/* Header Line: Name + Time + Menu */}
           <View style={styles.conversationHeader}>
             <Text style={styles.userName} numberOfLines={1}>
               {displayName}
             </Text>
-            <Text style={styles.timeText}>{formatTime(item.last_message_time)}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Text style={styles.timeText}>{formatTime(item.last_message_time || item.updated_at)}</Text>
+              <MaterialCommunityIcons name="dots-vertical" size={16} color="rgba(255,255,255,0.35)" />
+            </View>
           </View>
-          <View style={styles.messageRow}>
-            <Text
-              style={[
-                styles.lastMessage,
-                (item.unread_count || 0) > 0 && styles.unreadMessage,
-              ]}
-              numberOfLines={1}
-            >
-              {item.last_message || 'No messages yet'}
-            </Text>
-            <View style={styles.messageBadge}>
-              <MaterialCommunityIcons name="message-text" size={12} color={COLORS?.textGray || '#666'} />
-              <Text style={styles.messageCountText}>{messageCount}</Text>
+
+          {/* Campaign Title Row */}
+          {item.campaign_name && (
+            <View style={styles.campaignRow}>
+              <MaterialCommunityIcons name="bullhorn" size={13} color="#C084FC" />
+              <Text style={styles.campaignTitleText} numberOfLines={1}>
+                {item.campaign_name}
+              </Text>
+            </View>
+          )}
+
+          {/* Last Message / Escrow Status */}
+          <Text style={styles.lastMessageText} numberOfLines={1}>
+            {item.last_message || 'Brand deposited funds into Escrow. Creator can now shoot...'}
+          </Text>
+
+          {/* Bottom Pills Row */}
+          <View style={styles.pillsRow}>
+            <View style={styles.msgCountPill}>
+              <MaterialCommunityIcons name="message-text-outline" size={12} color="#C084FC" />
+              <Text style={styles.msgCountPillText}>
+                {item.message_count || 0}/{item.max_messages || 10} messages
+              </Text>
+            </View>
+
+            <View style={isLocked ? styles.lockedPill : styles.activePill}>
+              <MaterialCommunityIcons
+                name={isLocked ? "lock-outline" : "check-circle-outline"}
+                size={12}
+                color={isLocked ? "#F87171" : "#34D399"}
+              />
+              <Text style={isLocked ? styles.lockedPillText : styles.activePillText}>
+                {isLocked ? 'Locked' : 'Active'}
+              </Text>
             </View>
           </View>
         </View>
 
-        <MaterialCommunityIcons name="chevron-right" size={24} color={COLORS?.textGray || '#7DA0CA'} />
+        {/* Right Arrow Chevron */}
+        <MaterialCommunityIcons name="chevron-right" size={22} color="#A855F7" style={{ marginLeft: 6 }} />
       </TouchableOpacity>
       </StaggerItem>
     );
@@ -277,7 +301,7 @@ export default function BrandChat() {
       />
       <Text style={styles.emptyTitle}>No Conversations Yet</Text>
       <Text style={styles.emptyText}>
-        Start chatting with influencers who apply to your campaigns
+        Start chatting with creators who apply to your campaigns
       </Text>
     </View>
     </SlideUp>
@@ -285,59 +309,46 @@ export default function BrandChat() {
 
   if (loading) {
     return (
-      <LinearGradient
-        colors={[THEME.gradientStart, THEME.gradientMid, THEME.gradientEnd]}
-        style={styles.container}
-      >
-        <StatusBar barStyle="light-content" backgroundColor={THEME.blue} />
-        <LinearGradient colors={[THEME.blue, THEME.blueDark]} style={styles.header}>
-          <View style={styles.headerTop}>
-            <Text style={styles.headerTitle}>Messages</Text>
-          </View>
-        </LinearGradient>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={THEME.blue} />
-          <Text style={styles.tabContentText}>Loading conversations...</Text>
-        </View>
-      </LinearGradient>
+      <View style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color={THEME.primary} />
+        <Text style={styles.tabContentText}>Loading conversations...</Text>
+      </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={THEME.primary} />
-      
-      {/* Header */}
-      <LinearGradient
-        colors={[THEME.primary, THEME.primaryDark]}
-        style={styles.header}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <View style={styles.headerContent}>
-          <View>
-            <Text style={styles.headerTitle}>Messages</Text>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor="#07080F" />
+
+      {/* Top Header Block */}
+      <View style={styles.headerBlock}>
+        <View style={styles.headerTopRow}>
+          <View style={styles.headerLeftCol}>
+            <View style={styles.headerTitleRow}>
+              <LinearGradient colors={['#7C3AED', '#5B21B6']} style={styles.headerIconBox}>
+                <MaterialCommunityIcons name="message-reply-text" size={22} color="#FFFFFF" />
+              </LinearGradient>
+              <Text style={styles.headerTitle}>Messages</Text>
+              <View style={styles.countPill}>
+                <Text style={styles.countPillText}>{filteredConversations.length}</Text>
+              </View>
+            </View>
             <Text style={styles.headerSubtitle}>
-              {filteredConversations.length} {filteredConversations.length === 1 ? 'Conversation' : 'Conversations'}
+              {filteredConversations.length} active {filteredConversations.length === 1 ? 'conversation' : 'conversations'}
             </Text>
           </View>
-          <View style={styles.headerIconContainer}>
-            <MaterialCommunityIcons name="message-text" size={40} color="rgba(255,255,255,0.2)" />
-          </View>
-        </View>
-      </LinearGradient>
 
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <View style={styles.searchBar}>
-          <MaterialCommunityIcons name="magnify" size={20} color={THEME.textLight} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search conversations..."
-            placeholderTextColor={THEME.textLight}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
+          {/* Inline Compact Search Input */}
+          <View style={styles.searchInlineBox}>
+            <MaterialCommunityIcons name="magnify" size={16} color="rgba(255,255,255,0.4)" />
+            <TextInput
+              style={styles.searchInlineInput}
+              placeholder="Search conversations..."
+              placeholderTextColor="rgba(255,255,255,0.35)"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+          </View>
         </View>
       </View>
 
@@ -351,244 +362,248 @@ export default function BrandChat() {
           filteredConversations.length === 0 && styles.emptyList,
         ]}
         ListEmptyComponent={renderEmpty}
+        ListFooterComponent={() => (
+          filteredConversations.length > 0 ? (
+            <View style={styles.footerNoteContainer}>
+              <MaterialCommunityIcons name="sparkles" size={14} color="#A855F7" />
+              <Text style={styles.footerNoteText}>All your conversations are secure</Text>
+            </View>
+          ) : null
+        )}
         refreshing={refreshing}
         onRefresh={handleRefresh}
         showsVerticalScrollIndicator={false}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#07080F',
   },
-  decorCircle1: {
-    position: 'absolute',
-    top: 200,
-    right: -50,
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: 'rgba(139, 92, 246, 0.15)',
+  headerBlock: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 16,
   },
-  decorCircle2: {
-    position: 'absolute',
-    bottom: 300,
-    left: -40,
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(244, 114, 182, 0.12)',
-  },
-  decorCircle3: {
-    position: 'absolute',
-    top: 500,
-    right: 30,
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(167, 139, 250, 0.18)',
-  },
-  header: {
-    paddingTop: 60,
-    paddingBottom: 30,
-    paddingHorizontal: 24,
-  },
-  headerContent: {
+  headerTopRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
   },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#fff',
-    letterSpacing: -0.5,
+  headerLeftCol: {
+    flex: 1,
   },
-  headerSubtitle: {
-    fontSize: 15,
-    color: 'rgba(255,255,255,0.85)',
-    marginTop: 4,
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
-  headerIconContainer: {
-    width: 60,
-    height: 60,
+  headerIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 10,
-    paddingBottom: 20,
+  headerTitle: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
   },
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 16,
-    padding: 4,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
+  countPill: {
+    backgroundColor: '#231B3D',
+    paddingHorizontal: 9,
+    paddingVertical: 3,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(168, 85, 247, 0.3)',
   },
-  activeTab: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
+  countPillText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#A855F7',
   },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.8)',
+  headerSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.45)',
+    marginTop: 4,
   },
-  activeTabText: {
-    color: THEME.purple,
-    fontWeight: '700',
-  },
-  searchContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-  },
-  searchBar: {
+  searchInlineBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: THEME.cardBg,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    backgroundColor: '#0F111E',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(124, 58, 237, 0.22)',
+    maxWidth: 160,
   },
-  searchInput: {
+  searchInlineInput: {
     flex: 1,
-    marginLeft: 10,
-    fontSize: 16,
-    color: THEME.text,
+    marginLeft: 6,
+    fontSize: 12,
+    color: '#FFFFFF',
   },
   listContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingBottom: 120,
   },
   conversationCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: THEME.cardBg,
-    borderRadius: 20,
-    padding: 16,
+    backgroundColor: '#0F111E',
+    borderRadius: 18,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(124, 58, 237, 0.2)',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  leftStripeAccent: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3.5,
+    backgroundColor: '#7C3AED',
   },
   avatarContainer: {
     position: 'relative',
+    marginLeft: 4,
+    marginRight: 12,
   },
   avatar: {
-    width: 55,
-    height: 55,
-    borderRadius: 27.5,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
-    color: THEME.white,
+    color: '#FFFFFF',
   },
   onlineIndicator: {
     position: 'absolute',
-    bottom: 2,
-    right: 2,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: THEME.green,
+    bottom: 0,
+    right: 0,
+    width: 13,
+    height: 13,
+    borderRadius: 6.5,
+    backgroundColor: '#10B981',
     borderWidth: 2,
-    borderColor: THEME.white,
+    borderColor: '#0F111E',
   },
   conversationContent: {
     flex: 1,
-    marginLeft: 15,
   },
   conversationHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 3,
   },
   userName: {
-    fontSize: 16,
+    fontSize: 16.5,
     fontWeight: '700',
-    color: '#111827',
+    color: '#FFFFFF',
     flex: 1,
   },
   timeText: {
     fontSize: 12,
-    color: '#6B7280',
+    color: 'rgba(255, 255, 255, 0.45)',
   },
-  lastMessage: {
-    fontSize: 14,
-    color: '#4B5563',
-    lineHeight: 20,
+  campaignRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 3,
+  },
+  campaignTitleText: {
+    fontSize: 13.5,
+    fontWeight: '600',
+    color: '#C084FC',
     flex: 1,
   },
-  messageRow: {
+  lastMessageText: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.65)',
+    lineHeight: 18,
+    marginBottom: 8,
+  },
+  pillsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  messageBadge: {
+  msgCountPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#1C1536',
+    borderWidth: 1,
+    borderColor: '#3B296B',
+    paddingHorizontal: 9,
+    paddingVertical: 3.5,
+    borderRadius: 8,
+  },
+  msgCountPillText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#C084FC',
+  },
+  lockedPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(124, 58, 237, 0.12)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    backgroundColor: 'rgba(220, 38, 38, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.35)',
+    paddingHorizontal: 9,
+    paddingVertical: 3.5,
+    borderRadius: 8,
   },
-  messageCountText: {
-    fontSize: 11,
-    fontFamily: FONTS?.medium || 'System',
-    color: '#7C3AED',
+  lockedPillText: {
+    fontSize: 11.5,
     fontWeight: '600',
+    color: '#F87171',
   },
-  unreadMessage: {
-    color: '#111827',
-    fontWeight: '700',
-  },
-  conversationMeta: {
+  activePill: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 4,
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.35)',
+    paddingHorizontal: 9,
+    paddingVertical: 3.5,
+    borderRadius: 8,
   },
-  unreadBadge: {
-    borderRadius: 12,
-    minWidth: 24,
-    height: 24,
+  activePillText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#34D399',
+  },
+  footerNoteContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 8,
+    gap: 6,
+    marginTop: 20,
+    marginBottom: 24,
   },
-  unreadText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: THEME.white,
-  },
-  callButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  tabContent: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 40,
-  },
-  tabContentText: {
-    fontSize: 16,
-    color: THEME.textLight,
-    textAlign: 'center',
-    marginTop: 10,
+  footerNoteText: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.4)',
+    fontWeight: '500',
   },
   emptyContainer: {
     flex: 1,
@@ -617,5 +632,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#07080F',
+  },
+  tabContentText: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.6)',
+    marginTop: 12,
   },
 });

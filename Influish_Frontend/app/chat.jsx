@@ -65,26 +65,26 @@ export default function ChatList() {
   };
 
   const renderChat = ({ item }) => {
-    const messagesLeft = item.max_messages - item.message_count;
-    const isActive = item.is_active === 1;
+    const isLocked = item.is_active === 0;
     const displayName = item.brand_name || 'Brand';
     const displayImage = item.brand_image;
 
     return (
       <TouchableOpacity
         style={styles.chatCard}
-        activeOpacity={0.7}
+        activeOpacity={0.75}
         onPress={() => {
-          console.log('🔥 CHAT CLICKED! Opening chat ID:', item.id);
           try {
             router.push(`/conversation?chatId=${item.id}`);
-            console.log('✅ router.push() executed');
           } catch (error) {
-            console.error('❌ Navigation error:', error.message);
-            console.error('❌ Error stack:', error.stack);
+            console.error('Navigation error:', error);
           }
         }}
       >
+        {/* Left Purple Stripe Accent */}
+        <View style={styles.leftStripeAccent} />
+
+        {/* Avatar Container */}
         <View style={styles.avatarContainer}>
           {displayImage ? (
             <Image
@@ -93,308 +93,263 @@ export default function ChatList() {
             />
           ) : (
             <LinearGradient
-              colors={[BLUE, BLUE_DARK]}
+              colors={['#7C3AED', '#4C1D95']}
               style={styles.avatar}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
             >
               <Text style={styles.avatarText}>
                 {displayName?.charAt(0)?.toUpperCase() || 'B'}
               </Text>
             </LinearGradient>
           )}
-          {(item.unread_count || 0) > 0 && (
-            <View style={styles.unreadBadge}>
-              <Text style={styles.unreadText}>
-                {item.unread_count > 9 ? '9+' : item.unread_count}
+          <View style={styles.onlineIndicator} />
+        </View>
+
+        {/* Chat Info */}
+        <View style={styles.chatInfo}>
+          {/* Header Row: Name + Date + Dots */}
+          <View style={styles.chatHeader}>
+            <Text style={styles.userName} numberOfLines={1}>{displayName}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Text style={styles.timeText}>
+                {new Date(item.updated_at || Date.now()).toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                })}
+              </Text>
+              <MaterialCommunityIcons name="dots-vertical" size={16} color="rgba(255,255,255,0.35)" />
+            </View>
+          </View>
+
+          {/* Campaign Row */}
+          {item.campaign_name && (
+            <View style={styles.campaignRow}>
+              <MaterialCommunityIcons name="bullhorn" size={13} color="#C084FC" />
+              <Text style={styles.campaignTitleText} numberOfLines={1}>
+                {item.campaign_name}
               </Text>
             </View>
           )}
-          {isActive && <View style={styles.onlineIndicator} />}
-        </View>
 
-        <View style={styles.chatInfo}>
-          <View style={styles.chatHeader}>
-            <Text style={styles.userName}>{displayName}</Text>
-            <Text style={styles.timeText}>
-              {new Date(item.updated_at).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-              })}
-            </Text>
-          </View>
-
-          <Text style={styles.campaignName} numberOfLines={1}>
-            📢 {item.campaign_name}
+          {/* Last Message / Escrow Status */}
+          <Text style={styles.lastMessageText} numberOfLines={1}>
+            {item.last_message || 'Brand deposited funds into Escrow. Creator can now shoot...'}
           </Text>
 
-          {item.last_message && (
-            <Text style={styles.lastMessage} numberOfLines={2}>
-              {item.last_message}
-            </Text>
-          )}
-
-          <View style={styles.footer}>
-            <View style={styles.messageCounter}>
-              <MaterialCommunityIcons
-                name="message-text"
-                size={16}
-                color={messagesLeft <= 2 ? '#ef4444' : BLUE}
-              />
-              <Text
-                style={[
-                  styles.counterText,
-                  messagesLeft <= 2 && styles.counterWarning,
-                ]}
-              >
-                {item.message_count}/{item.max_messages} messages
+          {/* Bottom Pills Row */}
+          <View style={styles.pillsRow}>
+            <View style={styles.msgCountPill}>
+              <MaterialCommunityIcons name="message-text-outline" size={12} color="#C084FC" />
+              <Text style={styles.msgCountPillText}>
+                {item.message_count || 0}/{item.max_messages || 10} messages
               </Text>
             </View>
 
-            {!isActive && (
-              <View style={styles.lockedBadge}>
-                <MaterialCommunityIcons name="lock" size={14} color={COLORS.white} />
-                <Text style={styles.lockedText}>Locked</Text>
-              </View>
-            )}
+            <View style={isLocked ? styles.lockedPill : styles.activePill}>
+              <MaterialCommunityIcons
+                name={isLocked ? "lock-outline" : "check-circle-outline"}
+                size={12}
+                color={isLocked ? "#F87171" : "#34D399"}
+              />
+              <Text style={isLocked ? styles.lockedPillText : styles.activePillText}>
+                {isLocked ? 'Locked' : 'Active'}
+              </Text>
+            </View>
           </View>
         </View>
 
-        <MaterialCommunityIcons
-          name="chevron-right"
-          size={28}
-          color={BLUE_LIGHT}
-        />
+        {/* Right Arrow Chevron */}
+        <MaterialCommunityIcons name="chevron-right" size={22} color="#A855F7" style={{ marginLeft: 6 }} />
       </TouchableOpacity>
     );
   };
 
   if (loading) {
     return (
-      <LinearGradient 
-        colors={[BLUE, BLUE_DARK]} 
-        style={styles.container}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Messages</Text>
-        </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.white} />
-          <Text style={styles.loadingText}>Loading conversations...</Text>
-        </View>
-      </LinearGradient>
+      <View style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color={BLUE} />
+        <Text style={styles.loadingText}>Loading conversations...</Text>
+      </View>
     );
   }
 
   return (
-    <LinearGradient 
-      colors={[BLUE, BLUE_DARK]} 
-      style={styles.container}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-    >
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <Text style={styles.headerTitle}>Messages</Text>
-          <View style={styles.headerBadge}>
-            <Text style={styles.headerBadgeText}>{chats.length}</Text>
+    <View style={styles.container}>
+      {/* Top Header Row */}
+      <View style={styles.headerBlock}>
+        <View style={styles.headerTopRow}>
+          <View style={styles.headerLeftCol}>
+            <View style={styles.headerTitleRow}>
+              <LinearGradient colors={['#7C3AED', '#5B21B6']} style={styles.headerIconBox}>
+                <MaterialCommunityIcons name="message-reply-text" size={22} color="#FFFFFF" />
+              </LinearGradient>
+              <Text style={styles.headerTitle}>Messages</Text>
+              <View style={styles.countPill}>
+                <Text style={styles.countPillText}>{chats.length}</Text>
+              </View>
+            </View>
+            <Text style={styles.headerSubtitle}>
+              {chats.length} active {chats.length === 1 ? 'conversation' : 'conversations'}
+            </Text>
           </View>
         </View>
-        <Text style={styles.headerSubtitle}>
-          {chats.length === 0 
-            ? 'No active conversations' 
-            : `${chats.length} ${chats.length === 1 ? 'conversation' : 'active conversations'}`
-          }
-        </Text>
       </View>
 
-      <View style={styles.content}>
-        <FlatList
-          data={chats}
-          renderItem={renderChat}
-          keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={BLUE}
-              colors={[BLUE]}
-            />
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <View style={styles.emptyIconContainer}>
-                <LinearGradient
-                  colors={[BLUE_LIGHT, BLUE]}
-                  style={styles.emptyIconGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                >
-                  <MaterialCommunityIcons
-                    name="chat-outline"
-                    size={60}
-                    color={COLORS.white}
-                  />
-                </LinearGradient>
-              </View>
-              <Text style={styles.emptyText}>No Messages Yet</Text>
-              <Text style={styles.emptySubtext}>
-                Start connecting with brands by applying to campaigns.{'\n'}
-                Your conversations will appear here.
-              </Text>
-              <TouchableOpacity
-                style={styles.exploreButton}
-                onPress={() => router.push('/(tabs)/campaigns')}
-                activeOpacity={0.8}
-              >
-                <LinearGradient
-                  colors={[BLUE, BLUE_DARK]}
-                  style={styles.exploreGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                >
-                  <Text style={styles.exploreButtonText}>Explore Campaigns</Text>
-                  <MaterialCommunityIcons
-                    name="arrow-right"
-                    size={20}
-                    color={COLORS.white}
-                  />
-                </LinearGradient>
-              </TouchableOpacity>
+      <FlatList
+        data={chats}
+        renderItem={renderChat}
+        keyExtractor={(item) => item.id.toString()}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        ListFooterComponent={() => (
+          chats.length > 0 ? (
+            <View style={styles.footerNoteContainer}>
+              <MaterialCommunityIcons name="sparkles" size={14} color="#A855F7" />
+              <Text style={styles.footerNoteText}>All your conversations are secure</Text>
             </View>
-          }
-        />
-      </View>
-    </LinearGradient>
+          ) : null
+        )}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={BLUE}
+            colors={[BLUE]}
+          />
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <View style={styles.emptyIconContainer}>
+              <LinearGradient
+                colors={[BLUE_LIGHT, BLUE]}
+                style={styles.emptyIconGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <MaterialCommunityIcons
+                  name="chat-outline"
+                  size={60}
+                  color={COLORS.white}
+                />
+              </LinearGradient>
+            </View>
+            <Text style={styles.emptyText}>No Messages Yet</Text>
+            <Text style={styles.emptySubtext}>
+              Start connecting with brands by applying to campaigns.{'\n'}
+              Your conversations will appear here.
+            </Text>
+          </View>
+        }
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#07080F',
   },
-  header: {
-    paddingTop: 60,
-    paddingBottom: 24,
-    paddingHorizontal: 24,
+  headerBlock: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 16,
   },
-  headerTop: {
+  headerTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 12,
   },
-  headerTitle: {
-    fontSize: 36,
-    fontFamily: FONTS.bold,
-    color: COLORS.white,
-    letterSpacing: -0.5,
+  headerLeftCol: {
+    flex: 1,
   },
-  headerBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    minWidth: 40,
+  headerTitleRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
   },
-  headerBadgeText: {
-    fontSize: 16,
-    fontFamily: FONTS.bold,
-    color: COLORS.white,
-  },
-  headerSubtitle: {
-    fontSize: 16,
-    fontFamily: FONTS.regular,
-    color: 'rgba(255,255,255,0.95)',
-    marginTop: 8,
-  },
-  content: {
-    flex: 1,
-    backgroundColor: '#0B0B10',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-  },
-  loadingContainer: {
-    flex: 1,
+  headerIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  loadingText: {
-    fontSize: 16,
-    fontFamily: FONTS.regular,
-    color: COLORS.white,
-    marginTop: 16,
+  headerTitle: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
+  },
+  countPill: {
+    backgroundColor: '#231B3D',
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(168, 85, 247, 0.3)',
+  },
+  countPillText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#A855F7',
+  },
+  headerSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.45)',
+    marginTop: 4,
   },
   listContent: {
-    padding: 20,
+    paddingHorizontal: 16,
+    paddingBottom: 120,
   },
   chatCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#14141C',
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
+    backgroundColor: '#0F111E',
+    borderRadius: 18,
+    padding: 14,
+    marginBottom: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
+    borderColor: 'rgba(124, 58, 237, 0.2)',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  leftStripeAccent: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3.5,
+    backgroundColor: '#7C3AED',
   },
   avatarContainer: {
     position: 'relative',
-    marginRight: 16,
+    marginLeft: 4,
+    marginRight: 12,
   },
   avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: COLORS.textGray,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 3,
-    borderColor: COLORS.white,
   },
   avatarText: {
-    fontSize: 26,
-    fontFamily: FONTS.bold,
-    color: COLORS.white,
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   onlineIndicator: {
     position: 'absolute',
-    bottom: 2,
-    right: 2,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#22c55e',
-    borderWidth: 3,
-    borderColor: COLORS.white,
-  },
-  unreadBadge: {
-    position: 'absolute',
-    top: -6,
-    right: -6,
-    backgroundColor: '#ef4444',
-    borderRadius: 12,
-    minWidth: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 7,
+    bottom: 0,
+    right: 0,
+    width: 13,
+    height: 13,
+    borderRadius: 6.5,
+    backgroundColor: '#10B981',
     borderWidth: 2,
-    borderColor: COLORS.white,
-  },
-  unreadText: {
-    fontSize: 12,
-    fontFamily: FONTS.bold,
-    color: COLORS.white,
+    borderColor: '#0F111E',
   },
   chatInfo: {
     flex: 1,
@@ -403,67 +358,101 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 3,
   },
   userName: {
-    fontSize: 18,
-    fontFamily: FONTS.bold,
+    fontSize: 16.5,
+    fontWeight: '700',
     color: '#FFFFFF',
-    letterSpacing: -0.3,
+    flex: 1,
   },
   timeText: {
-    fontSize: 13,
-    fontFamily: FONTS.regular,
-    color: 'rgba(255,255,255,0.45)',
-  },
-  campaignName: {
-    fontSize: 15,
-    fontFamily: FONTS.bold,
-    color: BLUE,
-    marginBottom: 6,
-  },
-  lastMessage: {
-    fontSize: 15,
-    fontFamily: FONTS.regular,
-    color: 'rgba(255,255,255,0.55)',
-    marginBottom: 10,
-    lineHeight: 20,
-  },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  messageCounter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
-  },
-  counterText: {
-    fontSize: 13,
-    fontFamily: FONTS.bold,
-    color: BLUE,
-  },
-  counterWarning: {
-    color: '#ef4444',
-  },
-  lockedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ef4444',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
-    gap: 5,
-  },
-  lockedText: {
     fontSize: 12,
-    fontFamily: FONTS.bold,
-    color: COLORS.white,
+    color: 'rgba(255, 255, 255, 0.45)',
+  },
+  campaignRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 3,
+  },
+  campaignTitleText: {
+    fontSize: 13.5,
+    fontWeight: '600',
+    color: '#C084FC',
+    flex: 1,
+  },
+  lastMessageText: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.65)',
+    lineHeight: 18,
+    marginBottom: 8,
+  },
+  pillsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  msgCountPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#1C1536',
+    borderWidth: 1,
+    borderColor: '#3B296B',
+    paddingHorizontal: 9,
+    paddingVertical: 3.5,
+    borderRadius: 8,
+  },
+  msgCountPillText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#C084FC',
+  },
+  lockedPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(220, 38, 38, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.35)',
+    paddingHorizontal: 9,
+    paddingVertical: 3.5,
+    borderRadius: 8,
+  },
+  lockedPillText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#F87171',
+  },
+  activePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.35)',
+    paddingHorizontal: 9,
+    paddingVertical: 3.5,
+    borderRadius: 8,
+  },
+  activePillText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#34D399',
+  },
+  footerNoteContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 20,
+    marginBottom: 24,
+  },
+  footerNoteText: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.4)',
+    fontWeight: '500',
   },
   emptyContainer: {
     alignItems: 'center',
@@ -480,11 +469,6 @@ const styles = StyleSheet.create({
     borderRadius: 60,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: BLUE,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
   },
   emptyText: {
     fontSize: 24,
@@ -500,28 +484,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 24,
   },
-  exploreButton: {
-    marginTop: 32,
-    borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: BLUE,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  exploreGradient: {
-    flexDirection: 'row',
+  loadingContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 36,
-    gap: 10,
+    backgroundColor: '#07080F',
   },
-  exploreButtonText: {
-    fontSize: 17,
-    fontFamily: FONTS.bold,
-    color: COLORS.white,
-    letterSpacing: 0.2,
+  loadingText: {
+    fontSize: 15,
+    color: 'rgba(255,255,255,0.6)',
+    marginTop: 12,
   },
 });
