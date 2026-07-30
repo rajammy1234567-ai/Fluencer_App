@@ -234,13 +234,8 @@ export default function ApplicationsScreen() {
 
     return (
       <View style={styles.applicationCard}>
-        {/* Gradient Top Border */}
-        <LinearGradient
-          colors={BRAND_COLORS.gradientPrimary}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.cardTopBorder}
-        />
+        {/* Left Purple Accent Stripe */}
+        <View style={styles.cardLeftStripe} />
         
         <View style={styles.cardContent}>
           {/* Status Badge */}
@@ -251,167 +246,166 @@ export default function ApplicationsScreen() {
             isRejected && styles.statusRejected,
           ]}>
             <MaterialCommunityIcons
-              name={isPending ? "clock-outline" : isAccepted ? "check-circle" : "close-circle"}
-              size={14}
-              color={isPending ? "#D97706" : isAccepted ? "#059669" : "#DC2626"}
+              name={isPending ? "clock-outline" : isAccepted ? "check-circle-outline" : "close-circle-outline"}
+              size={13}
+              color={isPending ? "#FBBF24" : isAccepted ? "#34D399" : "#F87171"}
             />
             <Text style={[
               styles.statusText,
-              isPending && { color: '#D97706' },
-              isAccepted && { color: '#059669' },
-              isRejected && { color: '#DC2626' },
+              isPending && { color: '#FBBF24' },
+              isAccepted && { color: '#34D399' },
+              isRejected && { color: '#F87171' },
             ]}>
               {item.status.toUpperCase()}
             </Text>
           </View>
 
-        {/* Influencer Profile Card */}
-        <TouchableOpacity 
-          style={styles.profileCard}
-          onPress={() => handleOpenCreatorProfile(item.influencer_id || item.user_id)}
-          activeOpacity={0.9}
-        >
-          <View style={styles.profileHeader}>
-            <View style={styles.avatarWrapper}>
-              <LinearGradient
-                colors={BRAND_COLORS.gradientPrimary}
-                style={styles.avatarGradientBorder}
-              >
-                <Image
-                  source={{ 
-                    uri: item.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.influencer_name)}&size=200&background=5483b3&color=fff`
-                  }}
-                  style={styles.profileAvatar}
-                />
-              </LinearGradient>
+          {/* Influencer Profile Card */}
+          <TouchableOpacity 
+            style={styles.profileCard}
+            onPress={() => handleOpenCreatorProfile(item.influencer_id || item.user_id)}
+            activeOpacity={0.85}
+          >
+            <View style={styles.profileHeader}>
+              <View style={styles.avatarWrapper}>
+                <LinearGradient
+                  colors={['#7C3AED', '#5B21B6']}
+                  style={styles.avatarGradientBorder}
+                >
+                  <Image
+                    source={{ 
+                      uri: item.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.influencer_name)}&size=200&background=7c3aed&color=fff`
+                    }}
+                    style={styles.profileAvatar}
+                  />
+                </LinearGradient>
+              </View>
+              <View style={styles.profileInfo}>
+                <Text style={styles.profileName} numberOfLines={1}>{item.influencer_name}</Text>
+                <Text style={styles.profileEmail} numberOfLines={1}>{item.email}</Text>
+                {item.location && (
+                  <View style={styles.locationRow}>
+                    <MaterialCommunityIcons name="map-marker" size={13} color="#C084FC" />
+                    <Text style={styles.locationText}>{item.location}</Text>
+                  </View>
+                )}
+              </View>
             </View>
-            <View style={styles.profileInfo}>
-              <Text style={styles.profileName}>{item.influencer_name}</Text>
-              <Text style={styles.profileEmail}>{item.email}</Text>
-              {item.location && (
-                <View style={styles.locationRow}>
-                  <MaterialCommunityIcons name="map-marker" size={14} color={BRAND_COLORS.primary} />
-                  <Text style={styles.locationText}>{item.location}</Text>
-                </View>
-              )}
-            </View>
-          </View>
 
+            {/* Categories Tags */}
+            {item.categories && typeof item.categories === 'string' && (
+              <View style={styles.tagsContainer}>
+                {item.categories.split(',').slice(0, 3).map((cat, index) => (
+                  <View key={index} style={styles.tag}>
+                    <Text style={styles.tagText}>{cat.trim()}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
 
+            {/* View Profile & Portfolio Button */}
+            <TouchableOpacity
+              style={styles.viewProfileBtn}
+              onPress={() => handleOpenCreatorProfile(item.influencer_id || item.user_id)}
+              activeOpacity={0.8}
+            >
+              <MaterialCommunityIcons name="account-search-outline" size={16} color="#C084FC" />
+              <Text style={styles.viewProfileBtnText}>View Creator Profile & Portfolio (Photos & Reels) ➔</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
 
-          {/* Categories Tags */}
-          {item.categories && typeof item.categories === 'string' && (
-            <View style={styles.tagsContainer}>
-              {item.categories.split(',').slice(0, 3).map((cat, index) => (
-                <View key={index} style={styles.tag}>
-                  <Text style={styles.tagText}>{cat.trim()}</Text>
-                </View>
-              ))}
+          {/* Proposal Message */}
+          {item.message && (
+            <View style={styles.proposalCard}>
+              <View style={styles.proposalHeader}>
+                <MaterialCommunityIcons name="message-text-outline" size={16} color="#A855F7" />
+                <Text style={styles.proposalTitle}>Proposal</Text>
+              </View>
+              <Text style={styles.proposalText}>{item.message}</Text>
             </View>
           )}
 
-          {/* View Profile & Portfolio Button */}
-          <TouchableOpacity
-            style={styles.viewProfileBtn}
-            onPress={() => handleOpenCreatorProfile(item.influencer_id || item.user_id)}
-          >
-            <MaterialCommunityIcons name="account-eye" size={18} color="#6D28FF" />
-            <Text style={styles.viewProfileBtnText}>View Creator Profile & Portfolio (Photos & Reels) ➔</Text>
-          </TouchableOpacity>
-        </TouchableOpacity>
+          {/* Application Date */}
+          <View style={styles.dateRow}>
+            <MaterialCommunityIcons name="calendar-clock" size={14} color="rgba(255,255,255,0.4)" />
+            <Text style={styles.dateLabel}>Applied on: </Text>
+            <Text style={styles.dateValue}>
+              {new Date(item.created_at).toLocaleDateString('en-US', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric'
+              })}
+            </Text>
+          </View>
 
-        {/* Proposal Message */}
-        {item.message && (
-          <View style={styles.proposalCard}>
-            <View style={styles.proposalHeader}>
-              <MaterialCommunityIcons name="message-text" size={20} color={BRAND_COLORS.primary} />
-              <Text style={styles.proposalTitle}>Proposal</Text>
+          {/* Action Buttons - Only for Pending */}
+          {isPending && (
+            <View style={styles.actionButtons}>
+              <TouchableOpacity
+                style={styles.rejectButton}
+                onPress={() => handleReject(item.id)}
+                disabled={isProcessing}
+                activeOpacity={0.7}
+              >
+                {isProcessing ? (
+                  <ActivityIndicator size="small" color="#F87171" />
+                ) : (
+                  <>
+                    <MaterialCommunityIcons name="close-circle-outline" size={18} color="#F87171" />
+                    <Text style={styles.rejectButtonText}>Reject</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.acceptButton}
+                onPress={() => handleAccept(item.id)}
+                disabled={isProcessing}
+                activeOpacity={0.7}
+              >
+                {isProcessing ? (
+                  <ActivityIndicator size="small" color={COLORS.white} />
+                ) : (
+                  <LinearGradient
+                    colors={['#059669', '#10B981']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.acceptGradient}
+                  >
+                    <MaterialCommunityIcons name="check-circle-outline" size={18} color={COLORS.white} />
+                    <Text style={styles.acceptButtonText}>Accept</Text>
+                  </LinearGradient>
+                )}
+              </TouchableOpacity>
             </View>
-            <Text style={styles.proposalText}>{item.message}</Text>
-          </View>
-        )}
+          )}
 
-        {/* Application Date */}
-        <View style={styles.dateRow}>
-          <MaterialCommunityIcons name="calendar" size={16} color={COLORS.textGray} />
-          <Text style={styles.dateLabel}>Applied on: </Text>
-          <Text style={styles.dateValue}>
-            {new Date(item.created_at).toLocaleDateString('en-US', {
-              day: 'numeric',
-              month: 'short',
-              year: 'numeric'
-            })}
-          </Text>
-        </View>
-
-        {/* Action Buttons - Only for Pending */}
-        {isPending && (
-          <View style={styles.actionButtons}>
+          {/* Chat Button - Only for Accepted */}
+          {isAccepted && (
             <TouchableOpacity
-              style={styles.rejectButton}
-              onPress={() => handleReject(item.id)}
-              disabled={isProcessing}
+              style={styles.chatButton}
+              onPress={() => {
+                const targetChatId = item.chat_id || item.id || item._id;
+                console.log('Opening chat with targetChatId:', targetChatId);
+                if (targetChatId) {
+                  router.push(`/conversation?chatId=${targetChatId}`);
+                } else {
+                  Alert.alert('Info', 'Chat will be available soon');
+                }
+              }}
               activeOpacity={0.7}
             >
-              {isProcessing ? (
-                <ActivityIndicator size="small" color="#DC2626" />
-              ) : (
-                <>
-                  <MaterialCommunityIcons name="close-circle-outline" size={20} color="#DC2626" />
-                  <Text style={styles.rejectButtonText}>Reject</Text>
-                </>
-              )}
+              <LinearGradient
+                colors={['#7C3AED', '#6D28FF']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.chatGradient}
+              >
+                <MaterialCommunityIcons name="chat-outline" size={18} color={COLORS.white} />
+                <Text style={styles.chatButtonText}>Open Chat</Text>
+              </LinearGradient>
             </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.acceptButton}
-              onPress={() => handleAccept(item.id)}
-              disabled={isProcessing}
-              activeOpacity={0.7}
-            >
-              {isProcessing ? (
-                <ActivityIndicator size="small" color={COLORS.white} />
-              ) : (
-                <LinearGradient
-                  colors={['#059669', '#10B981']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.acceptGradient}
-                >
-                  <MaterialCommunityIcons name="check-circle-outline" size={20} color={COLORS.white} />
-                  <Text style={styles.acceptButtonText}>Accept</Text>
-                </LinearGradient>
-              )}
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Chat Button - Only for Accepted */}
-        {isAccepted && (
-          <TouchableOpacity
-            style={styles.chatButton}
-            onPress={() => {
-              const targetChatId = item.chat_id || item.id || item._id;
-              console.log('Opening chat with targetChatId:', targetChatId);
-              if (targetChatId) {
-                router.push(`/conversation?chatId=${targetChatId}`);
-              } else {
-                Alert.alert('Info', 'Chat will be available soon');
-              }
-            }}
-            activeOpacity={0.7}
-          >
-            <LinearGradient
-              colors={BRAND_COLORS.gradientPrimary}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.chatGradient}
-            >
-              <MaterialCommunityIcons name="chat" size={20} color={COLORS.white} />
-              <Text style={styles.chatButtonText}>Open Chat</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        )}
+          )}
         </View>
       </View>
     );
@@ -428,34 +422,37 @@ export default function ApplicationsScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={BRAND_COLORS.primary} />
+        <ActivityIndicator size="large" color="#7C3AED" />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      {/* Header with Back Button */}
-      <LinearGradient colors={BRAND_COLORS.gradientPrimary} style={styles.header}>
+      {/* Dark Glassmorphism Header */}
+      <View style={styles.header}>
         <View style={styles.headerTop}>
           <TouchableOpacity 
             style={styles.backButton}
             onPress={handleGoBack}
+            activeOpacity={0.7}
           >
-            <MaterialCommunityIcons name="arrow-left" size={24} color={BRAND_COLORS.white} />
+            <MaterialCommunityIcons name="arrow-left" size={22} color="#FFFFFF" />
           </TouchableOpacity>
           <View style={styles.headerTextContainer}>
-            <Text style={styles.headerTitle}>
+            <Text style={styles.headerTitle} numberOfLines={1}>
               {campaignName || 'Applications'}
             </Text>
-            <Text style={styles.headerSubtitle}>
-              {applications.filter(a => a.status === 'pending').length} pending • {' '}
-              {applications.filter(a => a.status === 'accepted').length} accepted • {' '}
-              {applications.filter(a => a.status === 'rejected').length} rejected
-            </Text>
+            <View style={styles.headerSubtitleRow}>
+              <Text style={styles.subBadgePending}>{applications.filter(a => a.status === 'pending').length} pending</Text>
+              <Text style={styles.subDot}>•</Text>
+              <Text style={styles.subBadgeAccepted}>{applications.filter(a => a.status === 'accepted').length} accepted</Text>
+              <Text style={styles.subDot}>•</Text>
+              <Text style={styles.subBadgeRejected}>{applications.filter(a => a.status === 'rejected').length} rejected</Text>
+            </View>
           </View>
         </View>
-      </LinearGradient>
+      </View>
 
       {/* Applications List */}
       <FlatList
@@ -801,144 +798,162 @@ export default function ApplicationsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  viewProfileBtn: {
-    marginTop: 12,
-    backgroundColor: 'rgba(168, 85, 247, 0.16)',
-    borderWidth: 1,
-    borderColor: '#A855F7',
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  viewProfileBtnText: {
-    color: '#5B21B6',
-    fontSize: 13,
-    fontWeight: '700',
+    backgroundColor: '#07080F',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#07080F',
   },
   header: {
-    paddingTop: 60,
-    paddingBottom: 20,
+    paddingTop: 54,
+    paddingBottom: 16,
     paddingHorizontal: 20,
+    backgroundColor: '#07080F',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(124, 58, 237, 0.15)',
   },
   headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   backButton: {
-    marginRight: 12,
-    padding: 4,
+    marginRight: 14,
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: '#141422',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(124, 58, 237, 0.25)',
   },
   headerTextContainer: {
     flex: 1,
   },
   headerTitle: {
-    fontSize: 24,
-    fontFamily: FONTS.bold,
-    color: COLORS.white,
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.4,
   },
-  headerSubtitle: {
-    fontSize: 13,
-    fontFamily: FONTS.regular,
-    color: 'rgba(255,255,255,0.9)',
+  headerSubtitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginTop: 4,
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  subBadgePending: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#FBBF24',
+  },
+  subBadgeAccepted: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#34D399',
+  },
+  subBadgeRejected: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#F87171',
+  },
+  subDot: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.3)',
   },
   listContent: {
     padding: 16,
+    paddingBottom: 100,
   },
   applicationCard: {
-    backgroundColor: '#14141C',
+    backgroundColor: '#0F111E',
     borderRadius: 20,
-    padding: 0,
-    marginBottom: 20,
-    shadowColor: BRAND_COLORS.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(124, 58, 237, 0.22)',
+    position: 'relative',
     overflow: 'hidden',
   },
-  cardTopBorder: {
-    height: 4,
-    width: '100%',
+  cardLeftStripe: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3.5,
+    backgroundColor: '#7C3AED',
   },
   cardContent: {
-    padding: 20,
+    padding: 16,
+    paddingLeft: 18,
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    marginBottom: 16,
-    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4.5,
+    borderRadius: 8,
+    marginBottom: 14,
+    gap: 5,
+    borderWidth: 1,
   },
   statusPending: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: 'rgba(217, 119, 6, 0.18)',
+    borderColor: 'rgba(245, 158, 11, 0.35)',
   },
   statusAccepted: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: 'rgba(16, 185, 129, 0.18)',
+    borderColor: 'rgba(16, 185, 129, 0.35)',
   },
   statusRejected: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: 'rgba(239, 68, 68, 0.18)',
+    borderColor: 'rgba(239, 68, 68, 0.35)',
   },
   statusText: {
-    fontSize: 12,
-    fontFamily: FONTS.bold,
+    fontSize: 11.5,
+    fontWeight: '700',
     letterSpacing: 0.5,
   },
   profileCard: {
-    marginBottom: 16,
+    marginBottom: 14,
   },
   profileHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
   },
   avatarWrapper: {
-    marginRight: 16,
+    marginRight: 14,
   },
   avatarGradientBorder: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+    width: 62,
+    height: 62,
+    borderRadius: 31,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 3,
+    padding: 2.5,
   },
   profileAvatar: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: '#F3F4F6',
+    width: 57,
+    height: 57,
+    borderRadius: 28.5,
+    backgroundColor: '#1E1B4B',
   },
   profileInfo: {
     flex: 1,
-    marginLeft: 16,
   },
   profileName: {
-    fontSize: 18,
-    fontFamily: FONTS.bold,
-    color: COLORS.text,
-    marginBottom: 4,
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 2,
   },
   profileEmail: {
-    fontSize: 14,
-    fontFamily: FONTS.regular,
-    color: COLORS.textGray,
-    marginBottom: 6,
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginBottom: 4,
   },
   locationRow: {
     flexDirection: 'row',
@@ -946,119 +961,113 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   locationText: {
-    fontSize: 13,
-    fontFamily: FONTS.medium,
-    color: BRAND_COLORS.primary,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 12,
-  },
-  statBox: {
-    flex: 1,
-    backgroundColor: '#14141C',
-    borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-  },
-  statNumber: {
-    fontSize: 20,
-    fontFamily: FONTS.bold,
-    color: COLORS.text,
-    marginTop: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    fontFamily: FONTS.regular,
-    color: COLORS.textGray,
-    marginTop: 2,
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: '#C084FC',
   },
   tagsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
+    marginTop: 10,
   },
   tag: {
-    backgroundColor: 'rgba(168, 85, 247, 0.16)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    backgroundColor: '#1C1536',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#A855F7',
+    borderColor: '#3B296B',
   },
   tagText: {
-    fontSize: 12,
-    fontFamily: FONTS.medium,
-    color: BRAND_COLORS.primary,
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#C084FC',
+  },
+  viewProfileBtn: {
+    marginTop: 12,
+    backgroundColor: '#1B1433',
+    borderWidth: 1,
+    borderColor: 'rgba(168, 85, 247, 0.35)',
+    borderRadius: 12,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  viewProfileBtnText: {
+    color: '#C084FC',
+    fontSize: 12.5,
+    fontWeight: '700',
   },
   proposalCard: {
-    backgroundColor: '#F0F9FF',
+    backgroundColor: '#141829',
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderLeftWidth: 3,
-    borderLeftColor: BRAND_COLORS.primary,
+    padding: 14,
+    marginBottom: 14,
+    borderLeftWidth: 3.5,
+    borderLeftColor: '#7C3AED',
+    borderWidth: 1,
+    borderColor: 'rgba(124, 58, 237, 0.2)',
   },
   proposalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
+    gap: 6,
+    marginBottom: 6,
   },
   proposalTitle: {
-    fontSize: 14,
-    fontFamily: FONTS.bold,
-    color: BRAND_COLORS.primary,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#A855F7',
   },
   proposalText: {
-    fontSize: 14,
-    fontFamily: FONTS.regular,
-    color: COLORS.text,
-    lineHeight: 22,
+    fontSize: 13.5,
+    color: '#E2E8F0',
+    lineHeight: 20,
+    fontWeight: '500',
   },
   dateRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   dateLabel: {
-    fontSize: 13,
-    fontFamily: FONTS.regular,
-    color: COLORS.textGray,
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.45)',
   },
   dateValue: {
-    fontSize: 13,
-    fontFamily: FONTS.bold,
-    color: COLORS.text,
+    fontSize: 12,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.85)',
   },
   actionButtons: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
   },
   rejectButton: {
     flex: 1,
-    height: 50,
-    backgroundColor: '#FEE2E2',
+    height: 44,
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
     borderWidth: 1,
-    borderColor: '#FCA5A5',
+    borderColor: 'rgba(239, 68, 68, 0.35)',
   },
   rejectButtonText: {
-    fontSize: 15,
-    fontFamily: FONTS.bold,
-    color: '#DC2626',
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#F87171',
   },
   acceptButton: {
-    flex: 2,
-    height: 50,
+    flex: 1.6,
+    height: 44,
     borderRadius: 12,
     overflow: 'hidden',
   },
@@ -1067,15 +1076,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
   },
   acceptButtonText: {
-    fontSize: 15,
-    fontFamily: FONTS.bold,
-    color: COLORS.white,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   chatButton: {
-    height: 50,
+    height: 44,
     borderRadius: 12,
     overflow: 'hidden',
   },
@@ -1084,147 +1093,125 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
   },
   chatButtonText: {
-    fontSize: 15,
-    fontFamily: FONTS.bold,
-    color: COLORS.white,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 60,
+    paddingVertical: 80,
   },
   emptyText: {
     fontSize: 18,
-    fontFamily: FONTS.bold,
-    color: COLORS.text,
+    fontWeight: '700',
+    color: '#FFFFFF',
     marginTop: 16,
   },
   emptySubtext: {
     fontSize: 14,
-    fontFamily: FONTS.regular,
-    color: COLORS.textGray,
-    marginTop: 8,
+    color: 'rgba(255,255,255,0.5)',
+    marginTop: 6,
     textAlign: 'center',
   },
-  
-  // Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   modalContainer: {
-    backgroundColor: '#14141C',
+    backgroundColor: '#0F111E',
     borderRadius: 24,
-    padding: 32,
+    padding: 28,
     width: '100%',
     maxWidth: 400,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(124, 58, 237, 0.3)',
   },
   modalIconContainer: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   modalIconGradient: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: BRAND_COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
   },
   modalTitle: {
-    fontSize: 24,
-    fontFamily: FONTS.bold,
-    color: COLORS.text,
-    marginBottom: 12,
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 8,
     textAlign: 'center',
   },
   modalMessage: {
-    fontSize: 15,
-    fontFamily: FONTS.regular,
-    color: COLORS.textGray,
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.65)',
     textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 28,
+    lineHeight: 20,
+    marginBottom: 24,
   },
   modalButtons: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
     width: '100%',
   },
   modalCancelButton: {
     flex: 1,
-    height: 52,
-    backgroundColor: '#F3F4F6',
+    height: 46,
+    backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: 'rgba(255,255,255,0.15)',
   },
   modalCancelText: {
-    fontSize: 16,
-    fontFamily: FONTS.bold,
-    color: '#6B7280',
+    fontSize: 14,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.7)',
   },
   modalAcceptButton: {
     flex: 1,
-    height: 52,
+    height: 46,
     borderRadius: 12,
     overflow: 'hidden',
-    shadowColor: BRAND_COLORS.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
   },
   modalAcceptGradient: {
     flex: 1,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   modalAcceptText: {
-    fontSize: 16,
-    fontFamily: FONTS.bold,
+    fontSize: 14,
+    fontWeight: '700',
     color: '#FFFFFF',
   },
   modalRejectButton: {
     flex: 1,
-    height: 52,
+    height: 46,
     borderRadius: 12,
     overflow: 'hidden',
-    shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
   },
   modalRejectGradient: {
     flex: 1,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   modalRejectText: {
-    fontSize: 16,
-    fontFamily: FONTS.bold,
+    fontSize: 14,
+    fontWeight: '700',
     color: '#FFFFFF',
   },
 });
