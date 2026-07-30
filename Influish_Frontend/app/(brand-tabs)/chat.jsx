@@ -516,16 +516,16 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 16,
     fontWeight: '700',
-    color: THEME.text,
+    color: '#111827',
     flex: 1,
   },
   timeText: {
     fontSize: 12,
-    color: THEME.textLight,
+    color: '#6B7280',
   },
   lastMessage: {
     fontSize: 14,
-    color: THEME.textLight,
+    color: '#4B5563',
     lineHeight: 20,
     flex: 1,
   },
@@ -538,7 +538,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(5, 38, 89, 0.08)',
+    backgroundColor: 'rgba(124, 58, 237, 0.12)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -546,11 +546,12 @@ const styles = StyleSheet.create({
   messageCountText: {
     fontSize: 11,
     fontFamily: FONTS?.medium || 'System',
-    color: COLORS?.textGray || '#666',
+    color: '#7C3AED',
+    fontWeight: '600',
   },
   unreadMessage: {
-    color: THEME.text,
-    fontWeight: '600',
+    color: '#111827',
+    fontWeight: '700',
   },
   conversationMeta: {
     alignItems: 'center',

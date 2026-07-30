@@ -80,7 +80,7 @@ const AnimatedCampaignCard = ({ item, onComplete, onToggleStatus }) => {
               {item.campaign_name}
             </Text>
             <View style={styles.locationRow}>
-              <MaterialCommunityIcons name="map-marker" size={14} color={THEME.textLight} />
+              <MaterialCommunityIcons name="map-marker" size={14} color="#6B7280" />
               <Text style={styles.locationText}>{item.influencer_location}</Text>
             </View>
           </View>
@@ -183,7 +183,7 @@ const AnimatedCampaignCard = ({ item, onComplete, onToggleStatus }) => {
 
           <TouchableOpacity
             style={styles.completeIconBtn}
-            onPress={() => onComplete(item.id)}
+            onPress={() => onComplete(item.id || item._id)}
             activeOpacity={0.7}
           >
             <MaterialCommunityIcons name="check-circle-outline" size={22} color={THEME.success} />
@@ -241,39 +241,43 @@ export default function CampaignRecord() {
     );
   };
 
-  const handleCompleteCampaign = (id) => {
-    Alert.alert(
-      'Mark as Complete',
-      'Are you sure you want to mark this campaign as completed? This will hide it from influencers.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Complete',
-          onPress: async () => {
-            const headers = await getAuthHeader();
-            await fetch(getApiUrl(API.CAMPAIGNS.UPDATE.replace(':id', id)), {
-              method: 'PUT',
-              headers: { ...headers, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ status: 'completed' }),
-            });
-            fetchCampaigns();
-          },
-        },
-      ]
+  const handleCompleteCampaign = async (id) => {
+    // Optimistic status update for instant 0ms web & mobile response
+    setCampaigns((prev) =>
+      prev.map((c) => (c.id === id || c._id === id ? { ...c, status: 'completed' } : c))
     );
+    try {
+      const headers = await getAuthHeader();
+      await fetch(getApiUrl(`/api/campaigns/${id}`), {
+        method: 'PUT',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'completed' }),
+      });
+    } catch (e) {
+      console.error('Error completing campaign:', e);
+    } finally {
+      fetchCampaigns();
+    }
   };
 
   const handleToggleStatus = async (id, status) => {
     const newStatus = status === 'active' ? 'paused' : 'active';
-    const headers = await getAuthHeader();
-
-    await fetch(getApiUrl(API.CAMPAIGNS.UPDATE.replace(':id', id)), {
-      method: 'PUT',
-      headers: { ...headers, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus }),
-    });
-
-    fetchCampaigns();
+    // Optimistic status update for instant 0ms web & mobile response
+    setCampaigns((prev) =>
+      prev.map((c) => (c.id === id || c._id === id ? { ...c, status: newStatus } : c))
+    );
+    try {
+      const headers = await getAuthHeader();
+      await fetch(getApiUrl(`/api/campaigns/${id}`), {
+        method: 'PUT',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+    } catch (e) {
+      console.error('Error toggling status:', e);
+    } finally {
+      fetchCampaigns();
+    }
   };
 
   const filteredCampaigns =
@@ -319,29 +323,23 @@ export default function CampaignRecord() {
 
       {/* Filter Tabs */}
       <View style={styles.filterContainer}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterScrollContent}
-        >
-          {['all', 'active', 'paused', 'completed'].map((f) => (
-            <TouchableOpacity
-              key={f}
-              onPress={() => setFilter(f)}
-              style={[styles.filterTab, filter === f && styles.filterTabActive]}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.filterTabText, filter === f && styles.filterTabTextActive]}>
-                {f.charAt(0).toUpperCase() + f.slice(1)}
+        {['all', 'active', 'paused', 'completed'].map((f) => (
+          <TouchableOpacity
+            key={f}
+            onPress={() => setFilter(f)}
+            style={[styles.filterTab, filter === f && styles.filterTabActive]}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.filterTabText, filter === f && styles.filterTabTextActive]} numberOfLines={1}>
+              {f.charAt(0).toUpperCase() + f.slice(1)}
+            </Text>
+            <View style={[styles.filterBadge, filter === f && styles.filterBadgeActive]}>
+              <Text style={[styles.filterBadgeText, filter === f && styles.filterBadgeTextActive]}>
+                {getFilterCount(f)}
               </Text>
-              <View style={[styles.filterBadge, filter === f && styles.filterBadgeActive]}>
-                <Text style={[styles.filterBadgeText, filter === f && styles.filterBadgeTextActive]}>
-                  {getFilterCount(f)}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+            </View>
+          </TouchableOpacity>
+        ))}
       </View>
 
       {/* Campaign List */}
@@ -427,48 +425,52 @@ const styles = StyleSheet.create({
   },
 
   filterContainer: {
-    backgroundColor: '#fff',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: THEME.border,
-  },
-  filterScrollContent: {
-    paddingHorizontal: 20,
-    gap: 12,
-  },
-  filterTab: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 18,
-    paddingVertical: 10,
+    justifyContent: 'space-between',
+    backgroundColor: '#0B0B10',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.08)',
+    gap: 6,
+  },
+  filterTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 9,
     borderRadius: 12,
-    backgroundColor: THEME.background,
-    gap: 8,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    gap: 4,
   },
   filterTabActive: {
     backgroundColor: THEME.primary,
   },
   filterTabText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
-    color: THEME.text,
+    color: 'rgba(255,255,255,0.7)',
   },
   filterTabTextActive: {
     color: '#fff',
+    fontWeight: '700',
   },
   filterBadge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 10,
-    backgroundColor: '#fff',
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.15)',
   },
   filterBadgeActive: {
     backgroundColor: 'rgba(255,255,255,0.25)',
   },
   filterBadgeText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
-    color: THEME.text,
+    color: '#fff',
   },
   filterBadgeTextActive: {
     color: '#fff',
@@ -508,7 +510,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: THEME.text,
+    color: '#111827',
     marginBottom: 6,
     lineHeight: 24,
   },
@@ -519,7 +521,7 @@ const styles = StyleSheet.create({
   },
   locationText: {
     fontSize: 13,
-    color: THEME.textLight,
+    color: '#4B5563',
   },
   statusBadge: {
     flexDirection: 'row',

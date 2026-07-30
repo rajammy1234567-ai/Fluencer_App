@@ -215,7 +215,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     const values = [];
 
     Object.keys(updateData).forEach(key => {
-      if (updateData[key] !== undefined) {
+      if (updateData[key] !== undefined && key !== 'id' && key !== '_id') {
         fields.push(`${key} = ?`);
         values.push(updateData[key]);
       }

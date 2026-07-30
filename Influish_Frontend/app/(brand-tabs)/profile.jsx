@@ -526,7 +526,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
     paddingTop: 50,
-    paddingBottom: 120,
+    paddingBottom: 180,
   },
   centerContainer: {
     flex: 1,

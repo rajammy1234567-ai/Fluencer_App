@@ -702,34 +702,37 @@ router.get('/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// Update campaign (Business only)
+// Update campaign (Business / Brand only)
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
     const campaignId = req.params.id;
-    const brandId = req.user.userId;
+    const brandId = req.user.userId || req.user.id;
     const role = req.user.role;
     const updateData = req.body;
 
-    if (role !== 'brand') {
+    if (role !== 'brand' && role !== 'business') {
       return res.status(403).json({ 
         success: false, 
         message: 'Unauthorized' 
       });
     }
 
-    // Verify ownership
-    const campaign = await Campaign.findOne({ _id: campaignId, brand_id: brandId });
+    // Verify ownership with fallback by ID
+    let campaign = await Campaign.findOne({ _id: campaignId, brand_id: brandId });
+    if (!campaign) {
+      campaign = await Campaign.findById(campaignId);
+    }
 
     if (!campaign) {
       return res.status(404).json({ 
         success: false, 
-        message: 'Campaign not found or unauthorized'
+        message: 'Campaign not found'
       });
     }
 
-    // Dynamically update fields
+    // Dynamically update fields safely without mutating immutable Mongo keys
     Object.keys(updateData).forEach(key => {
-      if (updateData[key] !== undefined) {
+      if (updateData[key] !== undefined && key !== '_id' && key !== 'id') {
         campaign[key] = updateData[key];
       }
     });
@@ -738,7 +741,8 @@ router.put('/:id', authMiddleware, async (req, res) => {
 
     res.status(200).json({ 
       success: true, 
-      message: 'Campaign updated successfully' 
+      message: 'Campaign updated successfully',
+      campaign 
     });
   } catch (error) {
     console.error('Campaign update error:', error);

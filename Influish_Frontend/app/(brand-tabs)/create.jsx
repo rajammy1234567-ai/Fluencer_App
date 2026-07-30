@@ -43,11 +43,11 @@ const THEME = {
   warning: '#EC4899',
   danger: '#C47070',
   background: '#0B0B10',
-  surface: '#FFFFFF',
+  surface: '#181824',
   text: '#FFFFFF',
-  textSecondary: 'rgba(255,255,255,0.55)',
-  textMuted: 'rgba(255,255,255,0.42)',
-  border: 'rgba(255,255,255,0.12)',
+  textSecondary: 'rgba(255,255,255,0.75)',
+  textMuted: 'rgba(255,255,255,0.65)',
+  border: 'rgba(255,255,255,0.15)',
   white: '#FFFFFF',
 };
 
@@ -432,7 +432,7 @@ export default function CreateCampaign() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'rgba(255,255,255,0.08)' },
+  container: { flex: 1, backgroundColor: '#0B0B10' },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: THEME.border },
   modalTitle: { fontSize: 18, fontWeight: '700', color: THEME.text },
   stepIndicator: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16 },
