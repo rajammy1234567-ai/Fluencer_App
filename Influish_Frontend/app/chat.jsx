@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Image,
+  TextInput,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -28,12 +29,53 @@ const BLUE_LIGHT = '#60a5fa';
 export default function ChatList() {
   const navigation = useNavigation();
   const [chats, setChats] = useState([]);
+  const [filteredChats, setFilteredChats] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     fetchChats();
   }, []);
+
+  useEffect(() => {
+    if (!Array.isArray(chats)) {
+      setFilteredChats([]);
+      return;
+    }
+
+    if (!searchQuery.trim()) {
+      setFilteredChats(chats);
+      return;
+    }
+
+    const q = searchQuery.toLowerCase().trim();
+
+    // Filter matching conversations
+    const matches = chats.filter((item) => {
+      const name = (item.brand_name || item.influencer_name || '').toLowerCase();
+      const camp = (item.campaign_name || '').toLowerCase();
+      const msg = (item.last_message || '').toLowerCase();
+      return name.includes(q) || camp.includes(q) || msg.includes(q);
+    });
+
+    // Sort matching item to the TOP of the list
+    matches.sort((a, b) => {
+      const aName = (a.brand_name || a.influencer_name || '').toLowerCase();
+      const bName = (b.brand_name || b.influencer_name || '').toLowerCase();
+      const aCamp = (a.campaign_name || '').toLowerCase();
+      const bCamp = (b.campaign_name || '').toLowerCase();
+
+      const aStarts = aName.startsWith(q) || aCamp.startsWith(q);
+      const bStarts = bName.startsWith(q) || bCamp.startsWith(q);
+
+      if (aStarts && !bStarts) return -1;
+      if (!aStarts && bStarts) return 1;
+      return 0;
+    });
+
+    setFilteredChats(matches);
+  }, [chats, searchQuery]);
 
   const fetchChats = async () => {
     try {
@@ -43,16 +85,18 @@ export default function ChatList() {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        setChats(data.chats || []);
+        const list = data.chats || [];
+        setChats(list);
+        setFilteredChats(list);
       } else {
-        // If chat system not set up yet, just show empty state
         console.log('Chat system not ready:', data.message);
         setChats([]);
+        setFilteredChats([]);
       }
     } catch (error) {
       console.error('Error fetching chats:', error);
-      // On error, show empty state instead of crashing
       setChats([]);
+      setFilteredChats([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -184,24 +228,36 @@ export default function ChatList() {
               </LinearGradient>
               <Text style={styles.headerTitle}>Messages</Text>
               <View style={styles.countPill}>
-                <Text style={styles.countPillText}>{chats.length}</Text>
+                <Text style={styles.countPillText}>{filteredChats.length}</Text>
               </View>
             </View>
             <Text style={styles.headerSubtitle}>
-              {chats.length} active {chats.length === 1 ? 'conversation' : 'conversations'}
+              {filteredChats.length} active {filteredChats.length === 1 ? 'conversation' : 'conversations'}
             </Text>
+          </View>
+
+          {/* Inline Compact Search Input */}
+          <View style={styles.searchInlineBox}>
+            <MaterialCommunityIcons name="magnify" size={16} color="rgba(255,255,255,0.4)" />
+            <TextInput
+              style={styles.searchInlineInput}
+              placeholder="Search conversations..."
+              placeholderTextColor="rgba(255,255,255,0.35)"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
           </View>
         </View>
       </View>
 
       <FlatList
-        data={chats}
+        data={filteredChats}
         renderItem={renderChat}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item, idx) => item.id?.toString() || `chat-${idx}`}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         ListFooterComponent={() => (
-          chats.length > 0 ? (
+          filteredChats.length > 0 ? (
             <View style={styles.footerNoteContainer}>
               <MaterialCommunityIcons name="sparkles" size={14} color="#A855F7" />
               <Text style={styles.footerNoteText}>All your conversations are secure</Text>
@@ -298,6 +354,23 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: 'rgba(255, 255, 255, 0.45)',
     marginTop: 4,
+  },
+  searchInlineBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0F111E',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(124, 58, 237, 0.22)',
+    maxWidth: 160,
+  },
+  searchInlineInput: {
+    flex: 1,
+    marginLeft: 6,
+    fontSize: 12,
+    color: '#FFFFFF',
   },
   listContent: {
     paddingHorizontal: 16,
