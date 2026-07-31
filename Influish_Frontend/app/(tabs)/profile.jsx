@@ -612,20 +612,38 @@ export default function Profile() {
   };
 
   const savePhoneToBackend = async (phoneVal) => {
+    const cleanDigits = String(phoneVal).replace(/\D/g, '');
+    if (cleanDigits.length !== 10) {
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.alert('❌ Error: Phone number must be a valid 10-digit mobile number (e.g., 9876543210)');
+      } else {
+        Alert.alert('Invalid Phone Number', 'Please enter a valid 10-digit mobile number (e.g., 9876543210)');
+      }
+      return;
+    }
     try {
       const token = await storage.getToken();
       if (token) {
-        await fetch(`${API_CONFIG.BASE_URL}/api/influencers/profile`, {
+        const res = await fetch(`${API_CONFIG.BASE_URL}/api/influencers/profile`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify({ phone: phoneVal.trim() })
+          body: JSON.stringify({ phone: cleanDigits })
         });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          Alert.alert('Error', data.message || 'Failed to update phone number');
+          return;
+        }
       }
-      setProfile(prev => ({ ...prev, phone: phoneVal.trim() }));
-      Alert.alert('Phone Updated', 'Your phone number has been updated and masked on your profile!');
+      setProfile(prev => ({ ...prev, phone: cleanDigits }));
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.alert('🎉 Phone number updated and masked for privacy!');
+      } else {
+        Alert.alert('Success 🎉', 'Your phone number has been updated and masked on your profile!');
+      }
     } catch (e) {
       console.error('Error saving phone:', e);
     }

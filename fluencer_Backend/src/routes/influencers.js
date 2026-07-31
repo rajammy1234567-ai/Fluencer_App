@@ -126,7 +126,7 @@ router.post('/profile', authMiddleware, async (req, res) => {
 router.put('/profile', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.userId || req.user.id;
-    const { profile_picture, profile_image, logo, name, bio, followers, location, instagram, youtube, twitter } = req.body;
+    const { profile_picture, profile_image, logo, name, bio, followers, location, instagram, youtube, twitter, phone } = req.body;
 
     const updateData = {};
     if (profile_picture || profile_image || logo) {
@@ -142,7 +142,23 @@ router.put('/profile', authMiddleware, async (req, res) => {
     if (instagram !== undefined) updateData.instagram = instagram;
     if (youtube !== undefined) updateData.youtube = youtube;
     if (twitter !== undefined) updateData.twitter = twitter;
-    if (phone !== undefined) updateData.phone = phone;
+    
+    if (phone !== undefined && phone !== null) {
+      const cleanPhone = String(phone).replace(/\D/g, '');
+      if (cleanPhone.length !== 10) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Phone number must be a valid 10-digit mobile number' 
+        });
+      }
+      updateData.phone = cleanPhone;
+      try {
+        const User = (await import('../models/User.js')).default;
+        await User.findByIdAndUpdate(userId, { phone: cleanPhone });
+      } catch (uErr) {
+        console.error('Failed to sync user phone:', uErr);
+      }
+    }
 
     const profile = await InfluencerProfile.findOneAndUpdate(
       { user_id: userId },
@@ -258,50 +274,77 @@ router.get('/profile-exists', authMiddleware, async (req, res) => {
   }
 });
 
-// Helper to parse follower count string into count integer and clean text
+// Helper to parse follower count string into count integer and clean text with strict validation
 function parseFollowerNumber(val) {
-  if (!val) return { text: '125K', count: 125000 };
+  if (!val) return null;
   const raw = String(val).trim();
+  if (!raw) return null;
+  
+  // Reject invalid strings (e.g. non-numeric, special symbols except K/M/comma/dot)
+  if (!/^[0-9,.\s]+[KMkm]?$/.test(raw)) {
+    return null;
+  }
+  
   const str = raw.toUpperCase();
-  let count = 125000;
+  let count = 0;
   if (str.endsWith('M')) {
-    count = Math.round(parseFloat(str.replace('M', '')) * 1000000);
+    const numPart = parseFloat(str.replace('M', '').trim());
+    if (isNaN(numPart) || numPart <= 0) return null;
+    count = Math.round(numPart * 1000000);
   } else if (str.endsWith('K')) {
-    count = Math.round(parseFloat(str.replace('K', '')) * 1000);
+    const numPart = parseFloat(str.replace('K', '').trim());
+    if (isNaN(numPart) || numPart <= 0) return null;
+    count = Math.round(numPart * 1000);
   } else {
-    const num = parseInt(str.replace(/,/g, ''), 10);
-    count = isNaN(num) || num <= 0 ? 125000 : num;
+    const cleanNum = parseInt(str.replace(/,/g, ''), 10);
+    if (isNaN(cleanNum) || cleanNum <= 0) return null;
+    count = cleanNum;
   }
-  let text = raw;
-  if (!str.endsWith('K') && !str.endsWith('M')) {
-    if (count >= 1000000) {
-      text = (count / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
-    } else if (count >= 1000) {
-      text = (count / 1000).toFixed(0) + 'K';
-    }
+  
+  if (count <= 0) return null;
+  
+  let text = '';
+  if (count >= 1000000) {
+    text = (count / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  } else if (count >= 1000) {
+    text = (count / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+  } else {
+    text = String(count);
   }
+  
   return { text, count };
 }
 
-// Update follower count manually
+// Update follower count manually with strict validation
 router.post('/update-followers', authMiddleware, async (req, res) => {
   try {
     const { followers } = req.body;
     const userId = req.user.userId || req.user.id;
 
-    if (!followers) {
-      return res.status(400).json({ success: false, message: 'Followers count string is required' });
+    if (!followers || !String(followers).trim()) {
+      return res.status(400).json({ success: false, message: 'Please enter a valid follower count (e.g., 5000, 125K, 1.5M)' });
     }
 
-    const { text, count } = parseFollowerNumber(followers);
+    const parsed = parseFollowerNumber(followers);
+    if (!parsed) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid follower count format. Please enter a number or use suffixes like 10K, 125K, 1.5M' 
+      });
+    }
 
     const profile = await InfluencerProfile.findOneAndUpdate(
       { user_id: userId },
-      { followers: text, followers_count: count },
+      { followers: parsed.text, followers_count: parsed.count },
       { new: true, upsert: true }
     );
 
-    res.json({ success: true, message: 'Follower count updated successfully!', followers: profile.followers, followers_count: profile.followers_count });
+    res.json({ 
+      success: true, 
+      message: `Follower count updated successfully!`, 
+      followers: profile.followers, 
+      followers_count: profile.followers_count 
+    });
   } catch (error) {
     console.error('Follower update error:', error);
     res.status(500).json({ success: false, message: 'Failed to update follower count', error: error.message });
