@@ -274,9 +274,10 @@ export default function ApplicationsScreen() {
           <View style={styles.avatarWrap}>
             <Image
               source={{ 
-                uri: item.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.influencer_name || 'Creator')}&size=200&background=7c3aed&color=fff`
+                uri: item.profile_image || item.profile_picture || `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500`
               }}
               style={styles.creatorAvatar}
+              resizeMode="cover"
             />
             {/* Rating Badge */}
             <View style={styles.ratingBadge}>
@@ -303,7 +304,7 @@ export default function ApplicationsScreen() {
           <View style={styles.statCol}>
             <View style={styles.statIconValRow}>
               <MaterialCommunityIcons name="instagram" size={16} color="#C084FC" />
-              <Text style={styles.statValText}>{item.followers || '54K'}</Text>
+              <Text style={styles.statValText}>{item.followers || '125K'}</Text>
             </View>
             <Text style={styles.statLblText}>Followers</Text>
           </View>

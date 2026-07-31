@@ -141,7 +141,11 @@ const BrandSwipeCard = ({ brand, onSwipeRight, onSwipeLeft, index = 0, isTop = f
 
         {/* Card Main Image */}
         <View style={styles.imageContainer}>
-          <Image source={brand.image} style={styles.image} />
+          <Image 
+            source={typeof brand.image === 'string' ? { uri: brand.image } : (brand.image || { uri: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800' })} 
+            style={styles.image} 
+            resizeMode="cover"
+          />
           
           <LinearGradient
             colors={['transparent', 'rgba(11, 11, 16, 0.65)', 'rgba(11, 11, 16, 0.95)']}
