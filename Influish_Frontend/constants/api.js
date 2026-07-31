@@ -5,11 +5,8 @@
 // - For iOS Simulator: Use 'http://localhost:3000'
 // - Current IP might be outdated - check console logs if APIs fail
 export const API_CONFIG = {
-  // BASE_URL: 'http://15.207.108.137', 
-  // BASE_URL: 'https://fluencer-backend.onrender.com',
-  // BASE_URL: 'http://10.162.1.92:3000',
-  BASE_URL: 'https://fluencer-app.onrender.com',
-  // BASE_URL: 'http://localhost:3000',
+  // BASE_URL: 'https://fluencer-app.onrender.com', // Slow Render free-tier cold-start (30s delay)
+  BASE_URL: 'http://localhost:3000', // Instant local backend server (0.01s response time)
 
   // Endpoints for utils/api.js
   endpoints: {

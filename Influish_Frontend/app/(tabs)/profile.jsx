@@ -84,6 +84,8 @@ export default function Profile() {
   const [mediaTitle, setMediaTitle] = useState('');
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [previewMedia, setPreviewMedia] = useState(null);
+  const [uploadingProfilePic, setUploadingProfilePic] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   // Local File (Photo / Video MP4) picker for Cloudinary upload
   const handlePickLocalFile = async (typeToPick) => {
@@ -381,30 +383,30 @@ export default function Profile() {
    * Check if influencer has a valid profile picture
    */
   const hasValidProfilePicture = () => {
-    const pictureUri = profile?.profile_picture || profile?.logo;
+    if (imageError) return false;
+    const pictureUri = profile?.profile_picture || profile?.profile_image || profile?.avatar || profile?.logo;
     if (pictureUri) {
       const uri = String(pictureUri).trim();
-      return uri.startsWith('http://') || uri.startsWith('https://');
+      return uri.startsWith('http://') || uri.startsWith('https://') || uri.startsWith('data:image');
     }
     return false;
   };
 
   /**
    * Get safe influencer profile picture URI
-   * - Only accept valid http/https URLs
-   * - Fallback to local placeholder
+   * - Checks profile_picture, profile_image, avatar, logo
    * - Android decoder safe
    */
   const getInfluencerProfilePicture = () => {
-    // Check if profile exists and has profile_picture
-    if (profile && (profile.profile_picture || profile.logo)) {
-      const uri = String(profile.profile_picture || profile.logo).trim();
-      // Only accept valid HTTP/HTTPS URLs
-      if (uri.startsWith('http://') || uri.startsWith('https://')) {
-        return { uri };
+    if (profile && !imageError) {
+      const pictureUri = profile.profile_picture || profile.profile_image || profile.avatar || profile.logo;
+      if (pictureUri) {
+        const uri = String(pictureUri).trim();
+        if (uri.startsWith('http://') || uri.startsWith('https://') || uri.startsWith('data:image')) {
+          return { uri };
+        }
       }
     }
-    // Fallback to local image
     return FALLBACK_LOGO;
   };
 
@@ -492,12 +494,150 @@ export default function Profile() {
     }
   };
 
+  const handleUploadProfilePic = async () => {
+    try {
+      setUploadingProfilePic(true);
+
+      const saveImageToBackend = async (fileOrUri) => {
+        try {
+          const uploadedUrl = await uploadToCloudinary(fileOrUri);
+          if (uploadedUrl) {
+            const token = await storage.getToken();
+            if (token) {
+              await fetch(`${API_CONFIG.BASE_URL}/api/influencers/upload-image`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ image_url: uploadedUrl, profile_image: uploadedUrl, profile_picture: uploadedUrl })
+              });
+
+              await fetch(`${API_CONFIG.BASE_URL}/api/influencers/profile`, {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ profile_picture: uploadedUrl, profile_image: uploadedUrl })
+              });
+            }
+
+            setProfile(prev => ({
+              ...prev,
+              profile_picture: uploadedUrl,
+              profile_image: uploadedUrl,
+              avatar: uploadedUrl,
+            }));
+
+            if (Platform.OS === 'web' && typeof window !== 'undefined') {
+              window.alert('🎉 Creator Profile Picture updated!');
+            } else {
+              Alert.alert('🎉 Success', 'Profile picture updated successfully!');
+            }
+          }
+        } catch (err) {
+          console.error('Error saving image:', err);
+          Alert.alert('Error', 'Failed to save profile picture');
+        } finally {
+          setUploadingProfilePic(false);
+        }
+      };
+
+      if (Platform.OS === 'web' && typeof document !== 'undefined') {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = async (e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            await saveImageToBackend(file);
+          } else {
+            setUploadingProfilePic(false);
+          }
+        };
+        input.click();
+      } else {
+        if (typeof window !== 'undefined' && window.prompt) {
+          const url = window.prompt('Enter Profile Picture Image URL:', '');
+          if (url) await saveImageToBackend(url);
+          else setUploadingProfilePic(false);
+        } else {
+          Alert.prompt(
+            'Upload Creator Photo 📸',
+            'Paste image URL below:',
+            [
+              { text: 'Cancel', style: 'cancel', onPress: () => setUploadingProfilePic(false) },
+              { text: 'Save', onPress: async (u) => { if (u) await saveImageToBackend(u); else setUploadingProfilePic(false); } }
+            ]
+          );
+        }
+      }
+    } catch (e) {
+      console.error('Upload profile pic error:', e);
+      setUploadingProfilePic(false);
+    }
+  };
+
+  const maskPhoneNumber = (phoneStr) => {
+    if (!phoneStr || phoneStr === 'Not set') return 'Not set';
+    const clean = String(phoneStr).trim();
+    if (clean.length <= 3) return clean;
+    if (clean.startsWith('+91')) {
+      const digits = clean.replace('+91', '').trim();
+      if (digits.length >= 3) {
+        return `+91 ${digits.substring(0, 3)}${'*'.repeat(Math.max(3, digits.length - 3))}`;
+      }
+    }
+    return `${clean.substring(0, 3)}${'*'.repeat(Math.max(3, clean.length - 3))}`;
+  };
+
+  const handleEditPhone = () => {
+    const promptMsg = 'Enter your 10-digit Phone Number (First 3 digits displayed, remaining masked for privacy):';
+    if (typeof window !== 'undefined' && window.prompt) {
+      const val = window.prompt(promptMsg, profile?.phone || '');
+      if (val) savePhoneToBackend(val);
+    } else {
+      Alert.prompt(
+        'Edit Phone Number 📱',
+        'Enter phone number:',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Save', onPress: (val) => { if (val) savePhoneToBackend(val); } }
+        ],
+        'plain-text',
+        profile?.phone || ''
+      );
+    }
+  };
+
+  const savePhoneToBackend = async (phoneVal) => {
+    try {
+      const token = await storage.getToken();
+      if (token) {
+        await fetch(`${API_CONFIG.BASE_URL}/api/influencers/profile`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ phone: phoneVal.trim() })
+        });
+      }
+      setProfile(prev => ({ ...prev, phone: phoneVal.trim() }));
+      Alert.alert('Phone Updated', 'Your phone number has been updated and masked on your profile!');
+    } catch (e) {
+      console.error('Error saving phone:', e);
+    }
+  };
+
   /* ================= MAIN RENDER (PROFILE LOADED) ================= */
   // Safe field extraction with defaults
   const influencerName = profile.name || profile.username || 'Influencer';
   const influencerBio = profile.bio || profile.description || '';
   const influencerLocation = profile.location || 'Not set';
   const influencerEmail = profile.email || 'Not set';
+  const influencerPhone = profile.phone || 'Not set';
   
   // Influencer-specific stats (live database counts)
   const followers = profile.followers || '125K';
@@ -519,19 +659,46 @@ export default function Profile() {
           {/* Header Section */}
           <PopIn delay={40}>
           <View style={styles.header}>
-            <View style={styles.logoContainer}>
-              {hasValidProfilePicture() ? (
+            <TouchableOpacity 
+              style={[styles.logoContainer, { position: 'relative' }]}
+              onPress={handleUploadProfilePic}
+              disabled={uploadingProfilePic}
+              activeOpacity={0.85}
+            >
+              {uploadingProfilePic ? (
+                <View style={[styles.logoInitialContainer, { backgroundColor: '#1A1025' }]}>
+                  <ActivityIndicator size="small" color={PRIMARY_COLOR} />
+                </View>
+              ) : hasValidProfilePicture() ? (
                 <Image
                   source={getInfluencerProfilePicture()}
                   style={styles.logo}
                   resizeMode="cover"
+                  onError={() => setImageError(true)}
                 />
               ) : (
                 <View style={styles.logoInitialContainer}>
                   <Text style={styles.logoInitialText}>{getInfluencerInitial()}</Text>
                 </View>
               )}
-            </View>
+              {/* Camera Edit Badge */}
+              <View style={{
+                position: 'absolute',
+                bottom: 2,
+                right: 2,
+                backgroundColor: PRIMARY_COLOR,
+                width: 30,
+                height: 30,
+                borderRadius: 15,
+                justifyContent: 'center',
+                alignItems: 'center',
+                borderWidth: 2,
+                borderColor: '#0B0B10',
+                elevation: 4,
+              }}>
+                <MaterialCommunityIcons name="camera" size={15} color="#FFFFFF" />
+              </View>
+            </TouchableOpacity>
             <Text style={styles.profileName}>{influencerName}</Text>
             <Text style={styles.profileRoleTag}>Creator profile · Open to all</Text>
             {influencerBio ? (
@@ -574,6 +741,15 @@ export default function Profile() {
               />
               <Text style={styles.infoText}>{influencerEmail}</Text>
             </View>
+            <TouchableOpacity style={styles.infoRow} onPress={handleEditPhone} activeOpacity={0.85}>
+              <MaterialCommunityIcons 
+                name="phone" 
+                size={20} 
+                color={PRIMARY_COLOR} 
+              />
+              <Text style={[styles.infoText, { flex: 1 }]}>{maskPhoneNumber(influencerPhone)}</Text>
+              <MaterialCommunityIcons name="pencil-outline" size={16} color="rgba(255,255,255,0.4)" />
+            </TouchableOpacity>
             <View style={styles.infoRow}>
               <MaterialCommunityIcons 
                 name="map-marker" 

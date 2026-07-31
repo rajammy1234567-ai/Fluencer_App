@@ -9,42 +9,36 @@ const router = express.Router();
 // Upload profile image
 router.post('/upload-image', authMiddleware, (req, res) => {
   uploadProfileImage(req, res, async (err) => {
-    if (err) {
-      return res.status(400).json({ 
-        success: false, 
-        message: err.message 
-      });
-    }
-
-    if (!req.file) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'No file uploaded' 
-      });
-    }
-
     try {
-      // Return file URL
-      const fileUrl = req.fileUrl; // Cloudinary secure URL
-      const userId = req.user.userId;
+      const fileUrl = req.fileUrl || (req.file ? `/uploads/profiles/${req.file.filename}` : (req.body ? (req.body.image_url || req.body.profile_image || req.body.profile_picture) : null));
+      const userId = req.user.userId || req.user.id;
+
+      if (!fileUrl) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'No file or image URL provided' 
+        });
+      }
 
       // Update profile in database
-      await InfluencerProfile.findOneAndUpdate(
+      const profile = await InfluencerProfile.findOneAndUpdate(
         { user_id: userId },
-        { profile_image: fileUrl },
-        { upsert: true }
+        { $set: { profile_picture: fileUrl, profile_image: fileUrl } },
+        { new: true, upsert: true }
       );
 
       res.json({ 
         success: true, 
-        message: 'Image uploaded successfully',
-        imageUrl: fileUrl
+        message: 'Profile image uploaded successfully',
+        imageUrl: fileUrl,
+        profile
       });
     } catch (error) {
        console.error('Database update error:', error);
        res.status(500).json({ 
          success: false, 
-         message: 'Failed to update profile image in database'
+         message: 'Failed to update profile image in database',
+         error: error.message
        });
     }
   });
@@ -148,6 +142,7 @@ router.put('/profile', authMiddleware, async (req, res) => {
     if (instagram !== undefined) updateData.instagram = instagram;
     if (youtube !== undefined) updateData.youtube = youtube;
     if (twitter !== undefined) updateData.twitter = twitter;
+    if (phone !== undefined) updateData.phone = phone;
 
     const profile = await InfluencerProfile.findOneAndUpdate(
       { user_id: userId },
@@ -263,6 +258,31 @@ router.get('/profile-exists', authMiddleware, async (req, res) => {
   }
 });
 
+// Helper to parse follower count string into count integer and clean text
+function parseFollowerNumber(val) {
+  if (!val) return { text: '125K', count: 125000 };
+  const raw = String(val).trim();
+  const str = raw.toUpperCase();
+  let count = 125000;
+  if (str.endsWith('M')) {
+    count = Math.round(parseFloat(str.replace('M', '')) * 1000000);
+  } else if (str.endsWith('K')) {
+    count = Math.round(parseFloat(str.replace('K', '')) * 1000);
+  } else {
+    const num = parseInt(str.replace(/,/g, ''), 10);
+    count = isNaN(num) || num <= 0 ? 125000 : num;
+  }
+  let text = raw;
+  if (!str.endsWith('K') && !str.endsWith('M')) {
+    if (count >= 1000000) {
+      text = (count / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+    } else if (count >= 1000) {
+      text = (count / 1000).toFixed(0) + 'K';
+    }
+  }
+  return { text, count };
+}
+
 // Update follower count manually
 router.post('/update-followers', authMiddleware, async (req, res) => {
   try {
@@ -273,13 +293,15 @@ router.post('/update-followers', authMiddleware, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Followers count string is required' });
     }
 
+    const { text, count } = parseFollowerNumber(followers);
+
     const profile = await InfluencerProfile.findOneAndUpdate(
       { user_id: userId },
-      { followers: String(followers).trim() },
+      { followers: text, followers_count: count },
       { new: true, upsert: true }
     );
 
-    res.json({ success: true, message: 'Follower count updated successfully!', followers: profile.followers });
+    res.json({ success: true, message: 'Follower count updated successfully!', followers: profile.followers, followers_count: profile.followers_count });
   } catch (error) {
     console.error('Follower update error:', error);
     res.status(500).json({ success: false, message: 'Failed to update follower count', error: error.message });
@@ -376,6 +398,27 @@ router.delete('/portfolio/:id', authMiddleware, async (req, res) => {
   } catch (error) {
     console.error('Portfolio delete error:', error);
     res.status(500).json({ success: false, message: 'Failed to delete portfolio item', error: error.message });
+  }
+});
+
+// Unlock Pro Pass for Influencer
+router.post('/unlock-pass', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.userId || req.user.id;
+    const profile = await InfluencerProfile.findOneAndUpdate(
+      { user_id: userId },
+      { $set: { is_pro_member: true, pro_unlocked_at: new Date() } },
+      { new: true, upsert: true }
+    );
+
+    res.json({
+      success: true,
+      message: 'Pro Membership Pass unlocked successfully!',
+      profile
+    });
+  } catch (error) {
+    console.error('Unlock pass error:', error);
+    res.status(500).json({ success: false, message: 'Failed to unlock pass', error: error.message });
   }
 });
 

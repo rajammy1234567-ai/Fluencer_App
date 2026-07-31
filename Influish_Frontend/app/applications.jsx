@@ -319,7 +319,7 @@ export default function ApplicationsScreen() {
           <View style={styles.statCol}>
             <View style={styles.statIconValRow}>
               <MaterialCommunityIcons name="shopping-outline" size={16} color="#C084FC" />
-              <Text style={styles.statValText}>{item.collabs || item.collaborations || '82'}</Text>
+              <Text style={styles.statValText}>{item.collabs || item.collaborations || item.completed_campaigns || '12'}</Text>
             </View>
             <Text style={styles.statLblText}>Campaigns</Text>
           </View>

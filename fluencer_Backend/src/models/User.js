@@ -22,6 +22,11 @@ const userSchema = new mongoose.Schema({
     unique: true,
     sparse: true // Allows multiple null values
   },
+  phone: {
+    type: String,
+    sparse: true,
+    default: null
+  },
   profile_picture: {
     type: String,
     default: null

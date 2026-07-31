@@ -423,7 +423,23 @@ const TrendingVideosSection = () => {
         });
         if (response.ok) {
           const data = await response.json();
-          setVideos(data.campaigns || data.data || []);
+          const list = data.campaigns || data.data || [];
+          let skippedIds = [];
+          try {
+            const storedSkipped = await AsyncStorage.getItem('@influencer_skipped_campaigns');
+            skippedIds = storedSkipped ? JSON.parse(storedSkipped) : [];
+          } catch (e) {
+            skippedIds = [];
+          }
+
+          const filtered = list.filter(c => {
+            const cId = String(c._id || c.id);
+            const isApplied = c.already_applied || c.alreadyApplied || !!c.application_status;
+            const isSkipped = skippedIds.includes(cId);
+            return !isApplied && !isSkipped;
+          });
+
+          setVideos(filtered);
         } else {
           setError('Failed to load videos');
         }

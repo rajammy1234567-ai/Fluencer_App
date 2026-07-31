@@ -7,6 +7,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
 import { useRouter, useFocusEffect } from 'expo-router';
 import AdminDrawer from './AdminDrawer';

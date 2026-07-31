@@ -36,27 +36,34 @@ router.get('/all', optionalAuth, async (req, res) => {
 // Upload profile image
 router.post('/upload-image', authMiddleware, (req, res) => {
   uploadProfileImage(req, res, async (err) => {
-    if (err) {
-      return res.status(400).json({ 
-        success: false, 
-        message: err.message 
-      });
-    }
+    try {
+      const fileUrl = req.fileUrl || (req.file ? `/uploads/profiles/${req.file.filename}` : (req.body ? (req.body.image_url || req.body.profile_image || req.body.logo) : null));
+      const userId = req.user.userId || req.user.id;
 
-    if (!req.file) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'No file uploaded' 
-      });
-    }
+      if (!fileUrl) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'No file or image URL provided' 
+        });
+      }
 
-    // Return file URL
-    const fileUrl = `/uploads/profiles/${req.file.filename}`;
-    res.json({ 
-      success: true, 
-      message: 'Image uploaded successfully',
-      imageUrl: fileUrl
-    });
+      // Update brand profile in database
+      const profile = await BrandProfile.findOneAndUpdate(
+        { user_id: userId },
+        { $set: { profile_image: fileUrl, logo: fileUrl } },
+        { new: true, upsert: true }
+      );
+
+      res.json({ 
+        success: true, 
+        message: 'Brand logo uploaded successfully',
+        imageUrl: fileUrl,
+        profile
+      });
+    } catch (error) {
+      console.error('Brand image upload error:', error);
+      res.status(500).json({ success: false, message: 'Failed to update brand profile image', error: error.message });
+    }
   });
 });
 

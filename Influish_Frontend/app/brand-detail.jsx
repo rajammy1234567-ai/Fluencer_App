@@ -91,9 +91,25 @@ export default function BrandDetailScreen() {
   const loadAppliedCampaigns = async () => {
     try {
       const stored = await AsyncStorage.getItem(APPLIED_CAMPAIGNS_KEY);
-      if (stored) {
-        setAppliedIds(JSON.parse(stored));
+      let localApplied = stored ? JSON.parse(stored) : [];
+
+      try {
+        const headers = await getAuthHeader();
+        const res = await fetch(getApiUrl('/api/campaigns/active/all'), { headers });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.campaigns && Array.isArray(data.campaigns)) {
+            const serverApplied = data.campaigns
+              .filter((c) => c.already_applied || c.application_status || c.is_applied)
+              .map((c) => c.id || c._id);
+            localApplied = Array.from(new Set([...localApplied, ...serverApplied]));
+          }
+        }
+      } catch (err) {
+        console.log('Server applied check note:', err);
       }
+
+      setAppliedIds(localApplied);
     } catch (e) {
       console.error('Error loading applied IDs:', e);
     }
@@ -133,7 +149,12 @@ export default function BrandDetailScreen() {
         const campData = await campRes.json();
         const list = campData.campaigns || campData.data || [];
         if (list.length > 0) {
-          setCampaigns(list);
+          const brandMatches = list.filter(c => 
+            String(c.brand_id || c.brandId || c.company_id) === String(targetId) || 
+            String(c._id || c.id) === String(targetId) ||
+            (passedName && (c.brand_name || c.company_name) === passedName)
+          );
+          setCampaigns(brandMatches.length > 0 ? brandMatches : list);
         } else {
           setCampaigns(DEFAULT_COMPANY_CAMPAIGNS);
         }
@@ -292,8 +313,8 @@ export default function BrandDetailScreen() {
               </Text>
               {appliedIds.includes(camp.id || camp._id) ? (
                 <View style={styles.completedPill}>
-                  <MaterialCommunityIcons name="check-all" size={13} color="#A855F7" />
-                  <Text style={styles.completedPillText}>Completed</Text>
+                  <MaterialCommunityIcons name="check-decagram" size={13} color="#A855F7" />
+                  <Text style={styles.completedPillText}>Already Applied</Text>
                 </View>
               ) : (
                 <View style={styles.activePill}>

@@ -37,6 +37,7 @@ import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { API, API_CONFIG } from '../../constants/api';
 import { storage } from '../../utils/storage';
+import { uploadToCloudinary } from '../../utils/cloudinary';
 import { COLORS } from '../../constants/colors';
 import { SlideUp, PopIn } from '../../components/motion';
 
@@ -70,6 +71,7 @@ export default function BrandProfile() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [uploadingProfilePic, setUploadingProfilePic] = useState(false);
   
   // Lifecycle safety
   const isMountedRef = useRef(true);
@@ -333,6 +335,143 @@ export default function BrandProfile() {
     );
   }
 
+  const handleUploadProfilePic = async () => {
+    try {
+      setUploadingProfilePic(true);
+
+      const saveImageToBackend = async (fileOrUri) => {
+        try {
+          const uploadedUrl = await uploadToCloudinary(fileOrUri);
+          if (uploadedUrl) {
+            const token = await storage.getToken();
+            if (token) {
+              await fetch(`${API_CONFIG.BASE_URL}/api/brands/upload-image`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ image_url: uploadedUrl, profile_image: uploadedUrl, logo: uploadedUrl })
+              });
+
+              await fetch(`${API_CONFIG.BASE_URL}/api/brands/profile`, {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ profile_picture: uploadedUrl, profile_image: uploadedUrl, logo: uploadedUrl })
+              });
+            }
+
+            setProfile(prev => ({
+              ...prev,
+              profile_picture: uploadedUrl,
+              profile_image: uploadedUrl,
+              logo: uploadedUrl,
+            }));
+
+            if (Platform.OS === 'web' && typeof window !== 'undefined') {
+              window.alert('🎉 Brand Profile Logo updated!');
+            } else {
+              Alert.alert('🎉 Success', 'Brand profile logo updated successfully!');
+            }
+          }
+        } catch (err) {
+          console.error('Error saving brand logo:', err);
+          Alert.alert('Error', 'Failed to save brand logo');
+        } finally {
+          setUploadingProfilePic(false);
+        }
+      };
+
+      if (Platform.OS === 'web' && typeof document !== 'undefined') {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = async (e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            await saveImageToBackend(file);
+          } else {
+            setUploadingProfilePic(false);
+          }
+        };
+        input.click();
+      } else {
+        if (typeof window !== 'undefined' && window.prompt) {
+          const url = window.prompt('Enter Brand Logo Image URL:', '');
+          if (url) await saveImageToBackend(url);
+          else setUploadingProfilePic(false);
+        } else {
+          Alert.prompt(
+            'Upload Brand Logo 📸',
+            'Paste logo image URL below:',
+            [
+              { text: 'Cancel', style: 'cancel', onPress: () => setUploadingProfilePic(false) },
+              { text: 'Save', onPress: async (u) => { if (u) await saveImageToBackend(u); else setUploadingProfilePic(false); } }
+            ]
+          );
+        }
+      }
+    } catch (e) {
+      console.error('Upload brand logo error:', e);
+      setUploadingProfilePic(false);
+    }
+  };
+
+  const maskPhoneNumber = (phoneStr) => {
+    if (!phoneStr || phoneStr === 'Not set') return 'Not set';
+    const clean = String(phoneStr).trim();
+    if (clean.length <= 3) return clean;
+    if (clean.startsWith('+91')) {
+      const digits = clean.replace('+91', '').trim();
+      if (digits.length >= 3) {
+        return `+91 ${digits.substring(0, 3)}${'*'.repeat(Math.max(3, digits.length - 3))}`;
+      }
+    }
+    return `${clean.substring(0, 3)}${'*'.repeat(Math.max(3, clean.length - 3))}`;
+  };
+
+  const handleEditPhone = () => {
+    const promptMsg = 'Enter your 10-digit Phone Number (First 3 digits displayed, remaining masked for privacy):';
+    if (typeof window !== 'undefined' && window.prompt) {
+      const val = window.prompt(promptMsg, profile?.phone || '');
+      if (val) savePhoneToBackend(val);
+    } else {
+      Alert.prompt(
+        'Edit Phone Number 📱',
+        'Enter phone number:',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Save', onPress: (val) => { if (val) savePhoneToBackend(val); } }
+        ],
+        'plain-text',
+        profile?.phone || ''
+      );
+    }
+  };
+
+  const savePhoneToBackend = async (phoneVal) => {
+    try {
+      const token = await storage.getToken();
+      if (token) {
+        await fetch(`${API_CONFIG.BASE_URL}/api/brands/profile`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ phone: phoneVal.trim() })
+        });
+      }
+      setProfile(prev => ({ ...prev, phone: phoneVal.trim() }));
+      Alert.alert('Phone Updated', 'Your phone number has been updated and masked on your profile!');
+    } catch (e) {
+      console.error('Error saving phone:', e);
+    }
+  };
+
   /* ================= MAIN RENDER (PROFILE LOADED) ================= */
   // Safe field extraction with defaults
   const brandName = profile.company_name || profile.name || profile.brand_name || 'Brand';
@@ -362,8 +501,17 @@ export default function BrandProfile() {
           {/* Header Section */}
           <PopIn delay={40}>
           <View style={styles.header}>
-            <View style={styles.logoContainer}>
-              {hasValidLogo() ? (
+            <TouchableOpacity 
+              style={[styles.logoContainer, { position: 'relative' }]}
+              onPress={handleUploadProfilePic}
+              disabled={uploadingProfilePic}
+              activeOpacity={0.85}
+            >
+              {uploadingProfilePic ? (
+                <View style={[styles.logoInitialContainer, { backgroundColor: '#1A1025' }]}>
+                  <ActivityIndicator size="small" color={PRIMARY_COLOR} />
+                </View>
+              ) : hasValidLogo() ? (
                 <Image
                   source={getBrandLogoSource()}
                   style={styles.logo}
@@ -374,7 +522,24 @@ export default function BrandProfile() {
                   <Text style={styles.logoInitialText}>{getBrandInitial()}</Text>
                 </View>
               )}
-            </View>
+              {/* Camera Edit Badge */}
+              <View style={{
+                position: 'absolute',
+                bottom: 2,
+                right: 2,
+                backgroundColor: PRIMARY_COLOR,
+                width: 30,
+                height: 30,
+                borderRadius: 15,
+                justifyContent: 'center',
+                alignItems: 'center',
+                borderWidth: 2,
+                borderColor: '#0B0B10',
+                elevation: 4,
+              }}>
+                <MaterialCommunityIcons name="camera" size={15} color="#FFFFFF" />
+              </View>
+            </TouchableOpacity>
             <Text style={styles.brandName}>{brandName}</Text>
             <Text style={{ color: '#7C3AED', fontSize: 13, fontWeight: '600', marginBottom: 6 }}>
               Brand profile · Hire creators of all kinds
@@ -387,9 +552,17 @@ export default function BrandProfile() {
             <TouchableOpacity 
               style={styles.editProfileButton} 
               onPress={handleEditProfile}
+              activeOpacity={0.85}
             >
-              <MaterialCommunityIcons name="pencil" size={18} color={PRIMARY_COLOR} />
-              <Text style={styles.editProfileText}>Edit Profile</Text>
+              <LinearGradient
+                colors={['#7C3AED', '#6D28FF']}
+                style={styles.editProfileGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                <MaterialCommunityIcons name="square-edit-outline" size={16} color="#FFFFFF" />
+                <Text style={styles.editProfileText}>Edit Profile</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
           </PopIn>
@@ -408,7 +581,7 @@ export default function BrandProfile() {
               label="Active"
             />
             <StatCard
-              icon="account-group"
+              icon="handshake"
               value={collaborations}
               label="Collabs"
             />
@@ -421,35 +594,42 @@ export default function BrandProfile() {
             <Text style={styles.sectionTitle}>Company Information</Text>
             
             <View style={styles.infoRow}>
-              <MaterialCommunityIcons 
-                name="email" 
-                size={20} 
-                color={PRIMARY_COLOR} 
-              />
+              <View style={styles.infoIconWrapper}>
+                <MaterialCommunityIcons 
+                  name="email-outline" 
+                  size={20} 
+                  color={PRIMARY_COLOR} 
+                />
+              </View>
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Email</Text>
-                <Text style={styles.infoValue}>{brandEmail}</Text>
+                <Text style={styles.infoValue} numberOfLines={1}>{brandEmail}</Text>
               </View>
             </View>
             
-            <View style={styles.infoRow}>
-              <MaterialCommunityIcons 
-                name="phone" 
-                size={20} 
-                color={PRIMARY_COLOR} 
-              />
+            <TouchableOpacity style={styles.infoRow} onPress={handleEditPhone} activeOpacity={0.85}>
+              <View style={styles.infoIconWrapper}>
+                <MaterialCommunityIcons 
+                  name="phone-outline" 
+                  size={20} 
+                  color={PRIMARY_COLOR} 
+                />
+              </View>
               <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Phone</Text>
-                <Text style={styles.infoValue}>{brandPhone}</Text>
+                <Text style={styles.infoLabel}>Phone (Tap to edit ✏️)</Text>
+                <Text style={styles.infoValue}>{maskPhoneNumber(brandPhone)}</Text>
               </View>
-            </View>
+              <MaterialCommunityIcons name="pencil-outline" size={16} color="#7C3AED" />
+            </TouchableOpacity>
             
             <View style={styles.infoRow}>
-              <MaterialCommunityIcons 
-                name="map-marker" 
-                size={20} 
-                color={PRIMARY_COLOR} 
-              />
+              <View style={styles.infoIconWrapper}>
+                <MaterialCommunityIcons 
+                  name="map-marker-outline" 
+                  size={20} 
+                  color={PRIMARY_COLOR} 
+                />
+              </View>
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Location</Text>
                 <Text style={styles.infoValue}>{brandLocation}</Text>
@@ -457,14 +637,16 @@ export default function BrandProfile() {
             </View>
             
             <View style={styles.infoRow}>
-              <MaterialCommunityIcons 
-                name="web" 
-                size={20} 
-                color={PRIMARY_COLOR} 
-              />
+              <View style={styles.infoIconWrapper}>
+                <MaterialCommunityIcons 
+                  name="web" 
+                  size={20} 
+                  color={PRIMARY_COLOR} 
+                />
+              </View>
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Website</Text>
-                <Text style={styles.infoValue}>{brandWebsite}</Text>
+                <Text style={styles.infoValue} numberOfLines={1}>{brandWebsite}</Text>
               </View>
             </View>
           </View>
@@ -476,22 +658,33 @@ export default function BrandProfile() {
             <TouchableOpacity 
               style={[styles.actionButton, styles.primaryButton, { width: '100%' }]} 
               onPress={handleCreateCampaign}
+              activeOpacity={0.85}
             >
               <MaterialCommunityIcons name="plus-circle" size={24} color="#FFFFFF" />
               <Text style={styles.primaryButtonText}>New Campaign</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
-              style={[styles.actionButton, { backgroundColor: '#F0FDFA', borderColor: '#CCFBF1', borderWidth: 1, width: '100%' }]} 
+              style={styles.walletCardButton} 
               onPress={() => router.push('/wallet')}
+              activeOpacity={0.85}
             >
-              <MaterialCommunityIcons name="wallet" size={24} color="#0D9488" />
-              <Text style={[styles.actionButtonText, { color: '#0F766E', fontWeight: '700' }]}>💳 Brand Wallet & Escrow Funds (Available: ₹{(profile?.wallet_balance || 0).toLocaleString('en-IN')})</Text>
+              <View style={styles.walletIconWrap}>
+                <MaterialCommunityIcons name="wallet-outline" size={22} color="#0D9488" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.walletCardTitle}>Brand Wallet & Escrow Funds</Text>
+                <Text style={styles.walletCardSub} numberOfLines={1}>
+                  Available: ₹{(profile?.wallet_balance || 0).toLocaleString('en-IN')}
+                </Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={20} color="#0D9488" />
             </TouchableOpacity>
 
             <TouchableOpacity 
               style={[styles.actionButton, { width: '100%' }]} 
               onPress={handleSettings}
+              activeOpacity={0.85}
             >
               <MaterialCommunityIcons name="cog" size={24} color="#FFFFFF" />
               <Text style={styles.actionButtonText}>Settings</Text>
@@ -502,6 +695,7 @@ export default function BrandProfile() {
           <TouchableOpacity 
             style={styles.logoutButton} 
             onPress={handleLogout}
+            activeOpacity={0.85}
           >
             <MaterialCommunityIcons name="logout" size={24} color="#ef4444" />
             <Text style={styles.logoutButtonText}>Logout</Text>
@@ -629,27 +823,31 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   editProfileButton: {
+    marginTop: 10,
+    borderRadius: 24,
+    overflow: 'hidden',
+    shadowColor: '#7C3AED',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  editProfileGradient: {
+    paddingHorizontal: 22,
+    paddingVertical: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.98)',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 24,
+    justifyContent: 'center',
     gap: 8,
-    marginTop: 10,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 24,
   },
   editProfileText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: PRIMARY_COLOR,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -716,25 +914,64 @@ const styles = StyleSheet.create({
   },
   infoRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: 14,
+    alignItems: 'center',
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.12)',
+    borderBottomColor: 'rgba(0,0,0,0.06)',
+  },
+  infoIconWrapper: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: 'rgba(124, 58, 237, 0.08)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   infoContent: {
     flex: 1,
-    marginLeft: 14,
+    marginLeft: 12,
   },
   infoLabel: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.55)',
-    marginBottom: 5,
+    fontSize: 12,
+    color: '#64748b',
     fontWeight: '500',
+    marginBottom: 2,
   },
   infoValue: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#0f172a',
     fontWeight: '600',
+  },
+  walletCardButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0FDFA',
+    borderColor: '#CCFBF1',
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 16,
+    gap: 12,
+    width: '100%',
+  },
+  walletIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: 'rgba(13, 148, 136, 0.12)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  walletCardTitle: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#0F766E',
+  },
+  walletCardSub: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#14B8A6',
+    marginTop: 2,
   },
   actionsContainer: {
     flexDirection: 'row',

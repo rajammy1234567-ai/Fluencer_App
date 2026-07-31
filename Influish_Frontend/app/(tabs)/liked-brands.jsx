@@ -10,6 +10,7 @@ import {
   Image,
   Alert,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -17,6 +18,9 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS } from '../../constants/colors';
+import { getAuthHeader, storage } from '../../utils/storage';
+import { getApiUrl } from '../../constants/api';
+import { initiatePayment } from '../../utils/payment';
 import WaveHeader from '../../components/WaveHeader';
 import { StaggerItem, SlideUp, PressScale } from '../../components/motion';
 
@@ -26,12 +30,61 @@ export default function LikedBrands() {
   const router = useRouter();
   const [likedBrands, setLikedBrands] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isProMember, setIsProMember] = useState(false);
+  const [unlockingPro, setUnlockingPro] = useState(false);
 
   useFocusEffect(
     React.useCallback(() => {
+      checkProStatus();
       loadLikedBrands();
     }, [])
   );
+
+  const checkProStatus = async () => {
+    try {
+      const role = await storage.getRole();
+      if (role !== 'influencer') {
+        setIsProMember(true);
+        return;
+      }
+      const headers = await getAuthHeader();
+      const res = await fetch(getApiUrl('/api/influencers/profile'), { headers });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.profile) {
+          setIsProMember(!!data.profile.is_pro_member);
+        }
+      }
+    } catch (e) {
+      console.warn('Check pro status warning:', e);
+    }
+  };
+
+  const handleUnlockProPass = () => {
+    setUnlockingPro(true);
+    initiatePayment({
+      amount: 499,
+      description: '₹499 Pro Membership Pass - Unlock Liked Brands & Campaigns',
+      onSuccess: async () => {
+        try {
+          const headers = await getAuthHeader();
+          await fetch(getApiUrl('/api/influencers/unlock-pass'), {
+            method: 'POST',
+            headers: { ...headers, 'Content-Type': 'application/json' },
+          });
+        } catch (err) {
+          console.warn('Unlock pass API warning:', err);
+        }
+        setIsProMember(true);
+        setUnlockingPro(false);
+        loadLikedBrands();
+      },
+      onFailure: (err) => {
+        setUnlockingPro(false);
+      }
+    });
+    setTimeout(() => setUnlockingPro(false), 300);
+  };
 
   const loadLikedBrands = async () => {
     try {
@@ -80,7 +133,7 @@ export default function LikedBrands() {
       <PressScale onPress={() => handleViewCompanyProfile(item)} style={styles.brandCard}>
         <View style={styles.brandHeader}>
           <View style={styles.brandLeft}>
-            {item.logo ? (
+            {item.logo && !(Platform.OS === 'web' && String(item.logo).startsWith('file://')) ? (
               <Image source={{ uri: item.logo }} style={styles.brandLogo} />
             ) : (
               <LinearGradient
@@ -154,6 +207,50 @@ export default function LikedBrands() {
         </WaveHeader>
         <View style={styles.loadingBox}>
           <ActivityIndicator size="large" color={COLORS.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!isProMember) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <WaveHeader height={120}>
+          <Text style={styles.headerTitle}>Liked Brands</Text>
+          <Text style={styles.headerSubtitle}>🔒 Pro Pass Membership Required</Text>
+        </WaveHeader>
+        <View style={{ flex: 1, padding: 24, justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: '#14141C', padding: 24, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', width: '100%', maxWidth: 420, alignItems: 'center' }}>
+            <View style={{ width: 70, height: 70, borderRadius: 35, backgroundColor: 'rgba(168, 85, 247, 0.16)', justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
+              <MaterialCommunityIcons name="shield-key" size={38} color="#C084FC" />
+            </View>
+            <Text style={{ fontSize: 20, fontWeight: '800', color: '#FFFFFF', textAlign: 'center', marginBottom: 8 }}>🔒 Pro Membership Pass Required</Text>
+            <Text style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.6)', textAlign: 'center', lineHeight: 20, marginBottom: 24 }}>
+              Unlock your ₹499 Pro Membership Pass to view saved brands, access company profiles, and apply for high-payout brand campaigns!
+            </Text>
+            <TouchableOpacity
+              style={{ width: '100%', borderRadius: 14, overflow: 'hidden' }}
+              onPress={handleUnlockProPass}
+              disabled={unlockingPro}
+              activeOpacity={0.85}
+            >
+              <LinearGradient
+                colors={['#7C3AED', '#6D28FF']}
+                style={{ paddingVertical: 14, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 }}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                {unlockingPro ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <MaterialCommunityIcons name="flash-outline" size={20} color="#FFFFFF" />
+                    <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 15 }}>Pay ₹499 & Unlock Access</Text>
+                  </>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
         </View>
       </SafeAreaView>
     );

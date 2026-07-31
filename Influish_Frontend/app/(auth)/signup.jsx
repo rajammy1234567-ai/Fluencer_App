@@ -50,15 +50,17 @@ const Signup = () => {
   };
 
   const handleSignup = async () => {
-    if (!email.trim()) {
-      Alert.alert('Error', 'Please enter your email');
+    const inputVal = email.trim();
+    if (!inputVal) {
+      Alert.alert('Error', 'Please enter your email or mobile number');
       return;
     }
 
-    // Basic email validation
+    // Check if email or 10-digit mobile number
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      Alert.alert('Error', 'Please enter a valid email address');
+    const phoneRegex = /^\+?[0-9\s\-]{7,15}$/;
+    if (!emailRegex.test(inputVal) && !phoneRegex.test(inputVal)) {
+      Alert.alert('Error', 'Please enter a valid email address or mobile number');
       return;
     }
 
@@ -68,7 +70,7 @@ const Signup = () => {
       const response = await fetch(getApiUrl(API.AUTH.SIGNUP_REQUEST), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, role: isBrand ? 'brand' : 'influencer' }),
+        body: JSON.stringify({ email: inputVal, role: isBrand ? 'brand' : 'influencer' }),
       });
 
       const data = await response.json();
@@ -81,11 +83,11 @@ const Signup = () => {
             `Your OTP is: ${generatedOtp}\n\n(This code will be auto-filled on the next screen)`
           );
         } else {
-          Alert.alert('Success', 'OTP sent to your email!');
+          Alert.alert('Success', 'OTP sent successfully!');
         }
         router.push({
           pathname: '/(auth)/verify-otp',
-          params: { email, role: isBrand ? 'brand' : 'influencer', initialOtp: generatedOtp },
+          params: { email: inputVal, role: isBrand ? 'brand' : 'influencer', initialOtp: generatedOtp },
         });
       } else {
         // Specific error handling for cross-role registration
@@ -161,17 +163,17 @@ const Signup = () => {
             <View style={styles.card}>
               {/* Input */}
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Email Address</Text>
+                <Text style={styles.inputLabel}>Email or Mobile Number</Text>
                 <View style={styles.inputWrapper}>
-                  <MaterialCommunityIcons name="email-outline" size={20} color={COLORS.primary} style={styles.inputIcon} />
+                  <MaterialCommunityIcons name="account-outline" size={20} color={COLORS.primary} style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
-                    placeholder="name@example.com"
+                    placeholder="name@example.com or 9876543210"
                     placeholderTextColor={COLORS.textLight}
                     value={email}
                     onChangeText={setEmail}
                     autoCapitalize="none"
-                    keyboardType="email-address"
+                    keyboardType="default"
                   />
                 </View>
               </View>

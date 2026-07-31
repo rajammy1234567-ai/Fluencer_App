@@ -176,7 +176,12 @@ export default function ChatList() {
 
           {/* Last Message / Escrow Status */}
           <Text style={styles.lastMessageText} numberOfLines={1}>
-            {item.last_message || 'Brand deposited funds into Escrow. Creator can now shoot...'}
+            {item.last_message ? (
+              (item.last_message.startsWith('http') || item.last_message.startsWith('data:image') || item.last_message.startsWith('/uploads/')) && 
+              (item.last_message.includes('cloudinary') || item.last_message.includes('uploads') || item.last_message.match(/\.(jpg|jpeg|png|webp)(\?.*)?$/i))
+                ? '📷 Photo'
+                : item.last_message
+            ) : 'Brand deposited funds into Escrow. Creator can now shoot...'}
           </Text>
 
           {/* Bottom Pills Row */}

@@ -123,17 +123,17 @@ router.post('/google-login', async (req, res) => {
   }
 });
 
-// Signup - Request OTP
+// Signup - Request OTP (Supports Email OR Mobile Number)
 router.post('/signup-request', async (req, res) => {
   try {
-    const { email, role } = req.body;
-    const cleanEmail = (email || '').trim().toLowerCase();
+    const { email, role, phone, identifier } = req.body;
+    const inputVal = (email || phone || identifier || '').trim();
     const cleanRole = (role || '').trim();
 
-    if (!cleanEmail || !cleanRole) {
+    if (!inputVal || !cleanRole) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Email and role are required' 
+        message: 'Email address or Mobile number and role are required' 
       });
     }
 
@@ -144,20 +144,30 @@ router.post('/signup-request', async (req, res) => {
       });
     }
 
+    const isMobile = /^\+?[0-9\s\-]{7,15}$/.test(inputVal) && !inputVal.includes('@');
+    const phoneDigits = inputVal.replace(/\D/g, '');
+    const cleanEmail = isMobile ? `mobile_${phoneDigits}@fluencer.app` : inputVal.toLowerCase();
+    const cleanPhone = isMobile ? phoneDigits : null;
+
     // Check if user already exists
-    const user = await User.findOne({ email: cleanEmail });
+    const user = await User.findOne({
+      $or: [
+        { email: cleanEmail },
+        ...(cleanPhone ? [{ phone: cleanPhone }, { phone: `+91${cleanPhone}` }] : [])
+      ]
+    });
+
     if (user) {
-      // Strict Role Check
       if (user.role !== cleanRole) {
         return res.status(400).json({ 
           success: false, 
-          message: `This email is already registered as a ${user.role}. Please login.`
+          message: `This account is already registered as a ${user.role}. Please login.`
         });
       }
 
       return res.status(400).json({ 
         success: false, 
-        message: 'Email already registered. Please login.' 
+        message: 'Account already registered. Please login.' 
       });
     }
 
@@ -168,19 +178,19 @@ router.post('/signup-request', async (req, res) => {
     // Save/Update OTP to temporary verification
     await OTP.findOneAndUpdate(
       { email: cleanEmail },
-      { otp, otp_expiry: otpExpiry, role: cleanRole },
+      { otp, otp_expiry: otpExpiry, role: cleanRole, phone: cleanPhone },
       { upsert: true, new: true }
     );
 
-    // Send OTP email (async attempt)
-    console.log(`🔑 Generated OTP for ${cleanEmail}: ${otp}`);
-    sendOTPEmail(cleanEmail, otp).catch(err => console.warn('Email send error:', err.message));
+    console.log(`🔑 Generated OTP for ${inputVal}: ${otp}`);
+    if (!isMobile) {
+      sendOTPEmail(cleanEmail, otp).catch(err => console.warn('Email send error:', err.message));
+    }
 
-    // Always return OTP in response for instant on-screen display & testing
     res.status(200).json({ 
       success: true, 
       message: `OTP generated successfully: ${otp}`,
-      email: cleanEmail,
+      email: inputVal,
       otp: otp
     });
   } catch (error) {
@@ -193,17 +203,17 @@ router.post('/signup-request', async (req, res) => {
   }
 });
 
-// Verify OTP and Create Account
+// Verify OTP and Create Account (Supports Email OR Mobile Number)
 router.post('/verify-otp', async (req, res) => {
   try {
-    const { email, otp, password } = req.body;
-    const cleanEmail = (email || '').trim().toLowerCase();
+    const { email, otp, password, phone, identifier } = req.body;
+    const inputVal = (email || phone || identifier || '').trim();
     const cleanOtp = String(otp || '').trim();
 
-    if (!cleanEmail || !cleanOtp || !password) {
+    if (!inputVal || !cleanOtp || !password) {
       return res.status(400).json({ 
         success: false, 
-        message: 'Email, OTP, and password are required' 
+        message: 'Email address/Mobile number, OTP, and password are required' 
       });
     }
 
@@ -214,8 +224,20 @@ router.post('/verify-otp', async (req, res) => {
       });
     }
 
+    const isMobile = /^\+?[0-9\s\-]{7,15}$/.test(inputVal) && !inputVal.includes('@');
+    const phoneDigits = inputVal.replace(/\D/g, '');
+    const cleanEmail = isMobile ? `mobile_${phoneDigits}@fluencer.app` : inputVal.toLowerCase();
+    const cleanPhone = isMobile ? phoneDigits : (phone || null);
+
     // Verify OTP
-    const otpRecord = await OTP.findOne({ email: cleanEmail, otp: cleanOtp });
+    const otpRecord = await OTP.findOne({ 
+      $or: [
+        { email: cleanEmail },
+        { email: inputVal.toLowerCase() },
+        ...(phoneDigits ? [{ phone: phoneDigits }] : [])
+      ],
+      otp: cleanOtp 
+    });
 
     if (!otpRecord) {
       return res.status(400).json({ 
@@ -239,29 +261,32 @@ router.post('/verify-otp', async (req, res) => {
     // Create user
     const newUser = await User.create({
       email: cleanEmail,
+      phone: cleanPhone,
       password: hashedPassword,
       role
     });
 
     const userId = newUser._id.toString();
 
-    // Create empty profile based on role
+    // Create profile with phone set if mobile registration
     if (role === 'influencer') {
       await InfluencerProfile.create({
         user_id: newUser._id,
-        name: 'User'
+        name: 'User',
+        phone: cleanPhone || ''
       });
       console.log('✅ Influencer profile created for user:', userId);
     } else if (role === 'brand') {
       await BrandProfile.create({
         user_id: newUser._id,
-        company_name: 'Company'
+        company_name: 'Company',
+        phone: cleanPhone || ''
       });
       console.log('✅ Brand profile created for user:', userId);
     }
 
     // Delete OTP record
-    await OTP.deleteOne({ email: cleanEmail });
+    await OTP.deleteOne({ _id: otpRecord._id });
 
     const token = generateToken(userId, role);
 
@@ -282,29 +307,57 @@ router.post('/verify-otp', async (req, res) => {
   }
 });
 
-// Login
+// Login (Supports Email OR Mobile Number)
 router.post('/login', async (req, res) => {
   try {
-    const { email, password, role } = req.body;
-    console.log('🔐 Login attempt for email:', email, 'from role section:', role);
+    const { password, role } = req.body;
+    const loginInput = (req.body.email || req.body.login || req.body.phone || req.body.identifier || req.body.mobile || '').trim();
 
-    if (!email || !password) {
-      console.log('❌ Missing email or password');
+    console.log('🔐 Login attempt for identifier:', loginInput, 'from role section:', role);
+
+    if (!loginInput || !password) {
+      console.log('❌ Missing email/mobile or password');
       return res.status(400).json({ 
         success: false, 
-        message: 'Email and password are required' 
+        message: 'Email address / Mobile number and password are required' 
       });
     }
 
-    console.log('📊 Querying database for user...');
-    const user = await User.findOne({ email });
+    console.log('📊 Querying database for user by email or mobile number...');
+    const cleanInput = loginInput.toLowerCase();
+    const phoneDigits = loginInput.replace(/\D/g, '');
+
+    let user = await User.findOne({
+      $or: [
+        { email: cleanInput },
+        { phone: loginInput },
+        ...(phoneDigits ? [{ phone: phoneDigits }, { phone: `+91${phoneDigits}` }] : [])
+      ]
+    });
+
+    // Fallback search via InfluencerProfile or BrandProfile phone fields
+    if (!user && phoneDigits) {
+      const ip = await InfluencerProfile.findOne({ 
+        $or: [{ phone: loginInput }, { phone: phoneDigits }, { phone: `+91${phoneDigits}` }] 
+      }).select('user_id').lean();
+
+      const bp = await BrandProfile.findOne({ 
+        $or: [{ phone: loginInput }, { phone: phoneDigits }, { phone: `+91${phoneDigits}` }] 
+      }).select('user_id').lean();
+
+      const foundUserId = ip ? ip.user_id : (bp ? bp.user_id : null);
+      if (foundUserId) {
+        user = await User.findById(foundUserId);
+      }
+    }
+
     console.log('📊 Query result:', user ? 'User found' : 'User not found');
 
     if (!user) {
       console.log('❌ User not found in database');
       return res.status(401).json({ 
         success: false, 
-        message: 'Invalid email or password' 
+        message: 'Invalid email/mobile number or password' 
       });
     }
 

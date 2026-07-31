@@ -9,6 +9,7 @@ import {
   Alert,
   ScrollView,
   Animated,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -22,14 +23,14 @@ const THEME = {
   primary: '#7C3AED',
   primaryDark: '#6D28FF',
   secondary: '#EC4899',
-  success: '#7C3AED',
-  warning: '#EC4899',
+  success: '#10B981',
+  warning: '#F59E0B',
   background: '#0B0B10',
-  cardBg: '#FFFFFF',
+  cardBg: '#14141C',
   text: '#FFFFFF',
-  textLight: 'rgba(255,255,255,0.55)',
+  textLight: 'rgba(255,255,255,0.65)',
   border: 'rgba(255,255,255,0.12)',
-  shadow: 'rgba(44, 51, 56, 0.06)',
+  shadow: 'rgba(0, 0, 0, 0.4)',
 };
 
 /* ================= ANIMATED CARD ================= */
@@ -54,10 +55,10 @@ const AnimatedCampaignCard = ({ item, onComplete, onToggleStatus }) => {
   }, []);
 
   const getStatusInfo = (status) => {
-    if (status === 'active') return { color: THEME.success, icon: 'check-circle', bg: '#DCFCE7' };
-    if (status === 'paused') return { color: THEME.warning, icon: 'pause-circle', bg: '#FEF3C7' };
-    if (status === 'completed') return { color: THEME.primary, icon: 'check-all', bg: 'rgba(168, 85, 247, 0.22)' };
-    return { color: THEME.secondary, icon: 'check-all', bg: '#FCE7F3' };
+    if (status === 'active') return { color: '#34D399', icon: 'check-circle', bg: 'rgba(16, 185, 129, 0.16)' };
+    if (status === 'paused') return { color: '#FBBF24', icon: 'pause-circle', bg: 'rgba(245, 158, 11, 0.16)' };
+    if (status === 'completed') return { color: '#C084FC', icon: 'check-all', bg: 'rgba(168, 85, 247, 0.2)' };
+    return { color: '#F472B6', icon: 'check-all', bg: 'rgba(236, 72, 153, 0.18)' };
   };
 
   const statusInfo = getStatusInfo(item.status);
@@ -80,13 +81,13 @@ const AnimatedCampaignCard = ({ item, onComplete, onToggleStatus }) => {
               {item.campaign_name}
             </Text>
             <View style={styles.locationRow}>
-              <MaterialCommunityIcons name="map-marker" size={14} color="#6B7280" />
+              <MaterialCommunityIcons name="map-marker" size={14} color="rgba(255,255,255,0.55)" />
               <Text style={styles.locationText}>{item.influencer_location}</Text>
             </View>
           </View>
           
           <View style={[styles.statusBadge, { backgroundColor: statusInfo.bg }]}>
-            <MaterialCommunityIcons name={statusInfo.icon} size={16} color={statusInfo.color} />
+            <MaterialCommunityIcons name={statusInfo.icon} size={14} color={statusInfo.color} />
             <Text style={[styles.statusText, { color: statusInfo.color }]}>
               {item.status}
             </Text>
@@ -96,19 +97,19 @@ const AnimatedCampaignCard = ({ item, onComplete, onToggleStatus }) => {
         {/* Info Pills */}
         <View style={styles.pillsContainer}>
           <View style={styles.pill}>
-            <MaterialCommunityIcons name="instagram" size={16} color={THEME.primary} />
+            <MaterialCommunityIcons name="instagram" size={15} color="#C084FC" />
             <Text style={styles.pillText}>{item.content_type}</Text>
           </View>
           
           <View style={styles.pill}>
-            <MaterialCommunityIcons name="account-group" size={16} color={THEME.primary} />
+            <MaterialCommunityIcons name="account-group" size={15} color="#C084FC" />
             <Text style={styles.pillText}>{item.number_of_seats} seats</Text>
           </View>
           
           {item.campaign_type === 'paid' && (
             <View style={styles.pill}>
-              <MaterialCommunityIcons name="currency-inr" size={16} color={THEME.success} />
-              <Text style={styles.pillText}>₹{item.cost_per_influencer}</Text>
+              <MaterialCommunityIcons name="currency-inr" size={15} color="#34D399" />
+              <Text style={[styles.pillText, { color: '#34D399', fontWeight: '700' }]}>₹{item.cost_per_influencer}</Text>
             </View>
           )}
         </View>
@@ -117,27 +118,27 @@ const AnimatedCampaignCard = ({ item, onComplete, onToggleStatus }) => {
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
             <View style={[styles.statIcon, { backgroundColor: 'rgba(168, 85, 247, 0.16)' }]}>
-              <MaterialCommunityIcons name="email-multiple" size={20} color={THEME.primary} />
+              <MaterialCommunityIcons name="email-multiple" size={18} color="#C084FC" />
             </View>
             <Text style={styles.statValue}>{item.applications_count || 0}</Text>
             <Text style={styles.statLabel}>Applications</Text>
           </View>
 
           <View style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: '#DCFCE7' }]}>
-              <MaterialCommunityIcons name="check-circle" size={20} color={THEME.success} />
+            <View style={[styles.statIcon, { backgroundColor: 'rgba(16, 185, 129, 0.16)' }]}>
+              <MaterialCommunityIcons name="check-circle" size={18} color="#34D399" />
             </View>
-            <Text style={[styles.statValue, { color: THEME.success }]}>
+            <Text style={[styles.statValue, { color: '#34D399' }]}>
               {item.accepted_count || 0}
             </Text>
             <Text style={styles.statLabel}>Accepted</Text>
           </View>
 
           <View style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: '#FCE7F3' }]}>
-              <MaterialCommunityIcons name="close-circle" size={20} color={THEME.secondary} />
+            <View style={[styles.statIcon, { backgroundColor: 'rgba(239, 68, 68, 0.16)' }]}>
+              <MaterialCommunityIcons name="close-circle" size={18} color="#F87171" />
             </View>
-            <Text style={[styles.statValue, { color: THEME.secondary }]}>
+            <Text style={[styles.statValue, { color: '#F87171' }]}>
               {item.rejected_count || 0}
             </Text>
             <Text style={styles.statLabel}>Rejected</Text>
@@ -156,7 +157,7 @@ const AnimatedCampaignCard = ({ item, onComplete, onToggleStatus }) => {
             disabled={item.status === 'completed'}
           >
             <LinearGradient
-              colors={item.status === 'completed' ? ['#9CA3AF', '#6B7280'] : item.status === 'paused' ? [THEME.success, '#059669'] : ['#F59E0B', '#D97706']}
+              colors={item.status === 'completed' ? ['#4B5563', '#374151'] : item.status === 'paused' ? ['#10B981', '#059669'] : ['#F59E0B', '#D97706']}
               style={styles.actionBtnGradient}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
@@ -177,8 +178,8 @@ const AnimatedCampaignCard = ({ item, onComplete, onToggleStatus }) => {
             activeOpacity={0.7}
             onPress={() => router.push(`/applications?campaignId=${item.id}`)}
           >
-            <MaterialCommunityIcons name="file-document-multiple" size={18} color={THEME.primary} />
-            <Text style={styles.actionBtnOutlineText}>View Applications</Text>
+            <MaterialCommunityIcons name="file-document-multiple" size={17} color="#C084FC" />
+            <Text style={styles.actionBtnOutlineText}>Applications</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -186,7 +187,7 @@ const AnimatedCampaignCard = ({ item, onComplete, onToggleStatus }) => {
             onPress={() => onComplete(item.id || item._id)}
             activeOpacity={0.7}
           >
-            <MaterialCommunityIcons name="check-circle-outline" size={22} color={THEME.success} />
+            <MaterialCommunityIcons name="check-circle-outline" size={22} color="#34D399" />
           </TouchableOpacity>
         </View>
       </View>
@@ -206,14 +207,32 @@ export default function CampaignRecord() {
   }, []);
 
   const fetchCampaigns = async () => {
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timeoutId = controller ? setTimeout(() => controller.abort(), 4000) : null;
     try {
       const headers = await getAuthHeader();
-      const res = await fetch(getApiUrl(API.CAMPAIGNS.MY_CAMPAIGNS), { headers });
+      const res = await fetch(getApiUrl(API.CAMPAIGNS.MY_CAMPAIGNS), {
+        headers,
+        signal: controller ? controller.signal : undefined,
+      });
+      if (timeoutId) clearTimeout(timeoutId);
       const data = await res.json();
-      setCampaigns(data.campaigns || []);
+      const rawCampaigns = data.campaigns || [];
+      const unique = [];
+      const seen = new Set();
+      for (const c of rawCampaigns) {
+        const nameKey = (c.campaign_name || '').trim().toLowerCase();
+        if (!seen.has(nameKey)) {
+          seen.add(nameKey);
+          unique.push(c);
+        }
+      }
+      setCampaigns(unique);
     } catch (e) {
-      console.log(e);
+      if (timeoutId) clearTimeout(timeoutId);
+      console.log('fetchCampaigns error or timeout:', e);
     } finally {
+      if (timeoutId) clearTimeout(timeoutId);
       setLoading(false);
       setRefreshing(false);
     }
@@ -316,7 +335,7 @@ export default function CampaignRecord() {
             </Text>
           </View>
           <View style={styles.headerIconContainer}>
-            <MaterialCommunityIcons name="bullhorn" size={40} color="rgba(255,255,255,0.2)" />
+            <MaterialCommunityIcons name="bullhorn" size={38} color="rgba(255,255,255,0.25)" />
           </View>
         </View>
       </LinearGradient>
@@ -345,7 +364,7 @@ export default function CampaignRecord() {
       {/* Campaign List */}
       {filteredCampaigns.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <MaterialCommunityIcons name="inbox" size={80} color={THEME.border} />
+          <MaterialCommunityIcons name="inbox" size={70} color="rgba(255,255,255,0.2)" />
           <Text style={styles.emptyTitle}>No campaigns found</Text>
           <Text style={styles.emptyText}>
             {filter === 'all'
@@ -397,9 +416,9 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    paddingTop: 60,
-    paddingBottom: 30,
-    paddingHorizontal: 24,
+    paddingTop: Platform.OS === 'ios' ? 60 : 45,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
   },
   headerContent: {
     flexDirection: 'row',
@@ -407,19 +426,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '800',
     color: '#fff',
     letterSpacing: -0.5,
   },
   headerSubtitle: {
-    fontSize: 15,
+    fontSize: 14,
     color: 'rgba(255,255,255,0.85)',
     marginTop: 4,
   },
   headerIconContainer: {
-    width: 60,
-    height: 60,
+    width: 50,
+    height: 50,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -430,7 +449,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: '#0B0B10',
     paddingHorizontal: 12,
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.08)',
     gap: 6,
@@ -441,9 +460,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 6,
-    paddingVertical: 9,
+    paddingVertical: 8,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
     gap: 4,
   },
   filterTabActive: {
@@ -452,7 +471,7 @@ const styles = StyleSheet.create({
   filterTabText: {
     fontSize: 12,
     fontWeight: '600',
-    color: 'rgba(255,255,255,0.7)',
+    color: 'rgba(255,255,255,0.65)',
   },
   filterTabTextActive: {
     color: '#fff',
@@ -462,7 +481,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(255,255,255,0.12)',
   },
   filterBadgeActive: {
     backgroundColor: 'rgba(255,255,255,0.25)',
@@ -477,7 +496,7 @@ const styles = StyleSheet.create({
   },
 
   listContent: {
-    padding: 20,
+    padding: 16,
     paddingBottom: 100,
   },
 
@@ -487,32 +506,32 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: THEME.cardBg,
     borderRadius: 20,
-    padding: 20,
-    shadowColor: THEME.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 12,
-    elevation: 3,
+    padding: 18,
     borderWidth: 1,
     borderColor: THEME.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 4,
   },
 
   cardTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   cardTopLeft: {
     flex: 1,
-    marginRight: 12,
+    marginRight: 10,
   },
   cardTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
-    color: '#111827',
+    color: '#FFFFFF',
     marginBottom: 6,
-    lineHeight: 24,
+    lineHeight: 22,
   },
   locationRow: {
     flexDirection: 'row',
@@ -520,20 +539,20 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   locationText: {
-    fontSize: 13,
-    color: '#4B5563',
+    fontSize: 12.5,
+    color: 'rgba(255,255,255,0.6)',
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 20,
     gap: 4,
   },
   statusText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11.5,
+    fontWeight: '700',
     textTransform: 'capitalize',
   },
 
@@ -541,62 +560,64 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: 10,
-    backgroundColor: THEME.background,
+    backgroundColor: '#1E1E2A',
     borderWidth: 1,
-    borderColor: THEME.border,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   pillText: {
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: '600',
-    color: THEME.text,
+    color: 'rgba(255,255,255,0.9)',
   },
 
   statsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 16,
+    gap: 10,
+    marginBottom: 14,
   },
   statCard: {
     flex: 1,
     alignItems: 'center',
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: THEME.background,
+    padding: 10,
+    borderRadius: 14,
+    backgroundColor: '#1E1E2A',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
   },
   statIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   statValue: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '800',
-    color: THEME.text,
+    color: '#FFFFFF',
     marginBottom: 2,
   },
   statLabel: {
     fontSize: 11,
-    color: THEME.textLight,
+    color: 'rgba(255,255,255,0.5)',
     fontWeight: '500',
   },
 
   divider: {
     height: 1,
-    backgroundColor: THEME.border,
-    marginBottom: 16,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    marginBottom: 14,
   },
 
   actionsRow: {
@@ -614,12 +635,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
   },
   actionBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
     color: '#fff',
   },
   actionBtnOutline: {
@@ -628,27 +649,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
     borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: THEME.primary,
-    backgroundColor: 'rgba(74, 144, 226, 0.05)',
+    borderWidth: 1,
+    borderColor: '#C084FC',
+    backgroundColor: 'rgba(192, 132, 252, 0.12)',
   },
   actionBtnOutlineText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: THEME.primary,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#C084FC',
   },
   completeIconBtn: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    backgroundColor: 'rgba(52, 211, 153, 0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.2)',
+    borderColor: 'rgba(52, 211, 153, 0.25)',
   },
 
   emptyContainer: {
@@ -656,18 +677,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 40,
+    paddingVertical: 80,
   },
   emptyTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: THEME.text,
     marginTop: 16,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   emptyText: {
-    fontSize: 14,
+    fontSize: 13.5,
     color: THEME.textLight,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 18,
   },
 });

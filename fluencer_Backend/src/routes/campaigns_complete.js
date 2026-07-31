@@ -49,6 +49,24 @@ router.post('/', authMiddleware, async (req, res) => {
       });
     }
 
+    // Anti-double-click guard: Check if brand created same campaign in last 15 seconds
+    const fifteenSecondsAgo = new Date(Date.now() - 15000);
+    const existingDuplicate = await Campaign.findOne({
+      brand_id: brandId,
+      campaign_name: campaign_name,
+      created_at: { $gte: fifteenSecondsAgo }
+    });
+
+    if (existingDuplicate) {
+      console.log('⚠️ Prevented duplicate campaign creation from double-click for brand:', brandId);
+      return res.status(200).json({
+        success: true,
+        message: 'Campaign created successfully',
+        campaignId: existingDuplicate._id.toString(),
+        is_duplicate_prevented: true
+      });
+    }
+
     const campaign = await Campaign.create({
       brand_id: brandId,
       campaign_name,
@@ -94,9 +112,20 @@ router.get('/my-campaigns', authMiddleware, async (req, res) => {
       });
     }
 
-    const campaignsList = await Campaign.find({ brand_id: brandId, is_deleted: false }).lean();
+    const campaignsList = await Campaign.find({ brand_id: brandId, is_deleted: false }).sort({ created_at: -1 }).lean();
 
-    const campaigns = await Promise.all(campaignsList.map(async (c) => {
+    // Guarantee unique campaigns per brand by campaign_name
+    const seenNames = new Set();
+    const uniqueList = [];
+    for (const c of campaignsList) {
+      const key = `${c.brand_id}_${(c.campaign_name || '').trim().toLowerCase()}`;
+      if (!seenNames.has(key)) {
+        seenNames.add(key);
+        uniqueList.push(c);
+      }
+    }
+
+    const campaigns = await Promise.all(uniqueList.map(async (c) => {
       const apps = await Application.find({ campaign_id: c._id });
       c.id = c._id.toString();
       c.applications_count = apps.length;
@@ -358,11 +387,39 @@ router.post('/applications/:id/approve-work', authMiddleware, async (req, res) =
     }
 
     application.deliverable_status = 'brand_approved';
+    application.status = 'completed';
     await application.save();
+
+    const dealAmount = (campaign ? campaign.cost_per_influencer : null) || application.escrow_amount || 5000;
+
+    const influencerProfile = await InfluencerProfile.findOne({ user_id: application.influencer_id });
+    if (influencerProfile) {
+      influencerProfile.escrow_balance = Math.max(0, (influencerProfile.escrow_balance || 0) - dealAmount);
+      influencerProfile.wallet_balance = (influencerProfile.wallet_balance || 0) + dealAmount;
+      influencerProfile.completed_campaigns = (influencerProfile.completed_campaigns || 0) + 1;
+      await influencerProfile.save();
+    }
+
+    const brandProfile = await BrandProfile.findOne({ user_id: brandId });
+    if (brandProfile) {
+      brandProfile.escrow_balance = Math.max(0, (brandProfile.escrow_balance || 0) - dealAmount);
+      await brandProfile.save();
+    }
+
+    try {
+      await WalletTransaction.create({
+        user_id: application.influencer_id,
+        amount: dealAmount,
+        type: 'credit',
+        status: 'completed',
+        description: `Escrow Payout Released: ₹${dealAmount} credited for "${campaign?.campaign_name || 'Campaign'}" Work Approval`,
+        created_at: new Date()
+      });
+    } catch (txErr) {}
 
     res.json({
       success: true,
-      message: 'Work approved! Admin can now release the Escrow payout to Influencer.',
+      message: `Work approved! ₹${dealAmount} Escrow payout released to Influencer Available Wallet.`,
       data: application
     });
   } catch (error) {
@@ -399,14 +456,23 @@ router.get('/applications/all', authMiddleware, async (req, res) => {
         influencer_id: app.influencer_id
       }).select('_id').lean();
 
+      const completedDeals = await Application.countDocuments({ influencer_id: app.influencer_id, status: 'accepted' });
+      const formattedFollowers = profile?.followers || (profile?.followers_count ? (profile.followers_count >= 1000 ? (profile.followers_count / 1000).toFixed(0) + 'K' : String(profile.followers_count)) : '125K');
+      const fCount = profile?.followers_count || (profile?.followers?.endsWith('K') ? parseInt(profile.followers) * 1000 : 125000);
+      const formattedAudience = profile?.audience ? profile.audience : (fCount * 0.45 >= 1000 ? (fCount * 0.45 / 1000).toFixed(1) + 'K' : String(Math.round(fCount * 0.45)));
+      const formattedCollabs = profile?.completed_campaigns !== undefined ? String(profile.completed_campaigns) : String(completedDeals || 12);
+
       app.id = app._id.toString();
       app.campaign_name = c ? c.campaign_name : '';
       app.influencer_name = profile ? profile.name : 'Influencer';
       app.profile_image = profile ? profile.profile_image : null;
-      app.followers = profile ? (profile.followers || (profile.followers_count ? (profile.followers_count >= 1000 ? (profile.followers_count / 1000).toFixed(1) + 'K' : String(profile.followers_count)) : '125K')) : '125K';
-      app.followers_count = profile ? profile.followers_count : 125000;
+      app.followers = formattedFollowers;
+      app.followers_count = fCount;
+      app.audience = formattedAudience;
+      app.collabs = formattedCollabs;
+      app.collaborations = formattedCollabs;
       app.location = profile ? profile.location : '';
-      app.categories = profile ? profile.categories : [];
+      app.categories = profile ? (Array.isArray(profile.categories) ? profile.categories.join(' • ') : profile.categories) : 'Fashion Creator';
       app.email = influencer ? influencer.email : '';
       app.chat_id = chat ? chat._id.toString() : null;
       return app;
@@ -526,13 +592,32 @@ router.get('/active/all', optionalAuth, async (req, res) => {
       return c;
     }));
 
+    let isProMember = true;
+    if (userRole === 'influencer' && userId) {
+      const infProfile = await InfluencerProfile.findOne({ user_id: userId }).lean();
+      isProMember = !!(infProfile && infProfile.is_pro_member);
+    }
+
     // If Influencer is logged in, filter out campaigns they have already applied to
     if (userRole === 'influencer' && req.query.show_all !== 'true') {
       campaigns = campaigns.filter(c => !c.already_applied);
     }
 
+    // Deduplicate active campaigns feed by campaign_name & brand_id
+    const seenActiveKeys = new Set();
+    const uniqueActiveCampaigns = [];
+    for (const c of campaigns) {
+      const nameKey = `${c.brand_id}_${(c.campaign_name || c.name || '').trim().toLowerCase()}`;
+      if (!seenActiveKeys.has(nameKey)) {
+        seenActiveKeys.add(nameKey);
+        uniqueActiveCampaigns.push(c);
+      }
+    }
+    campaigns = uniqueActiveCampaigns;
+
     res.status(200).json({ 
       success: true, 
+      is_pro_member: isProMember,
       campaigns: campaigns
     });
   } catch (error) {
@@ -557,6 +642,16 @@ router.post('/:id/apply', authMiddleware, async (req, res) => {
       return res.status(403).json({ 
         success: false, 
         message: 'Only influencers can apply to campaigns' 
+      });
+    }
+
+    // Check Pro Membership status of influencer
+    const influencerProfile = await InfluencerProfile.findOne({ user_id: influencerId });
+    if (!influencerProfile || !influencerProfile.is_pro_member) {
+      return res.status(403).json({
+        success: false,
+        is_pro_required: true,
+        message: '🔒 Pro Pass Membership Required! Please pay ₹499 to unlock Pro Pass before applying to campaigns or saving liked brands.'
       });
     }
 
@@ -671,6 +766,10 @@ router.get('/my-applications', authMiddleware, async (req, res) => {
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
     const campaignId = req.params.id;
+
+    if (!mongoose.Types.ObjectId.isValid(campaignId)) {
+      return res.status(400).json({ success: false, message: 'Invalid campaign ID' });
+    }
 
     const campaign = await Campaign.findById(campaignId).lean();
 

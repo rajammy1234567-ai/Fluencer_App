@@ -158,22 +158,22 @@ const Login = () => {
         >
           <Animated.View entering={FadeInDown.delay(250).duration(650)} style={styles.formContainer}>
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Email</Text>
+              <Text style={styles.inputLabel}>Email or Mobile Number</Text>
               <View style={styles.inputWrapper}>
                 <MaterialCommunityIcons
-                  name="email-outline"
+                  name="account-outline"
                   size={20}
                   color={COLORS.primary}
                   style={styles.inputIcon}
                 />
                 <TextInput
                   style={styles.input}
-                  placeholder="name@example.com"
+                  placeholder="Email address or Mobile number"
                   placeholderTextColor={COLORS.mutedGray}
                   value={email}
                   onChangeText={setEmail}
                   autoCapitalize="none"
-                  keyboardType="email-address"
+                  keyboardType="default"
                 />
               </View>
             </View>
@@ -201,6 +201,58 @@ const Login = () => {
                     size={20}
                     color={COLORS.textLight}
                   />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Quick 1-Tap Demo Fill */}
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>⚡ Quick 1-Tap Demo Fill:</Text>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    backgroundColor: 'rgba(168, 85, 247, 0.14)',
+                    paddingVertical: 10,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: 'rgba(168, 85, 247, 0.3)'
+                  }}
+                  onPress={() => {
+                    setEmail('testuser99@fluencer.app');
+                    setPassword('testpass123');
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <MaterialCommunityIcons name="star-face" size={15} color="#C084FC" />
+                  <Text style={{ color: '#C084FC', fontSize: 12.5, fontWeight: '700' }}>Demo Creator</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    backgroundColor: 'rgba(56, 189, 248, 0.14)',
+                    paddingVertical: 10,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: 'rgba(56, 189, 248, 0.3)'
+                  }}
+                  onPress={() => {
+                    setEmail('krishna@fluencer.app');
+                    setPassword('Test@123');
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <MaterialCommunityIcons name="domain" size={15} color="#38BDF8" />
+                  <Text style={{ color: '#38BDF8', fontSize: 12.5, fontWeight: '700' }}>Demo Brand</Text>
                 </TouchableOpacity>
               </View>
             </View>

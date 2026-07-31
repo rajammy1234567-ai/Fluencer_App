@@ -13,13 +13,15 @@ import {
   Keyboard,
   Modal,
   Linking,
+  Image,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS } from '../constants/colors';
 import { FONTS } from '../constants/fonts';
 import { getAuthHeader, getUserId, getRole } from '../utils/storage';
-import { API, getApiUrl } from '../constants/api';
+import { getApiUrl } from '../constants/api';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -45,8 +47,66 @@ export default function ConversationScreen() {
   const [reelNotesInput, setReelNotesInput] = useState('');
   const [submittingWork, setSubmittingWork] = useState(false);
 
+  // Image Attachment & Lightbox State
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [fullScreenImage, setFullScreenImage] = useState(null);
+
+  // Restriction Alert Modal State
+  const [restrictionModalVisible, setRestrictionModalVisible] = useState(false);
+  const [restrictionModalMsg, setRestrictionModalMsg] = useState('');
+
   const flatListRef = useRef(null);
   const isMountedRef = useRef(true);
+
+  // Pick image from device library (Cross-platform Web & Native)
+  const handlePickImage = async () => {
+    try {
+      if (Platform.OS === 'web' && typeof document !== 'undefined') {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = (e) => {
+          const file = e.target.files && e.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              const base64Data = event.target.result;
+              setSelectedImage({
+                uri: base64Data,
+                fileName: file.name,
+                mimeType: file.type || 'image/jpeg',
+                file: file,
+                base64: base64Data.includes(',') ? base64Data.split(',')[1] : base64Data,
+              });
+            };
+            reader.readAsDataURL(file);
+          }
+        };
+        input.click();
+        return;
+      }
+
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please allow gallery permissions to send photos in chat.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 0.8,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setSelectedImage(result.assets[0]);
+      }
+    } catch (error) {
+      console.error('Error selecting image:', error);
+      Alert.alert('Error', 'Could not select photo');
+    }
+  };
 
   // Load User Info
   useEffect(() => {
@@ -125,63 +185,150 @@ export default function ConversationScreen() {
   // Poll for Messages
   useEffect(() => {
     let interval = null;
-    fetchMessages();
+
+    const timer = setTimeout(() => {
+      if (isMountedRef.current) fetchMessages();
+    }, 0);
 
     interval = setInterval(() => {
       if (isMountedRef.current) fetchMessages();
     }, 4000);
 
     return () => {
+      clearTimeout(timer);
       if (interval) clearInterval(interval);
     };
   }, [chatId]);
 
-  // Send Normal Message
+  // Send Message (Text or Photo)
   const handleSend = async () => {
-    if (!newMessage.trim() || sending) return;
+    if ((!newMessage.trim() && !selectedImage) || sending) return;
 
-    const numberWords = 'one|two|three|four|five|six|seven|eight|nine|zero';
-    const numberWordRegex = new RegExp(`\\b(${numberWords})\\s+(${numberWords})\\s+(${numberWords})`, 'i');
-    const phoneRegex = /\b\d{10}\b|\+91/g;
-    
-    if (phoneRegex.test(newMessage) || numberWordRegex.test(newMessage)) {
-      Alert.alert(
-        'Action Restricted',
-        'Sharing phone numbers or contact details is not allowed on this platform.'
-      );
-      return;
+    if (newMessage.trim()) {
+      const strippedText = String(newMessage).replace(/[\s\-\.\(\)\+\/]/g, '');
+      const containsPhone = /\d{10}/.test(strippedText) || /(?:91)?[6-9]\d{9}/.test(strippedText) || /(?:zero|one|two|three|four|five|six|seven|eight|nine)[\s\-\.\,]*(?:zero|one|two|three|four|five|six|seven|eight|nine)[\s\-\.\,]*(?:zero|one|two|three|four|five|six|seven|eight|nine)/i.test(newMessage);
+
+      if (containsPhone) {
+        setRestrictionModalMsg('Sharing phone numbers or personal contact details is strictly prohibited in chat for user security. Please communicate directly within the Fluencer platform!');
+        setRestrictionModalVisible(true);
+        return;
+      }
     }
 
     setSending(true);
 
     try {
       const headers = await getAuthHeader();
-      const response = await fetch(
-        getApiUrl(`/api/chats/${chatId}/messages`),
-        {
-          method: 'POST',
-          headers: {
-            ...headers,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            message: newMessage.trim(),
-            message_type: 'text',
-          }),
+
+      // CASE 1: SENDING ATTACHED PHOTO
+      if (selectedImage) {
+        let uploadSuccess = false;
+
+        try {
+          const formData = new FormData();
+          if (Platform.OS === 'web') {
+            const res = await fetch(selectedImage.uri);
+            const blob = await res.blob();
+            formData.append('chat_file', blob, selectedImage.fileName || 'photo.jpg');
+          } else {
+            formData.append('chat_file', {
+              uri: selectedImage.uri,
+              name: selectedImage.fileName || `photo_${Date.now()}.jpg`,
+              type: selectedImage.mimeType || 'image/jpeg',
+            });
+          }
+
+          const uploadHeaders = { ...headers };
+          delete uploadHeaders['Content-Type'];
+
+          const response = await fetch(getApiUrl(`/api/chats/${chatId}/upload-image`), {
+            method: 'POST',
+            headers: uploadHeaders,
+            body: formData,
+          });
+
+          const data = await response.json();
+          if (response.ok && data.success) {
+            uploadSuccess = true;
+          }
+        } catch (e) {
+          console.warn('FormData upload failed, trying base64 fallback:', e);
         }
-      );
 
-      const data = await response.json();
+        // Base64 Fallback
+        if (!uploadSuccess && selectedImage.base64) {
+          const base64Str = `data:${selectedImage.mimeType || 'image/jpeg'};base64,${selectedImage.base64}`;
+          const response = await fetch(getApiUrl(`/api/chats/${chatId}/upload-image`), {
+            method: 'POST',
+            headers: {
+              ...headers,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              image_base64: base64Str,
+            }),
+          });
 
-      if (response.ok && data.success) {
-        setNewMessage('');
-        fetchMessages();
-        Keyboard.dismiss();
-        setTimeout(() => {
-          flatListRef.current?.scrollToEnd({ animated: true });
-        }, 100);
+          const data = await response.json();
+          if (response.ok && data.success) {
+            uploadSuccess = true;
+          } else {
+            Alert.alert('Error', data.message || 'Failed to send photo');
+          }
+        }
+
+        if (uploadSuccess) {
+          setSelectedImage(null);
+          // If text caption was also entered
+          if (newMessage.trim()) {
+            await fetch(getApiUrl(`/api/chats/${chatId}/messages`), {
+              method: 'POST',
+              headers: {
+                ...headers,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                message: newMessage.trim(),
+                message_type: 'text',
+              }),
+            });
+            setNewMessage('');
+          }
+          fetchMessages();
+          Keyboard.dismiss();
+          setTimeout(() => {
+            flatListRef.current?.scrollToEnd({ animated: true });
+          }, 100);
+        }
       } else {
-        Alert.alert('Error', data.message || 'Failed to send message');
+        // CASE 2: NORMAL TEXT MESSAGE
+        const response = await fetch(
+          getApiUrl(`/api/chats/${chatId}/messages`),
+          {
+            method: 'POST',
+            headers: {
+              ...headers,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              message: newMessage.trim(),
+              message_type: 'text',
+            }),
+          }
+        );
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          setNewMessage('');
+          fetchMessages();
+          Keyboard.dismiss();
+          setTimeout(() => {
+            flatListRef.current?.scrollToEnd({ animated: true });
+          }, 100);
+        } else {
+          Alert.alert('Error', data.message || 'Failed to send message');
+        }
       }
     } catch (error) {
       console.error('Error sending message:', error);
@@ -265,6 +412,20 @@ export default function ConversationScreen() {
       );
     }
 
+    const isImageMsg = item.message_type === 'image' || (
+      item.message && (
+        item.message.startsWith('data:image') ||
+        item.message.startsWith('/uploads/') ||
+        ((item.message.startsWith('http://') || item.message.startsWith('https://')) &&
+         (item.message.includes('cloudinary') || item.message.includes('uploads') || item.message.match(/\.(jpg|jpeg|png|webp|gif)(\?.*)?$/i)))
+      )
+    );
+
+    let imageUrl = item.message;
+    if (isImageMsg && imageUrl.startsWith('/uploads/')) {
+      imageUrl = getApiUrl(imageUrl);
+    }
+
     return (
       <View style={[styles.messageContainer, isMe ? styles.myMessage : styles.theirMessage]}>
         {!isMe && (
@@ -282,20 +443,40 @@ export default function ConversationScreen() {
             <Text style={styles.senderName}>{item.sender_name || 'User'}</Text>
           </View>
         )}
-        <View style={[styles.messageBubble, isMe ? styles.myBubble : styles.theirBubble]}>
-          <Text style={[styles.messageText, isMe ? styles.myMessageText : styles.theirMessageText]}>
-            {item.message}
-          </Text>
-          {foundUrl && (
+        <View style={[styles.messageBubble, isMe ? styles.myBubble : styles.theirBubble, isImageMsg && { padding: 4, overflow: 'hidden' }]}>
+          {isImageMsg ? (
             <TouchableOpacity
-              style={[styles.linkBadge, isMe ? { backgroundColor: 'rgba(255,255,255,0.2)' } : { backgroundColor: 'rgba(168, 85, 247, 0.16)' }]}
-              onPress={() => Linking.openURL(foundUrl)}
+              activeOpacity={0.88}
+              onPress={() => setFullScreenImage(imageUrl)}
+              style={styles.chatImageWrapper}
             >
-              <MaterialCommunityIcons name="link-variant" size={16} color={isMe ? '#FFF' : BLUE} />
-              <Text style={[styles.linkBadgeText, isMe && { color: '#FFF' }]}>Open Link: {foundUrl}</Text>
+              <Image
+                source={{ uri: imageUrl }}
+                style={styles.chatImageContent}
+                resizeMode="cover"
+              />
+              <View style={styles.imageOverlayBadge}>
+                <MaterialCommunityIcons name="magnify-plus-outline" size={14} color="#FFF" />
+                <Text style={styles.imageOverlayText}>View Photo</Text>
+              </View>
             </TouchableOpacity>
+          ) : (
+            <>
+              <Text style={[styles.messageText, isMe ? styles.myMessageText : styles.theirMessageText]}>
+                {item.message}
+              </Text>
+              {foundUrl && (
+                <TouchableOpacity
+                  style={[styles.linkBadge, isMe ? { backgroundColor: 'rgba(255,255,255,0.2)' } : { backgroundColor: 'rgba(168, 85, 247, 0.16)' }]}
+                  onPress={() => Linking.openURL(foundUrl)}
+                >
+                  <MaterialCommunityIcons name="link-variant" size={16} color={isMe ? '#FFF' : BLUE} />
+                  <Text style={[styles.linkBadgeText, isMe && { color: '#FFF' }]}>Open Link: {foundUrl}</Text>
+                </TouchableOpacity>
+              )}
+            </>
           )}
-          <Text style={[styles.timeText, isMe ? styles.myTimeText : styles.theirTimeText]}>
+          <Text style={[styles.timeText, isMe ? styles.myTimeText : styles.theirTimeText, isImageMsg && { paddingHorizontal: 6, paddingBottom: 2, paddingTop: 4 }]}>
             {new Date(item.created_at).toLocaleTimeString('en-US', {
               hour: '2-digit',
               minute: '2-digit',
@@ -305,10 +486,6 @@ export default function ConversationScreen() {
       </View>
     );
   };
-
-  const messagesRemaining = chatInfo
-    ? (chatInfo.max_messages || 10) - (chatInfo.message_count || 0)
-    : 10;
 
   if (loading) {
     return (
@@ -587,15 +764,45 @@ export default function ConversationScreen() {
           }
         />
 
+        {/* ATTACHED PHOTO PREVIEW BANNER */}
+        {selectedImage && (
+          <View style={styles.imagePreviewBanner}>
+            <Image source={{ uri: selectedImage.uri }} style={styles.imagePreviewThumb} />
+            <View style={styles.imagePreviewDetails}>
+              <Text style={styles.imagePreviewTitle}>Photo Attached 📷</Text>
+              <Text style={styles.imagePreviewSub}>Tap send button to post image</Text>
+            </View>
+            <TouchableOpacity style={styles.imagePreviewRemoveBtn} onPress={() => setSelectedImage(null)}>
+              <MaterialCommunityIcons name="close-circle" size={22} color="#F87171" />
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Input Box */}
         {(() => {
           const isCompletedDeal = chatInfo?.status === 'completed' || chatInfo?.deliverable_status === 'approved' || chatInfo?.deliverable_status === 'brand_approved';
+          const canSend = (newMessage.trim() || selectedImage) && !sending && !isCompletedDeal;
           return (
             <View style={[styles.inputContainer, { paddingBottom: insets.bottom || 10 }, isCompletedDeal && { backgroundColor: '#14141C', borderTopColor: 'rgba(255,255,255,0.12)' }]}>
-              <View style={[styles.inputWrapper, isCompletedDeal && { backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.16)' }]}>
+              <View style={[styles.inputCapsule, isCompletedDeal && { backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.16)' }]}>
+                {!isCompletedDeal && (
+                  <TouchableOpacity
+                    style={styles.attachInsideBtn}
+                    onPress={handlePickImage}
+                    disabled={sending}
+                    activeOpacity={0.7}
+                  >
+                    <MaterialCommunityIcons
+                      name={selectedImage ? "image-check" : "camera"}
+                      size={22}
+                      color={selectedImage ? '#C084FC' : 'rgba(255,255,255,0.7)'}
+                    />
+                  </TouchableOpacity>
+                )}
+
                 <TextInput
-                  style={[styles.input, isCompletedDeal && { color: '#475569', fontWeight: '600' }]}
-                  placeholder={isCompletedDeal ? "🔒 Deal completed & approved! Chat is closed." : "Type your message or deal offer..."}
+                  style={[styles.inputInside, isCompletedDeal && { color: '#475569', fontWeight: '600' }]}
+                  placeholder={isCompletedDeal ? "🔒 Deal completed & approved! Chat is closed." : selectedImage ? "Add an optional message..." : "Type your message or deal offer..."}
                   placeholderTextColor={isCompletedDeal ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.45)"}
                   value={isCompletedDeal ? "🔒 Deal Completed · Work Approved (Chat Closed)" : newMessage}
                   onChangeText={setNewMessage}
@@ -604,17 +811,18 @@ export default function ConversationScreen() {
                   maxLength={1000}
                 />
               </View>
+
               <TouchableOpacity
                 style={[
                   styles.sendButton,
-                  (!newMessage.trim() || sending || isCompletedDeal) && styles.sendButtonDisabled,
+                  !canSend && styles.sendButtonDisabled,
                 ]}
                 onPress={handleSend}
-                disabled={!newMessage.trim() || sending || isCompletedDeal}
+                disabled={!canSend}
               >
                 <LinearGradient
                   colors={
-                    !newMessage.trim() || sending || isCompletedDeal
+                    !canSend
                       ? ['#cbd5e1', 'rgba(255,255,255,0.45)']
                       : [BLUE, BLUE_DARK]
                   }
@@ -692,6 +900,70 @@ export default function ConversationScreen() {
                 )}
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* FULL SCREEN PHOTO LIGHTBOX MODAL */}
+      <Modal
+        visible={!!fullScreenImage}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setFullScreenImage(null)}
+      >
+        <View style={styles.lightboxOverlay}>
+          <TouchableOpacity
+            style={styles.lightboxCloseBtn}
+            onPress={() => setFullScreenImage(null)}
+            activeOpacity={0.8}
+          >
+            <MaterialCommunityIcons name="close" size={26} color="#FFFFFF" />
+          </TouchableOpacity>
+          {fullScreenImage && (
+            <Image
+              source={{ uri: fullScreenImage }}
+              style={styles.lightboxImage}
+              resizeMode="contain"
+            />
+          )}
+        </View>
+      </Modal>
+
+      {/* CUSTOM GLASSMORPHIC RESTRICTION ALERT MODAL */}
+      <Modal
+        visible={restrictionModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setRestrictionModalVisible(false)}
+      >
+        <View style={styles.alertModalOverlay}>
+          <View style={styles.alertModalContainer}>
+            <LinearGradient
+              colors={['#1E1B2E', '#12101F']}
+              style={styles.alertModalGradient}
+            >
+              <View style={styles.alertIconBadge}>
+                <MaterialCommunityIcons name="shield-alert" size={32} color="#EF4444" />
+              </View>
+              <Text style={styles.alertModalTitle}>Action Restricted 🚫</Text>
+              <Text style={styles.alertModalBody}>
+                {restrictionModalMsg}
+              </Text>
+              <TouchableOpacity
+                style={styles.alertModalButton}
+                onPress={() => setRestrictionModalVisible(false)}
+                activeOpacity={0.85}
+              >
+                <LinearGradient
+                  colors={['#EF4444', '#DC2626']}
+                  style={styles.alertModalButtonGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  <Text style={styles.alertModalButtonText}>I Understand</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </LinearGradient>
           </View>
         </View>
       </Modal>
@@ -784,14 +1056,28 @@ const styles = StyleSheet.create({
   emptyIconGradient: { width: 90, height: 90, borderRadius: 45, justifyContent: 'center', alignItems: 'center' },
   emptyText: { fontSize: 20, fontFamily: FONTS.bold, color: '#FFFFFF', marginTop: 8 },
   emptySubtext: { fontSize: 14, fontFamily: FONTS.regular, color: 'rgba(255,255,255,0.55)', marginTop: 6, textAlign: 'center' },
-  inputContainer: { flexDirection: 'row', alignItems: 'flex-end', padding: 14, backgroundColor: '#14141C', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.12)', gap: 10 },
-  inputWrapper: { flex: 1, position: 'relative' },
-  input: { flex: 1, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 24, paddingHorizontal: 18, paddingVertical: 12, fontSize: 15, fontFamily: FONTS.regular, maxHeight: 100, color: '#FFFFFF', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
+  inputContainer: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#14141C', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.12)', gap: 10 },
+  inputCapsule: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 24, paddingHorizontal: 12, paddingVertical: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)' },
+  attachInsideBtn: { padding: 6, marginRight: 4, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
+  inputInside: { flex: 1, paddingVertical: 8, fontSize: 14.5, fontFamily: FONTS.regular, maxHeight: 100, color: '#FFFFFF' },
   warningBadge: { position: 'absolute', top: -8, right: 12, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fef3c7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, gap: 4 },
   warningText: { fontSize: 11, fontFamily: FONTS.bold, color: '#f59e0b' },
-  sendButton: { width: 46, height: 46, borderRadius: 23, overflow: 'hidden' },
-  sendButtonDisabled: { opacity: 0.5 },
+  sendButton: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden' },
+  sendButtonDisabled: { opacity: 0.4 },
   sendGradient: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' },
+  imagePreviewBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1E1B2E', paddingHorizontal: 12, paddingVertical: 8, borderTopWidth: 1, borderTopColor: '#3B296B', gap: 10 },
+  imagePreviewThumb: { width: 44, height: 44, borderRadius: 8, backgroundColor: '#000' },
+  imagePreviewDetails: { flex: 1 },
+  imagePreviewTitle: { fontSize: 13, fontWeight: '700', color: '#FFFFFF' },
+  imagePreviewSub: { fontSize: 11, color: 'rgba(255,255,255,0.5)' },
+  imagePreviewRemoveBtn: { padding: 4 },
+  chatImageWrapper: { width: 220, height: 180, borderRadius: 14, overflow: 'hidden', backgroundColor: '#000', position: 'relative' },
+  chatImageContent: { width: '100%', height: '100%' },
+  imageOverlayBadge: { position: 'absolute', bottom: 6, right: 6, backgroundColor: 'rgba(0,0,0,0.65)', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3, flexDirection: 'row', alignItems: 'center', gap: 4 },
+  imageOverlayText: { color: '#FFFFFF', fontSize: 10, fontWeight: '600' },
+  lightboxOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', justifyContent: 'center', alignItems: 'center' },
+  lightboxCloseBtn: { position: 'absolute', top: 50, right: 20, zIndex: 10, width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' },
+  lightboxImage: { width: '92%', height: '80%' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.75)', justifyContent: 'center', alignItems: 'center', padding: 20 },
   modalCard: { backgroundColor: '#FFF', width: '100%', maxWidth: 450, borderRadius: 20, padding: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.2, shadowRadius: 20, elevation: 10 },
   modalHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
@@ -804,4 +1090,70 @@ const styles = StyleSheet.create({
   cancelBtnText: { color: 'rgba(255,255,255,0.55)', fontWeight: '700', fontSize: 14 },
   submitModalBtn: { flex: 1.5, paddingVertical: 12, borderRadius: 10, backgroundColor: '#16A34A', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6 },
   submitModalBtnText: { color: '#FFF', fontWeight: '700', fontSize: 14 },
+  alertModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  alertModalContainer: {
+    width: '100%',
+    maxWidth: 380,
+    borderRadius: 24,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.4)',
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  alertModalGradient: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  alertIconBadge: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+  },
+  alertModalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  alertModalBody: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.85)',
+    lineHeight: 22,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  alertModalButton: {
+    width: '100%',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  alertModalButtonGradient: {
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 16,
+  },
+  alertModalButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
 });

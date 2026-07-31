@@ -7,6 +7,7 @@ import BrandProfile from '../models/BrandProfile.js';
 import InfluencerProfile from '../models/InfluencerProfile.js';
 import User from '../models/User.js';
 import authMiddleware from '../middleware/auth.js';
+import { uploadChatFile } from '../middleware/upload.js';
 
 const router = express.Router();
 
@@ -99,7 +100,7 @@ router.get('/', authMiddleware, async (req, res) => {
         ch.brand_name = otherUserName;
         ch.brand_image = otherUserImage;
       }
-      ch.last_message = lastMsg ? lastMsg.message : null;
+      ch.last_message = lastMsg ? (lastMsg.message_type === 'image' || (lastMsg.message && (lastMsg.message.startsWith('http') || lastMsg.message.startsWith('data:image')) && (lastMsg.message.includes('cloudinary') || lastMsg.message.includes('uploads') || lastMsg.message.endsWith('.jpg') || lastMsg.message.endsWith('.png') || lastMsg.message.endsWith('.jpeg') || lastMsg.message.endsWith('.webp'))) ? '📷 Photo' : lastMsg.message) : null;
       ch.last_message_time = lastMsg ? lastMsg.created_at : null;
       ch.unread_count = unreadCount;
 
@@ -244,6 +245,17 @@ router.post('/:chatId/messages', authMiddleware, async (req, res) => {
       });
     }
 
+    // Strict Phone Number & Contact Sharing Restriction Guard
+    const strippedText = String(message).replace(/[\s\-\.\(\)\+\/]/g, '');
+    const containsPhone = /\d{10}/.test(strippedText) || /(?:91)?[6-9]\d{9}/.test(strippedText) || /(?:zero|one|two|three|four|five|six|seven|eight|nine)[\s\-\.\,]*(?:zero|one|two|three|four|five|six|seven|eight|nine)[\s\-\.\,]*(?:zero|one|two|three|four|five|six|seven|eight|nine)/i.test(message);
+
+    if (containsPhone) {
+      return res.status(400).json({
+        success: false,
+        message: 'Action Restricted: Sharing phone numbers or contact details in chat is strictly prohibited on Fluencer for user safety.'
+      });
+    }
+
     const chatDoc = await resolveChatDoc(chatId, userId);
 
     if (!chatDoc) {
@@ -322,11 +334,121 @@ router.post('/:chatId/messages', authMiddleware, async (req, res) => {
   }
 });
 
+// Upload image / photo for a chat
+router.post('/:chatId/upload-image', authMiddleware, (req, res) => {
+  uploadChatFile(req, res, async (err) => {
+    try {
+      const chatId = req.params.chatId;
+      const userId = req.user.userId;
+
+      const chatDoc = await resolveChatDoc(chatId, userId);
+      if (!chatDoc) {
+        return res.status(404).json({ success: false, message: 'Chat not found or unauthorized' });
+      }
+
+      const actualChatId = chatDoc._id.toString();
+
+      if (!chatDoc.is_active) {
+        return res.status(403).json({ success: false, message: 'Chat is no longer active' });
+      }
+
+      // Check deal escrow payment status
+      const Application = (await import('../models/Application.js')).default;
+      const application = await Application.findOne({
+        $or: [
+          { campaign_id: chatDoc.campaign_id, influencer_id: chatDoc.influencer_id },
+          { _id: chatDoc.application_id }
+        ]
+      }).lean();
+
+      const isPaid = application && (application.status === 'escrow_locked' || application.status === 'completed');
+
+      if (chatDoc.status === 'completed' || (application && (application.status === 'completed' || application.deliverable_status === 'approved'))) {
+        return res.status(403).json({
+          success: false,
+          chat_completed: true,
+          message: '🔒 This deal chat has been marked as COMPLETED. Work deliverable approved!'
+        });
+      }
+
+      if (!isPaid) {
+        const userMessageCount = await ChatMessage.countDocuments({
+          chat_id: actualChatId,
+          message_type: { $ne: 'system' }
+        });
+
+        if (userMessageCount >= 10) {
+          return res.status(403).json({
+            success: false,
+            free_limit_reached: true,
+            message: '🔒 Free limit reached (10/10 messages). Brand must lock deal & deposit escrow to unlock unlimited chat!'
+          });
+        }
+      }
+
+      let imageUrl = req.fileUrl;
+
+      // Fallback: If Cloudinary did not return a URL but file buffer or base64 was sent
+      if (!imageUrl && req.file) {
+        const fs = await import('fs');
+        const path = await import('path');
+        const uploadsDir = path.join(process.cwd(), 'uploads');
+        if (!fs.existsSync(uploadsDir)) {
+          fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+        const ext = req.file.mimetype ? (req.file.mimetype.split('/')[1] || 'jpg') : 'jpg';
+        const filename = `chat_${Date.now()}_${Math.floor(Math.random() * 10000)}.${ext}`;
+        const filePath = path.join(uploadsDir, filename);
+        fs.writeFileSync(filePath, req.file.buffer);
+        imageUrl = `/uploads/${filename}`;
+      } else if (!imageUrl && req.body && req.body.image_base64) {
+        imageUrl = req.body.image_base64;
+      }
+
+      if (!imageUrl) {
+        return res.status(400).json({ success: false, message: 'No image file uploaded or provided' });
+      }
+
+      const result = await ChatMessage.create({
+        chat_id: actualChatId,
+        sender_id: userId,
+        message: imageUrl,
+        message_type: 'image',
+        is_read: false
+      });
+
+      chatDoc.message_count += 1;
+      await chatDoc.save();
+
+      res.status(201).json({
+        success: true,
+        message: 'Photo sent successfully',
+        messageId: result._id.toString(),
+        imageUrl: imageUrl,
+        chatMessage: {
+          id: result._id.toString(),
+          sender_id: userId,
+          message: imageUrl,
+          message_type: 'image',
+          created_at: result.created_at
+        }
+      });
+    } catch (error) {
+      console.error('Image message send error:', error);
+      res.status(500).json({ success: false, message: 'Failed to send image', error: error.message });
+    }
+  });
+});
+
 // Get chat details
 router.get('/:chatId', authMiddleware, async (req, res) => {
   try {
     const chatId = req.params.chatId;
     const userId = req.user.userId;
+
+    if (!mongoose.Types.ObjectId.isValid(chatId)) {
+      return res.status(400).json({ success: false, message: 'Invalid Chat ID' });
+    }
 
     const chat = await Chat.findOne({
       _id: chatId,
@@ -556,11 +678,53 @@ router.post('/:chatId/approve-work', authMiddleware, async (req, res) => {
     chat.status = 'completed';
     await chat.save();
 
+    // Transfer Escrow Payout directly to Influencer's Available Wallet Balance
+    const campaign = await Campaign.findById(chat.campaign_id);
+    const dealAmount = (campaign ? campaign.cost_per_influencer : null) || (application ? application.escrow_amount : null) || chat.escrow_amount || 5000;
+
+    const influencerProfile = await InfluencerProfile.findOne({ user_id: chat.influencer_id });
+    if (influencerProfile) {
+      influencerProfile.escrow_balance = Math.max(0, (influencerProfile.escrow_balance || 0) - dealAmount);
+      influencerProfile.wallet_balance = (influencerProfile.wallet_balance || 0) + dealAmount;
+      influencerProfile.completed_campaigns = (influencerProfile.completed_campaigns || 0) + 1;
+      await influencerProfile.save();
+      console.log(`✅ Escrow Payout Transferred: ₹${dealAmount} credited to Influencer (${influencerProfile.name}). New Wallet Balance: ₹${influencerProfile.wallet_balance}`);
+    }
+
+    const brandProfile = await BrandProfile.findOne({ user_id: chat.brand_id });
+    if (brandProfile) {
+      brandProfile.escrow_balance = Math.max(0, (brandProfile.escrow_balance || 0) - dealAmount);
+      await brandProfile.save();
+    }
+
+    try {
+      const WalletTransaction = (await import('../models/WalletTransaction.js')).default;
+      await WalletTransaction.create({
+        user_id: chat.influencer_id,
+        amount: dealAmount,
+        type: 'credit',
+        status: 'completed',
+        description: `Escrow Payout Released: ₹${dealAmount} credited for "${campaign?.campaign_name || 'Campaign'}" Reel Approval`,
+        created_at: new Date()
+      });
+
+      const Notification = (await import('../models/Notification.js')).default;
+      await Notification.create({
+        target_id: chat.influencer_id,
+        title: '🎉 Payout Released to Wallet!',
+        message: `₹${dealAmount} has been credited to your Available Wallet for work approval on ${campaign?.campaign_name || 'Campaign'}!`,
+        type: 'influencer',
+        created_at: new Date()
+      });
+    } catch (txErr) {
+      console.warn('Wallet transaction / notification creation warning:', txErr);
+    }
+
     // Post system message into Chat
     await ChatMessage.create({
       chat_id: actualChatId,
       sender_id: userId,
-      message: `✅ Work Approved · Escrow Payout Ready for Admin Release`,
+      message: `✅ Work Approved · ₹${dealAmount} Escrow Payout Released to Creator Available Wallet!`,
       message_type: 'system',
       is_read: false
     });

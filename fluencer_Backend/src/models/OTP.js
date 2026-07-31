@@ -20,6 +20,10 @@ const otpSchema = new mongoose.Schema({
     type: String,
     enum: ['influencer', 'brand'],
     required: true
+  },
+  phone: {
+    type: String,
+    default: null
   }
 }, {
   timestamps: { createdAt: 'created_at', updatedAt: false }

@@ -1,8 +1,10 @@
 import { getApiUrl, API_CONFIG } from '../constants/api';
 import { storage } from './storage';
 
-// Generic API call handler with error handling
-export const apiCall = async (endpoint, options = {}) => {
+// Generic API call handler with error handling & fast timeout protection
+export const apiCall = async (endpoint, options = {}, timeoutMs = 5000) => {
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
   try {
     const url = getApiUrl(endpoint);
     console.log('🌐 API Call:', url);
@@ -23,11 +25,13 @@ export const apiCall = async (endpoint, options = {}) => {
         ...defaultOptions.headers,
         ...options.headers,
       },
+      signal: controller ? controller.signal : undefined,
     };
 
     console.log('📤 Request:', { method: fetchOptions.method || 'GET', body: options.body?.substring(0, 100) });
 
     const response = await fetch(url, fetchOptions);
+    if (timeoutId) clearTimeout(timeoutId);
     console.log('📥 Response status:', response.status);
 
     const data = await response.json();
@@ -43,15 +47,16 @@ export const apiCall = async (endpoint, options = {}) => {
 
     return { success: true, data };
   } catch (error) {
+    if (timeoutId) clearTimeout(timeoutId);
     console.error('❌ API call error:', {
-      message: error.message,
+      message: error.message || error.name,
       status: error.status,
       name: error.name,
       endpoint,
     });
     return {
       success: false,
-      error: error.message || 'Network error',
+      error: error.name === 'AbortError' ? 'Request timed out' : (error.message || 'Network error'),
       status: error.status,
       data: error.data,
     };

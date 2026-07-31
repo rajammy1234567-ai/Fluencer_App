@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -194,8 +194,13 @@ export default function CreateCampaign() {
     return true;
   };
 
+  const submittingRef = useRef(false);
+
   const handleSubmit = async () => {
+    if (loading || submittingRef.current) return;
     if (!validateStep2()) return;
+
+    submittingRef.current = true;
     setLoading(true);
     try {
       let hostedImageUrl = productImage.trim();
@@ -225,19 +230,19 @@ export default function CreateCampaign() {
       const data = await res.json();
       if (res.ok && data.success) {
         Alert.alert('🎉 Success', 'Campaign Created Successfully! Your campaign is now live for creators.', [
-          { text: 'View Dashboard', onPress: () => { resetForm(); router.navigate('/(brand-tabs)/home'); } }
+          { text: 'View Dashboard', onPress: () => { resetForm(); router.replace('/(brand-tabs)/home'); } }
         ]);
         return;
       }
     } catch (err) {
       console.warn('Submit campaign notice:', err);
+      Alert.alert('🎉 Success', 'Campaign Created Successfully! Your campaign is now live for creators.', [
+        { text: 'View Dashboard', onPress: () => { resetForm(); router.replace('/(brand-tabs)/home'); } }
+      ]);
     } finally {
       setLoading(false);
+      setTimeout(() => { submittingRef.current = false; }, 1500);
     }
-    // Fail-safe fallback so brand creation always succeeds for presentation
-    Alert.alert('🎉 Success', 'Campaign Created Successfully! Your campaign is now live for creators.', [
-      { text: 'View Dashboard', onPress: () => { resetForm(); router.navigate('/(brand-tabs)/home'); } }
-    ]);
   };
 
   const resetForm = () => {

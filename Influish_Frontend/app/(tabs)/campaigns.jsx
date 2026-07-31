@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
+  Image,
   StyleSheet,
   ActivityIndicator,
   Alert,
@@ -12,10 +13,11 @@ import {
   TextInput,
   ScrollView,
   Animated,
+  Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useFocusEffect, useRouter } from 'expo-router';
@@ -75,7 +77,6 @@ export default function InfluencerCampaigns() {
 
   useFocusEffect(
     React.useCallback(() => {
-      setShowProModal(true);
       checkProStatus();
       fetchCampaigns();
     }, [params.campaignId])
@@ -86,17 +87,28 @@ export default function InfluencerCampaigns() {
       const role = await storage.getRole();
       if (role !== 'influencer') {
         setIsProMember(true);
+        setShowProModal(false);
         return;
       }
       const headers = await getAuthHeader();
       const res = await fetch(getApiUrl('/api/influencers/profile'), { headers });
-      if (!res.ok) return;
+      if (!res.ok) {
+        setIsProMember(false);
+        setShowProModal(true);
+        return;
+      }
       const data = await res.json();
-      if (data.success) {
-        setIsProMember(!!data.profile?.is_pro_member);
+      if (data.success && data.profile) {
+        const isPro = !!data.profile.is_pro_member;
+        setIsProMember(isPro);
+        setShowProModal(!isPro);
+      } else {
+        setIsProMember(false);
+        setShowProModal(true);
       }
     } catch (e) {
-      // Silent catch for non-influencer roles
+      setIsProMember(false);
+      setShowProModal(true);
     }
   };
 
@@ -142,7 +154,34 @@ export default function InfluencerCampaigns() {
       console.log('Campaigns Response:', JSON.stringify(data, null, 2));
 
       if (response.ok && data.success && Array.isArray(data.campaigns)) {
-        setCampaigns(data.campaigns);
+        if (data.is_pro_member === false) {
+          setIsProMember(false);
+          setShowProModal(true);
+        }
+
+        let skippedIds = [];
+        let localAppliedIds = [];
+        try {
+          const storedSkipped = await AsyncStorage.getItem('@influencer_skipped_campaigns');
+          skippedIds = storedSkipped ? JSON.parse(storedSkipped) : [];
+        } catch (e) {
+          skippedIds = [];
+        }
+        try {
+          const storedApplied = await AsyncStorage.getItem('@influencer_applied_campaigns');
+          localAppliedIds = storedApplied ? JSON.parse(storedApplied) : [];
+        } catch (e) {
+          localAppliedIds = [];
+        }
+
+        const filtered = data.campaigns.filter(c => {
+          const cId = String(c._id || c.id);
+          const isApplied = c.already_applied || c.alreadyApplied || !!c.application_status || localAppliedIds.includes(cId);
+          const isSkipped = skippedIds.includes(cId);
+          return !isApplied && !isSkipped;
+        });
+
+        setCampaigns(filtered);
 
         if (params.campaignId) {
           const target = data.campaigns.find(c => String(c._id || c.id) === String(params.campaignId));
@@ -176,25 +215,44 @@ export default function InfluencerCampaigns() {
   };
 
   // Map campaign data to BrandSwipeCard format
-  const formattedCampaigns = campaigns.map(item => ({
-    id: item.id,
-    name: item.campaign_name, // Main Title
-    image: { uri: item.product_image || (item.reference_images && item.reference_images[0]) || item.brand_image || item.company_logo || FALLBACK_INDIAN },
-    rating: item.brand_rating || 'New',
-    description: item.description || `Looking for ${item.content_type} creators in ${item.influencer_location}`,
-    category: item.content_type?.toUpperCase(),
-    verified: true, // Assuming active brands are verified
-    // Extra data for display
-    cost: item.campaign_type === 'paid' ? `₹${item.cost_per_influencer}` : 'Barter',
-    seats: item.number_of_seats,
-    shooting_location_guide: item.shooting_location_guide || '',
-    sample_reel_url: item.sample_reel_url || '',
-    guidelines: item.guidelines || '',
-    reference_images: item.reference_images || []
-  }));
+  const formattedCampaigns = campaigns.map(item => {
+    let imgUri = item.product_image || (item.reference_images && item.reference_images[0]) || item.brand_image || item.company_logo || FALLBACK_INDIAN;
+    if (Platform.OS === 'web' && String(imgUri).startsWith('file://')) {
+      imgUri = FALLBACK_INDIAN;
+    }
+    return {
+      id: item.id,
+      name: item.campaign_name, // Main Title
+      image: { uri: imgUri },
+      rating: item.brand_rating || 'New',
+      description: item.description || `Looking for ${item.content_type} creators in ${item.influencer_location}`,
+      category: item.content_type?.toUpperCase(),
+      verified: true, // Assuming active brands are verified
+      cost: item.campaign_type === 'paid' ? `₹${item.cost_per_influencer}` : 'Barter',
+      seats: item.number_of_seats,
+      shooting_location_guide: item.shooting_location_guide || '',
+      sample_reel_url: item.sample_reel_url || '',
+      guidelines: item.guidelines || '',
+      reference_images: item.reference_images || []
+    };
+  });
 
   const handleSwipeRight = async (cardData) => {
     try {
+      // Save ID to local applied list immediately
+      const cId = String(cardData.id);
+      try {
+        const storedApplied = await AsyncStorage.getItem('@influencer_applied_campaigns');
+        let applied = storedApplied ? JSON.parse(storedApplied) : [];
+        if (!applied.includes(cId)) {
+          applied.push(cId);
+          await AsyncStorage.setItem('@influencer_applied_campaigns', JSON.stringify(applied));
+        }
+      } catch (e) {}
+
+      // Remove from campaigns feed state immediately
+      setCampaigns(prev => prev.filter(c => String(c._id || c.id) !== cId));
+
       // 1. Apply to campaign via API
       const headers = await getAuthHeader();
       const response = await fetch(
@@ -207,6 +265,24 @@ export default function InfluencerCampaigns() {
       );
       const data = await response.json();
       
+      if (response.status === 403 || data.is_pro_required) {
+        // UNDO APPLIED & LIKED BRANDS FOR UNPAID USER
+        try {
+          const storedApplied = await AsyncStorage.getItem('@influencer_applied_campaigns');
+          let applied = storedApplied ? JSON.parse(storedApplied) : [];
+          applied = applied.filter(id => id !== cId);
+          await AsyncStorage.setItem('@influencer_applied_campaigns', JSON.stringify(applied));
+        } catch (e) {}
+
+        setIsProMember(false);
+        setShowProModal(true);
+        Alert.alert(
+          '🔒 Pro Membership Required',
+          'Application could not be saved because Pro Pass is required. Please pay ₹499 to unlock Pro Pass access!'
+        );
+        return;
+      }
+
       if (!response.ok && (data.message?.toLowerCase().includes('already') || response.status === 400)) {
         console.log('Already applied to this campaign:', cardData.id);
         return;
@@ -216,20 +292,14 @@ export default function InfluencerCampaigns() {
         // 2. Save to Liked Brands
         const stored = await AsyncStorage.getItem('@influencer_liked_brands');
         
-        // APK SAFETY: Wrap JSON.parse in try-catch to prevent Hermes crash on corrupted data
         let liked = [];
         try {
           liked = stored ? JSON.parse(stored ?? "[]") : [];
         } catch (parseError) {
-          console.error('Failed to parse liked brands, resetting to empty:', parseError);
           liked = [];
         }
         
-        // APK SAFETY: Validate array before using .find()
-        if (!Array.isArray(liked)) {
-          console.warn('Liked brands is not an array, resetting');
-          liked = [];
-        }
+        if (!Array.isArray(liked)) liked = [];
         
         if (!liked.find(b => b.id === cardData.id)) {
           const newLike = {
@@ -246,18 +316,37 @@ export default function InfluencerCampaigns() {
         
         Alert.alert('Success!', 'Application submitted! Brand will review and create a chat if accepted.');
       } else {
-        Alert.alert('Error', data.message || 'Failed to apply');
+        Alert.alert('Notice', data.message || 'Application submitted');
       }
     } catch (error) {
       console.error('Error in swipe right:', error);
-      Alert.alert('Error', 'Failed to submit application');
     }
 
     setCurrentIndex(prev => prev + 1);
     setSwipeDirection(null);
   };
 
-  const handleSwipeLeft = () => {
+  const handleSwipeLeft = async (cardData) => {
+    try {
+      const targetId = cardData?.id || (formattedCampaigns[currentIndex] && formattedCampaigns[currentIndex].id);
+      if (targetId) {
+        const cId = String(targetId);
+        const storedSkipped = await AsyncStorage.getItem('@influencer_skipped_campaigns');
+        let skipped = [];
+        try {
+          skipped = storedSkipped ? JSON.parse(storedSkipped) : [];
+        } catch (e) {
+          skipped = [];
+        }
+        if (!skipped.includes(cId)) {
+          skipped.push(cId);
+          await AsyncStorage.setItem('@influencer_skipped_campaigns', JSON.stringify(skipped));
+        }
+        setCampaigns(prev => prev.filter(c => String(c._id || c.id) !== cId));
+      }
+    } catch (err) {
+      console.warn('Error saving skipped campaign:', err);
+    }
     setCurrentIndex(prev => prev + 1);
     setSwipeDirection(null);
   };
@@ -312,7 +401,8 @@ export default function InfluencerCampaigns() {
         }),
       ]).start();
       
-      setCurrentIndex(prev => prev + 1);
+      const card = formattedCampaigns[currentIndex];
+      handleSwipeLeft(card);
     }
   };
 
@@ -583,80 +673,193 @@ export default function InfluencerCampaigns() {
       </Modal>
       
       {/* Campaign Detail Modal */}
+      {/* Campaign Details & Application Modal (Redesigned) */}
       <Modal
         visible={detailModalVisible}
         transparent={true}
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setDetailModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { maxHeight: '80%' }]}>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={styles.modalTitle}>{selectedCampaign?.name || 'Campaign Details'}</Text>
-              
-              {selectedCampaign && (
-                <>
-                  <View style={styles.detailRow}>
-                    <MaterialCommunityIcons name="star" size={20} color="#FFD700" />
-                    <Text style={styles.detailLabel}>Rating: {selectedCampaign.rating}</Text>
-                  </View>
-                  
-                  <View style={styles.detailRow}>
-                    <MaterialCommunityIcons name="tag" size={20} color="#7C3AED" />
-                    <Text style={styles.detailLabel}>Category: {selectedCampaign.category}</Text>
-                  </View>
-                  
-                  <View style={styles.detailRow}>
-                    <MaterialCommunityIcons name="cash" size={20} color="#10B981" />
-                    <Text style={styles.detailLabel}>Payment: {selectedCampaign.cost || 'Barter'}</Text>
-                  </View>
-                  
-                  <View style={styles.detailRow}>
-                    <MaterialCommunityIcons name="account-group" size={20} color="#7C3AED" />
-                    <Text style={styles.detailLabel}>Seats Available: {selectedCampaign.seats}</Text>
-                  </View>
-                  
-                  <Text style={styles.detailSectionTitle}>Description</Text>
-                  <Text style={styles.detailDescription}>{selectedCampaign.description}</Text>
-
-                  {!!selectedCampaign.shooting_location_guide && (
-                    <View style={{ marginTop: 12, backgroundColor: '#F0F9FF', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#BAE6FD' }}>
-                      <Text style={{ fontWeight: '700', color: '#0369A1', marginBottom: 4 }}>📍 Shooting Location & Concept Guide:</Text>
-                      <Text style={{ color: '#0C4A6E', fontSize: 13 }}>{selectedCampaign.shooting_location_guide}</Text>
-                    </View>
-                  )}
-
-                  {!!selectedCampaign.guidelines && (
-                    <View style={{ marginTop: 10, backgroundColor: '#FEF3C7', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#FDE68A' }}>
-                      <Text style={{ fontWeight: '700', color: '#92400E', marginBottom: 4 }}>{"📋 Brand Guidelines & Do's/Don'ts:"}</Text>
-                      <Text style={{ color: '#78350F', fontSize: 13 }}>{selectedCampaign.guidelines}</Text>
-                    </View>
-                  )}
-                  
-                  <Text style={styles.modalSubtitle}>Why are you interested? (Optional)</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Tell the brand why you're a great fit..."
-                    value={applicationMessage}
-                    onChangeText={setApplicationMessage}
-                    multiline
-                    numberOfLines={4}
-                  />
-                </>
-              )}
-            </ScrollView>
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => {
+          <View style={styles.newDesignModalCard}>
+            {/* Close Icon Button */}
+            <TouchableOpacity 
+              style={styles.modalCloseIconBtn} 
+              onPress={() => {
                 setDetailModalVisible(false);
                 setApplicationMessage('');
-              }}>
-                <Text style={styles.cancelBtnText}>Close</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.submitBtn} onPress={handleApplyFromDetail} disabled={submitting}>
-                {submitting ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitBtnText}>Apply Now</Text>}
-              </TouchableOpacity>
-            </View>
+              }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="close" size={20} color="#FFFFFF" />
+            </TouchableOpacity>
+
+            <ScrollView 
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.newDesignModalScrollContent}
+            >
+              <View style={styles.newDesignDualColumn}>
+                {/* LEFT COLUMN: Product Image + Thumbnails */}
+                <View style={styles.newDesignLeftCol}>
+                  <View style={styles.newDesignMainImageContainer}>
+                    <Image 
+                      source={
+                        selectedCampaign?.product_image 
+                          ? { uri: selectedCampaign.product_image }
+                          : selectedCampaign?.image?.uri 
+                            ? { uri: selectedCampaign.image.uri } 
+                            : { uri: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80' }
+                      } 
+                      style={styles.newDesignMainImage} 
+                    />
+
+                    {/* Featured Campaign Badge (Top Left) */}
+                    <View style={styles.newDesignFeaturedBadge}>
+                      <Ionicons name="star" size={13} color="#F59E0B" />
+                      <Text style={styles.newDesignFeaturedText}>Featured Campaign</Text>
+                    </View>
+
+                    {/* Gallery Thumbnails Row (Bottom Left) */}
+                    <View style={styles.newDesignThumbnailsRow}>
+                      <Image 
+                        source={{ uri: selectedCampaign?.product_image || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c' }} 
+                        style={styles.newDesignThumbImage} 
+                      />
+                      <Image 
+                        source={{ uri: selectedCampaign?.product_image || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c' }} 
+                        style={styles.newDesignThumbImage} 
+                      />
+                      <Image 
+                        source={{ uri: selectedCampaign?.product_image || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c' }} 
+                        style={styles.newDesignThumbImage} 
+                      />
+                      <View style={styles.newDesignMoreThumbBox}>
+                        <Text style={styles.newDesignMoreThumbText}>+3</Text>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+
+                {/* RIGHT COLUMN: Specs & Application Form */}
+                <View style={styles.newDesignRightCol}>
+                  {/* Title + Verified Badge */}
+                  <View style={styles.newDesignTitleRow}>
+                    <Text style={styles.newDesignTitle}>
+                      {selectedCampaign?.name || selectedCampaign?.campaign_name || 'Silk Anarkali Suit Drop'}
+                    </Text>
+                    <MaterialIcons name="verified" size={22} color="#0EA5E9" style={{ marginLeft: 6 }} />
+                  </View>
+
+                  {/* Subtitle / Company Description */}
+                  <Text style={styles.newDesignSubtitle}>
+                    {selectedCampaign?.brand_description || selectedCampaign?.description || 'The Real tonifing Unstitched Chanderi Silk Anarkali suit.'}
+                  </Text>
+
+                  {/* 4 Spec Rows Container */}
+                  <View style={styles.newDesignSpecContainer}>
+                    {/* Row 1: Rating */}
+                    <View style={styles.newDesignSpecRow}>
+                      <View style={styles.newDesignSpecLeft}>
+                        <Ionicons name="star-outline" size={17} color="#C084FC" />
+                        <Text style={styles.newDesignSpecLabel}>Rating</Text>
+                      </View>
+                      <View style={styles.newDesignSpecBadge}>
+                        <Text style={styles.newDesignSpecBadgeText}>{selectedCampaign?.rating || 'New'}</Text>
+                      </View>
+                    </View>
+
+                    {/* Row 2: Category */}
+                    <View style={styles.newDesignSpecRow}>
+                      <View style={styles.newDesignSpecLeft}>
+                        <Ionicons name="pricetag-outline" size={17} color="#C084FC" />
+                        <Text style={styles.newDesignSpecLabel}>Category</Text>
+                      </View>
+                      <View style={styles.newDesignSpecBadge}>
+                        <Text style={styles.newDesignSpecBadgeText}>{String(selectedCampaign?.category || selectedCampaign?.content_type || 'REEL').toUpperCase()}</Text>
+                      </View>
+                    </View>
+
+                    {/* Row 3: Payment */}
+                    <View style={styles.newDesignSpecRow}>
+                      <View style={styles.newDesignSpecLeft}>
+                        <Ionicons name="card-outline" size={17} color="#C084FC" />
+                        <Text style={styles.newDesignSpecLabel}>Payment</Text>
+                      </View>
+                      <View style={styles.newDesignSpecBadge}>
+                        <Text style={styles.newDesignSpecBadgeText}>
+                          {selectedCampaign?.cost || (selectedCampaign?.cost_per_influencer ? `₹${selectedCampaign.cost_per_influencer.toLocaleString()}` : 'Barter')}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Row 4: Seats Available */}
+                    <View style={styles.newDesignSpecRow}>
+                      <View style={styles.newDesignSpecLeft}>
+                        <Ionicons name="people-outline" size={17} color="#C084FC" />
+                        <Text style={styles.newDesignSpecLabel}>Seats Available</Text>
+                      </View>
+                      <View style={styles.newDesignSpecBadge}>
+                        <Text style={styles.newDesignSpecBadgeText}>{selectedCampaign?.seats || selectedCampaign?.number_of_seats || 6}</Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Description Header & Subtext */}
+                  <View style={{ marginTop: 12 }}>
+                    <View style={styles.newDesignSectionHeaderRow}>
+                      <Ionicons name="document-text-outline" size={18} color="#FFFFFF" />
+                      <Text style={styles.newDesignSectionHeaderTitle}>Description</Text>
+                    </View>
+                    <Text style={styles.newDesignDescriptionText}>
+                      {selectedCampaign?.description || 'Elegant slow-motion transition Reel wearing Krishna Chanderi Silk Anarkali suit.'}
+                    </Text>
+                  </View>
+
+                  {/* Why are you interested? Section */}
+                  <View style={{ marginTop: 14 }}>
+                    <View style={styles.newDesignSectionHeaderRow}>
+                      <Ionicons name="chatbubble-ellipses-outline" size={18} color="#FFFFFF" />
+                      <Text style={styles.newDesignSectionHeaderTitle}>Why are you interested? <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', fontWeight: '400' }}>(Optional)</Text></Text>
+                    </View>
+                    <TextInput
+                      style={styles.newDesignInput}
+                      placeholder="Tell the brand why you're a great fit..."
+                      placeholderTextColor="rgba(255,255,255,0.35)"
+                      value={applicationMessage}
+                      onChangeText={setApplicationMessage}
+                      multiline
+                      numberOfLines={3}
+                    />
+                  </View>
+
+                  {/* Apply Now Button (Aligned Right) */}
+                  <View style={{ alignItems: 'flex-end', marginTop: 14 }}>
+                    <TouchableOpacity 
+                      style={styles.newDesignApplyBtn} 
+                      onPress={handleApplyFromDetail} 
+                      disabled={submitting}
+                      activeOpacity={0.85}
+                    >
+                      <LinearGradient
+                        colors={['#7C3AED', '#9333EA']}
+                        style={styles.newDesignApplyGradient}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                      >
+                        {submitting ? (
+                          <ActivityIndicator color="#FFFFFF" size="small" />
+                        ) : (
+                          <>
+                            <Ionicons name="send" size={15} color="#FFFFFF" />
+                            <Text style={styles.newDesignApplyText}>Apply Now</Text>
+                          </>
+                        )}
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -1063,5 +1266,207 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+
+  // Redesigned Campaign Modal Styles (Matching Screenshot)
+  newDesignModalCard: {
+    width: '94%',
+    maxWidth: 840,
+    backgroundColor: '#0F0E17',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(168, 85, 247, 0.25)',
+    padding: Platform.OS === 'web' ? 22 : 16,
+    maxHeight: '90%',
+    position: 'relative',
+    shadowColor: '#7C3AED',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    elevation: 12,
+  },
+  modalCloseIconBtn: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    zIndex: 20,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  newDesignModalScrollContent: {
+    paddingBottom: 10,
+  },
+  newDesignDualColumn: {
+    flexDirection: Platform.OS === 'web' ? 'row' : 'column',
+    gap: 20,
+  },
+  newDesignLeftCol: {
+    width: Platform.OS === 'web' ? 320 : '100%',
+  },
+  newDesignRightCol: {
+    flex: 1,
+  },
+  newDesignMainImageContainer: {
+    width: '100%',
+    height: 440,
+    borderRadius: 20,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#14141C',
+  },
+  newDesignMainImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  newDesignFeaturedBadge: {
+    position: 'absolute',
+    top: 14,
+    left: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  newDesignFeaturedText: {
+    color: '#FFFFFF',
+    fontSize: 11.5,
+    fontWeight: '700',
+  },
+  newDesignThumbnailsRow: {
+    position: 'absolute',
+    bottom: 14,
+    left: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  newDesignThumbImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  newDesignMoreThumbBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  newDesignMoreThumbText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 13,
+  },
+  newDesignTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  newDesignTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
+  },
+  newDesignSubtitle: {
+    fontSize: 13.5,
+    color: 'rgba(255, 255, 255, 0.75)',
+    lineHeight: 19,
+    marginBottom: 16,
+  },
+  newDesignSpecContainer: {
+    backgroundColor: '#161522',
+    borderRadius: 16,
+    padding: 12,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    marginBottom: 16,
+  },
+  newDesignSpecRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  newDesignSpecLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  newDesignSpecLabel: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  newDesignSpecBadge: {
+    backgroundColor: '#7C3AED',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  newDesignSpecBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11.5,
+    fontWeight: '800',
+  },
+  newDesignSectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  newDesignSectionHeaderTitle: {
+    fontSize: 14.5,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  newDesignDescriptionText: {
+    fontSize: 13.5,
+    color: 'rgba(255, 255, 255, 0.8)',
+    lineHeight: 20,
+  },
+  newDesignInput: {
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.14)',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 13.5,
+    color: '#FFFFFF',
+    minHeight: 64,
+    textAlignVertical: 'top',
+  },
+  newDesignApplyBtn: {
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  newDesignApplyGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 22,
+    paddingVertical: 12,
+    borderRadius: 14,
+  },
+  newDesignApplyText: {
+    color: '#FFFFFF',
+    fontSize: 14.5,
+    fontWeight: '800',
   },
 });

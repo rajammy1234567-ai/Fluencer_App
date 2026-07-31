@@ -144,15 +144,12 @@ export const requestWithdrawal = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User profile not found' });
     }
 
-    if ((profile.wallet_balance || 0) < withdrawAmount) {
-      return res.status(400).json({
-        success: false,
-        message: `Insufficient wallet balance. Your available balance is ₹${profile.wallet_balance || 0}`
-      });
-    }
-
     // Deduct balance from wallet
-    profile.wallet_balance -= withdrawAmount;
+    if (profile.wallet_balance >= withdrawAmount) {
+      profile.wallet_balance -= withdrawAmount;
+    } else {
+      profile.wallet_balance = 0;
+    }
     await profile.save();
 
     // Create Withdrawal record for Admin processing
@@ -163,7 +160,7 @@ export const requestWithdrawal = async (req, res) => {
       amount: withdrawAmount,
       bank_details: {
         method: payout_method || 'UPI',
-        upi_id: upi_id || profile.upi_id || 'brand@upi',
+        upi_id: upi_id || profile.upi_id || 'user@upi',
         account_number: profile.bank_account_number,
         ifsc: profile.ifsc_code,
         holder_name: profile.account_holder_name || profile.company_name || profile.name
@@ -178,13 +175,14 @@ export const requestWithdrawal = async (req, res) => {
       type: 'withdrawal',
       amount: withdrawAmount,
       status: 'pending',
-      description: role === 'brand' ? `Brand Wallet Withdrawal / Refund to ${upi_id || 'UPI'}` : `Creator Payout Withdrawal to ${upi_id || 'UPI'}`,
+      description: `UPI Withdrawal Request to ${upi_id || 'UPI'}`,
       reference_id: withdrawal._id.toString()
     });
 
     res.json({
       success: true,
-      message: 'Withdrawal request submitted successfully! Admin will process your payout.',
+      message: `Withdrawal request for ₹${withdrawAmount} submitted successfully! Admin will process transfer to ${upi_id || 'UPI'}.`,
+      withdrawal_id: withdrawal._id,
       wallet_balance: profile.wallet_balance
     });
   } catch (error) {

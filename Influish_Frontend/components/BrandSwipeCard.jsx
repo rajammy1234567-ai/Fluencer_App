@@ -10,6 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import { Ionicons, MaterialIcons, FontAwesome } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SWIPE_THRESHOLD = 100;
@@ -124,66 +125,81 @@ const BrandSwipeCard = ({ brand, onSwipeRight, onSwipeLeft, index = 0, isTop = f
   return (
     <GestureDetector gesture={panGesture}>
       <Animated.View style={[styles.card, cardStyle, { zIndex: 100 - index }]}>
-        {/* Like Overlay */}
+        {/* Like Overlay Stamp */}
         <Animated.View style={[styles.likeOverlay, likeStampStyle]}>
           <View style={styles.likeStampContainer}>
             <Text style={styles.likeText}>LIKE</Text>
           </View>
         </Animated.View>
 
-        {/* Nope Overlay */}
+        {/* Nope Overlay Stamp */}
         <Animated.View style={[styles.nopeOverlay, nopeStampStyle]}>
           <View style={styles.nopeStampContainer}>
             <Text style={styles.nopeText}>NOPE</Text>
           </View>
         </Animated.View>
 
-        {/* Card Content */}
+        {/* Card Main Image */}
         <View style={styles.imageContainer}>
           <Image source={brand.image} style={styles.image} />
           
-          {/* Gradient Overlay - Simple fallback */}
-          <View style={styles.gradientOverlay} />
+          <LinearGradient
+            colors={['transparent', 'rgba(11, 11, 16, 0.65)', 'rgba(11, 11, 16, 0.95)']}
+            style={styles.gradientOverlay}
+          />
         </View>
 
-        {/* Brand Info at Bottom */}
-        <View style={styles.infoOverlay}>
-          <View style={styles.companyRow}>
-            <MaterialIcons name="business" size={15} color="#38BDF8" />
-            <Text style={styles.companyNameText}>{brand.company_name || 'Brand Company'}</Text>
-          </View>
-          <View style={styles.brandHeader}>
+        {/* Floating Dark Glassmorphic Card Overlay (Bottom Left) */}
+        <View style={styles.infoOverlayContainer}>
+          <View style={styles.glassCardContent}>
+            {/* Featured Campaign Badge */}
+            <View style={styles.featuredBadge}>
+              <Ionicons name="star" size={12} color="#F59E0B" />
+              <Text style={styles.featuredBadgeText}>Featured Campaign</Text>
+            </View>
+
+            {/* Title + Verified Badge */}
             <View style={styles.nameRow}>
-              <Text style={styles.name}>{brand.name}</Text>
-              {brand.verified && (
-                <MaterialIcons name="verified" size={22} color="#29B6F6" />
+              <Text style={styles.name} numberOfLines={1}>{brand.name}</Text>
+              {brand.verified !== false && (
+                <MaterialIcons name="verified" size={20} color="#0EA5E9" style={styles.verifiedIcon} />
               )}
             </View>
-            
-            <View style={styles.ratingRow}>
-              <Ionicons name="star" size={16} color="#FFD700" />
-              <Text style={styles.rating}>{brand.rating}</Text>
-            </View>
-          </View>
 
-          {brand.description && (
-            <Text style={styles.description} numberOfLines={2}>
-              {brand.description}
-            </Text>
-          )}
+            {/* Description */}
+            {brand.description ? (
+              <Text style={styles.description} numberOfLines={2}>
+                {brand.description}
+              </Text>
+            ) : null}
 
-          {/* Tags/Categories */}
-          <View style={styles.tagsContainer}>
-            <View style={styles.tag}>
-              <Text style={styles.tagText}>{brand.category}</Text>
+            {/* Action Buttons Row: View Campaign & Save */}
+            <View style={styles.actionButtonsRow}>
+              <TouchableOpacity
+                style={styles.viewCampaignBtn}
+                onPress={() => onCardTap?.(brand)}
+                activeOpacity={0.85}
+              >
+                <LinearGradient
+                  colors={['#7C3AED', '#9333EA']}
+                  style={styles.viewCampaignGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  <Ionicons name="eye" size={15} color="#FFFFFF" />
+                  <Text style={styles.viewCampaignText}>View Campaign</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.saveBtn}
+                onPress={() => onCardTap?.(brand)}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="bookmark-outline" size={15} color="#FFFFFF" />
+                <Text style={styles.saveBtnText}>Save</Text>
+              </TouchableOpacity>
             </View>
-            {/* Tap hint */}
-            <TouchableOpacity 
-              style={styles.infoButton}
-              onPress={() => onCardTap?.(brand)}
-            >
-              <Ionicons name="information-circle" size={24} color="rgba(255,255,255,0.9)" />
-            </TouchableOpacity>
           </View>
         </View>
       </Animated.View>
@@ -194,8 +210,8 @@ const BrandSwipeCard = ({ brand, onSwipeRight, onSwipeLeft, index = 0, isTop = f
 const styles = StyleSheet.create({
   card: {
     position: 'absolute',
-    width: SCREEN_WIDTH - 40,
-    height: SCREEN_HEIGHT * 0.50,
+    width: Math.min(SCREEN_WIDTH - 32, 440),
+    height: Math.min(SCREEN_HEIGHT * 0.58, 560),
     alignSelf: 'center',
     backgroundColor: '#14141C',
     borderRadius: 24,
@@ -206,7 +222,7 @@ const styles = StyleSheet.create({
     shadowRadius: 18,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   imageContainer: {
     width: '100%',
@@ -223,124 +239,142 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: '55%',
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    opacity: 0.9,
+    height: '70%',
   },
-  infoOverlay: {
+  infoOverlayContainer: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 12,
-    paddingBottom: 16,
+    bottom: 16,
+    left: 16,
+    right: 16,
   },
-  companyRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 2 },
-  companyNameText: { color: '#A855F7', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
-  brandHeader: {
+  glassCardContent: {
+    backgroundColor: 'rgba(18, 18, 26, 0.82)',
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.14)',
+    maxWidth: 320,
+  },
+  featuredBadge: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(124, 58, 237, 0.28)',
+    borderWidth: 1,
+    borderColor: '#A855F7',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    alignSelf: 'flex-start',
+    marginBottom: 10,
+  },
+  featuredBadgeText: {
+    color: '#E9D5FF',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.2,
   },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    flex: 1,
+    marginBottom: 6,
   },
   name: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#fff',
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+    color: '#FFFFFF',
+    fontSize: 19,
+    fontWeight: '800',
+    letterSpacing: -0.2,
+    flexShrink: 1,
   },
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  rating: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
+  verifiedIcon: {
+    marginLeft: 2,
   },
   description: {
-    fontSize: 14,
-    color: '#fff',
-    marginBottom: 10,
-    lineHeight: 20,
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+    color: 'rgba(255, 255, 255, 0.85)',
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 14,
   },
-  tagsContainer: {
+  actionButtonsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+    alignItems: 'center',
+    gap: 10,
   },
-  tag: {
-    backgroundColor: 'rgba(255,255,255,0.25)',
+  viewCampaignBtn: {
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  viewCampaignGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.5)',
+    paddingVertical: 9,
+    borderRadius: 14,
   },
-  tagText: {
-    color: '#fff',
-    fontSize: 14,
+  viewCampaignText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  saveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
+  },
+  saveBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
     fontWeight: '600',
   },
   likeOverlay: {
     position: 'absolute',
-    top: 80,
-    left: 30,
-    zIndex: 10,
-    transform: [{ rotate: '-25deg' }],
+    top: 60,
+    left: 20,
+    zIndex: 20,
+    transform: [{ rotate: '-20deg' }],
   },
   likeStampContainer: {
-    borderWidth: 6,
-    borderColor: '#4CAF50',
+    borderWidth: 4,
+    borderColor: '#22C55E',
     borderRadius: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    backgroundColor: 'rgba(34, 197, 94, 0.15)',
   },
   likeText: {
-    fontSize: 48,
+    fontSize: 32,
     fontWeight: '900',
-    color: '#4CAF50',
-    letterSpacing: 4,
+    color: '#22C55E',
+    letterSpacing: 3,
   },
   nopeOverlay: {
     position: 'absolute',
-    top: 80,
-    right: 30,
-    zIndex: 10,
-    transform: [{ rotate: '25deg' }],
+    top: 60,
+    right: 20,
+    zIndex: 20,
+    transform: [{ rotate: '20deg' }],
   },
   nopeStampContainer: {
-    borderWidth: 6,
-    borderColor: '#FF4458',
+    borderWidth: 4,
+    borderColor: '#EF4444',
     borderRadius: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
   },
   nopeText: {
-    fontSize: 48,
+    fontSize: 32,
     fontWeight: '900',
-    color: '#FF4458',
-    letterSpacing: 4,
-  },
-  infoButton: {
-    padding: 4,
-    marginLeft: 'auto',
+    color: '#EF4444',
+    letterSpacing: 3,
   },
 });
 

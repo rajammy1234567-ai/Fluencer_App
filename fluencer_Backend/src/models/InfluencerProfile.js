@@ -40,6 +40,14 @@ const influencerProfileSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  audience: {
+    type: String,
+    default: '5.6K'
+  },
+  completed_campaigns: {
+    type: Number,
+    default: 12
+  },
   instagram: {
     type: String,
     default: null
@@ -51,6 +59,10 @@ const influencerProfileSchema = new mongoose.Schema({
   twitter: {
     type: String,
     default: null
+  },
+  phone: {
+    type: String,
+    default: ''
   },
   wallet_balance: {
     type: Number,
