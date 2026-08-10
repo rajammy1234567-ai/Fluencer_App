@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: fluencer-web
+    env: static
+    buildCommand: cd fluencer_web && npm install && npm run build
+    staticPublishPath: ./fluencer_web/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
