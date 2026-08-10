@@ -3,6 +3,8 @@ import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import PhotoDemonstration from './components/PhotoDemonstration';
 import HowItWorks from './components/HowItWorks';
+import BrandWorkflow from './components/BrandWorkflow';
+import InfluencerWorkflow from './components/InfluencerWorkflow';
 import DealSimulator from './components/DealSimulator';
 import LegalPolicy from './components/LegalPolicy';
 import ContactModal from './components/ContactModal';
@@ -68,7 +70,7 @@ export default function App() {
             <>
               <Hero 
                 onExplore={() => {
-                  setActiveTab('photo-demo');
+                  setActiveTab('how-it-works');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 onOpenSimulator={() => {
@@ -114,7 +116,7 @@ export default function App() {
 
           {activeTab === 'brand-flow' && (
             <div style={{ paddingTop: '80px' }}>
-              <HowItWorks 
+              <BrandWorkflow 
                 onOpenSimulator={() => {
                   setActiveTab('deal-lock');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -126,7 +128,7 @@ export default function App() {
 
           {activeTab === 'influencer-flow' && (
             <div style={{ paddingTop: '80px' }}>
-              <HowItWorks 
+              <InfluencerWorkflow 
                 onOpenSimulator={() => {
                   setActiveTab('deal-lock');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
