@@ -11,8 +11,13 @@ const SelectedBrandsPage = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
   
-  // Parse brands from params (you'll pass this when navigating)
-  const brands = params.brands ? JSON.parse(params.brands) : [];
+  // Parse brands from params safely
+  let brands = [];
+  try {
+    brands = params.brands ? (typeof params.brands === 'string' ? JSON.parse(params.brands) : params.brands) : [];
+  } catch (e) {
+    brands = [];
+  }
 
   return (
     <LinearGradient

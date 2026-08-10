@@ -40,6 +40,10 @@ const campaignSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  product_image: {
+    type: String,
+    default: ''
+  },
   reference_images: [{
     type: String
   }],

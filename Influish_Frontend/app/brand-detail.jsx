@@ -17,48 +17,11 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getAuthHeader } from '../utils/storage';
-import { API, API_CONFIG } from '../constants/api';
+import { API, API_CONFIG, getApiUrl } from '../constants/api';
 
 const APPLIED_CAMPAIGNS_KEY = '@creator_applied_campaign_ids';
 
-const DEFAULT_COMPANY_CAMPAIGNS = [
-  {
-    id: 'c1',
-    campaign_name: 'Apex Pro Whey Shake Unboxing & Fitness Review',
-    content_type: 'Reel',
-    number_of_seats: 10,
-    cost_per_influencer: 8500,
-    influencer_location: 'Bandra West, Mumbai',
-    status: 'active',
-  },
-  {
-    id: 'c2',
-    campaign_name: 'Pre-Workout Energy Drink Launch Reel',
-    content_type: 'Reel',
-    number_of_seats: 8,
-    cost_per_influencer: 12000,
-    influencer_location: 'Delhi NCR & Pan India',
-    status: 'active',
-  },
-  {
-    id: 'c3',
-    campaign_name: 'Gymwear Lifestyle Apparel Lookbook',
-    content_type: 'Post & Story',
-    number_of_seats: 15,
-    cost_per_influencer: 6500,
-    influencer_location: 'Bengaluru, Karnataka',
-    status: 'active',
-  },
-  {
-    id: 'c4',
-    campaign_name: 'BCAA Fitness Hydration Summer Special',
-    content_type: 'Reel',
-    number_of_seats: 12,
-    cost_per_influencer: 9500,
-    influencer_location: 'Hyderabad & Pune',
-    status: 'active',
-  },
-];
+const DEFAULT_COMPANY_CAMPAIGNS = [];
 
 const THEME = {
   bg: '#0B0B10',
@@ -120,61 +83,81 @@ export default function BrandDetailScreen() {
       setLoading(true);
       const headers = await getAuthHeader();
       const targetId = brandId || 'sample';
-      const url = `${API_CONFIG.BASE_URL}/api/brands/public/${targetId}`;
 
-      const res = await fetch(url, { headers });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && data.profile) {
-          setBrand(data.profile);
+      // 1. Fetch active campaigns to get campaign & brand details
+      let allCampaigns = [];
+      let targetCampaign = null;
+      try {
+        const campRes = await fetch(getApiUrl(API.CAMPAIGNS.ACTIVE_ALL), { headers });
+        if (campRes.ok) {
+          const campData = await campRes.json();
+          allCampaigns = campData.campaigns || campData.data || [];
+          targetCampaign = allCampaigns.find(c =>
+            String(c.id || c._id) === String(targetId) ||
+            String(c.brand_id || c.brandId) === String(targetId) ||
+            (passedName && (c.brand_name === passedName || c.company_name === passedName || c.campaign_name === passedName))
+          );
         }
-      } else {
-        setBrand({
-          company_name: passedName || 'Apex Pro Fitness',
-          category: 'Health & Fitness',
-          address: 'Bandra West, Mumbai, Maharashtra 400050',
-          profile_image: params.logo || 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=500',
-          total_campaigns: 4,
-          active_campaigns: 4,
-          total_collabs: 14,
-          verified: true,
-          description: 'Leading performance fitness & wellness brand empowering athletes and fitness creators across India.'
+      } catch (campErr) {
+        console.warn('Campaigns fetch note:', campErr);
+      }
+
+      const realBrandId = targetCampaign?.brand_id || targetId;
+      const fallbackName = targetCampaign?.brand_name || targetCampaign?.company_name || passedName || 'Brand Partner';
+      const fallbackCategory = targetCampaign?.brand_category || 'Fashion & Apparel';
+      const fallbackLogo = targetCampaign?.brand_image || params.logo || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80';
+      const fallbackDesc = targetCampaign?.brand_description || 'Verified brand partner offering campaign collaboration opportunities.';
+
+      // 2. Fetch brand profile from backend API
+      let loadedProfile = null;
+      try {
+        const url = getApiUrl(`/api/brands/public/${realBrandId}`);
+        const res = await fetch(url, { headers });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.profile) {
+            loadedProfile = data.profile;
+          }
+        }
+      } catch (pErr) {
+        console.warn('Public brand profile note:', pErr);
+      }
+
+      // 3. Filter all campaigns belonging to this brand
+      let brandCampaigns = [];
+      if (allCampaigns.length > 0) {
+        const searchName = (loadedProfile?.company_name || fallbackName).toLowerCase();
+        brandCampaigns = allCampaigns.filter(c => {
+          const cBrandId = String(c.brand_id || c.brandId || '');
+          const cCompName = (c.company_name || c.brand_name || '').toLowerCase();
+          return (
+            (realBrandId && cBrandId === String(realBrandId)) ||
+            (searchName && cCompName === searchName) ||
+            (targetCampaign && String(c.id || c._id) === String(targetCampaign.id || targetCampaign._id))
+          );
         });
       }
 
-      // Fetch all campaigns by this brand
-      const campUrl = `${API_CONFIG.BASE_URL}${API.CAMPAIGNS.ACTIVE_ALL}`;
-      const campRes = await fetch(campUrl, { headers });
-      if (campRes.ok) {
-        const campData = await campRes.json();
-        const list = campData.campaigns || campData.data || [];
-        if (list.length > 0) {
-          const brandMatches = list.filter(c => 
-            String(c.brand_id || c.brandId || c.company_id) === String(targetId) || 
-            String(c._id || c.id) === String(targetId) ||
-            (passedName && (c.brand_name || c.company_name) === passedName)
-          );
-          setCampaigns(brandMatches.length > 0 ? brandMatches : list);
-        } else {
-          setCampaigns(DEFAULT_COMPANY_CAMPAIGNS);
-        }
-      } else {
-        setCampaigns(DEFAULT_COMPANY_CAMPAIGNS);
+      if (brandCampaigns.length === 0 && targetCampaign) {
+        brandCampaigns = [targetCampaign];
       }
+
+      setBrand({
+        company_name: loadedProfile?.company_name || fallbackName,
+        category: loadedProfile?.category || fallbackCategory,
+        address: loadedProfile?.address || targetCampaign?.influencer_location || 'Verified Brand Location',
+        profile_image: loadedProfile?.profile_image || fallbackLogo,
+        total_campaigns: loadedProfile?.total_campaigns || brandCampaigns.length,
+        active_campaigns: loadedProfile?.active_campaigns || brandCampaigns.length,
+        total_collabs: loadedProfile?.total_collabs || 0,
+        verified: true,
+        description: loadedProfile?.description || fallbackDesc,
+      });
+
+      setCampaigns(brandCampaigns);
+
     } catch (err) {
       console.error('Error loading brand profile:', err);
-      setBrand({
-        company_name: passedName || 'Apex Pro Fitness',
-        category: 'Health & Fitness',
-        address: 'Bandra West, Mumbai, Maharashtra 400050',
-        profile_image: params.logo || 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=500',
-        total_campaigns: 4,
-        active_campaigns: 4,
-        total_collabs: 14,
-        verified: true,
-        description: 'Leading performance fitness & wellness brand empowering athletes and fitness creators across India.'
-      });
-      setCampaigns(DEFAULT_COMPANY_CAMPAIGNS);
     } finally {
       setLoading(false);
     }

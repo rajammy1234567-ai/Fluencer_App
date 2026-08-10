@@ -142,9 +142,16 @@ const BrandSwipeCard = ({ brand, onSwipeRight, onSwipeLeft, index = 0, isTop = f
         {/* Card Main Image */}
         <View style={styles.imageContainer}>
           <Image 
-            source={typeof brand.image === 'string' ? { uri: brand.image } : (brand.image || { uri: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800' })} 
+            source={
+              typeof brand.image === 'string'
+                ? { uri: brand.image }
+                : brand.image?.uri
+                  ? { uri: brand.image.uri }
+                  : { uri: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80' }
+            } 
             style={styles.image} 
             resizeMode="cover"
+            defaultSource={{ uri: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80' }}
           />
           
           <LinearGradient
@@ -168,6 +175,25 @@ const BrandSwipeCard = ({ brand, onSwipeRight, onSwipeLeft, index = 0, isTop = f
               {brand.verified !== false && (
                 <MaterialIcons name="verified" size={20} color="#0EA5E9" style={styles.verifiedIcon} />
               )}
+            </View>
+
+            {/* Payout & Category Badges Row */}
+            <View style={styles.badgeRow}>
+              <View style={styles.payoutBadge}>
+                <Ionicons name="cash-outline" size={13} color="#10B981" />
+                <Text style={styles.payoutBadgeText}>{brand.cost || 'Paid'}</Text>
+              </View>
+              {brand.category ? (
+                <View style={styles.categoryBadge}>
+                  <Text style={styles.categoryBadgeText}>{brand.category}</Text>
+                </View>
+              ) : null}
+              {brand.seats ? (
+                <View style={styles.seatsBadge}>
+                  <Ionicons name="people-outline" size={12} color="#C084FC" />
+                  <Text style={styles.seatsBadgeText}>{brand.seats} Seats</Text>
+                </View>
+              ) : null}
             </View>
 
             {/* Description */}
@@ -252,12 +278,64 @@ const styles = StyleSheet.create({
     right: 16,
   },
   glassCardContent: {
-    backgroundColor: 'rgba(18, 18, 26, 0.82)',
+    backgroundColor: 'rgba(18, 18, 26, 0.9)',
     borderRadius: 20,
     padding: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.14)',
-    maxWidth: 320,
+    width: '100%',
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 8,
+  },
+  payoutBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(16, 185, 129, 0.18)',
+    borderWidth: 1,
+    borderColor: '#10B981',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  payoutBadgeText: {
+    color: '#10B981',
+    fontSize: 11.5,
+    fontWeight: '800',
+  },
+  categoryBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  categoryBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  seatsBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(192, 132, 252, 0.16)',
+    borderWidth: 1,
+    borderColor: '#C084FC',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  seatsBadgeText: {
+    color: '#C084FC',
+    fontSize: 11,
+    fontWeight: '800',
   },
   featuredBadge: {
     flexDirection: 'row',

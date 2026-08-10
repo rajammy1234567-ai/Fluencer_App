@@ -32,6 +32,8 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [showErrorModal, setShowErrorModal] = useState(false);
 
   const roleParam = Array.isArray(params.role) ? params.role[0] : params.role;
   const isBrand = roleParam === 'brand' || roleParam === 'business';
@@ -51,9 +53,13 @@ const Login = () => {
 
   const handleLogin = async () => {
     if (loading) return;
+    setErrorMessage('');
 
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Error', 'Please fill in all fields');
+      const msg = 'Please enter both your email/mobile number and password.';
+      setErrorMessage(msg);
+      setShowErrorModal(true);
+      Alert.alert('Missing Details', msg);
       return;
     }
 
@@ -71,16 +77,20 @@ const Login = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        Alert.alert('Login Failed', data.message || 'Please check your credentials');
+        const errorText = data.message || 'Incorrect email/mobile number or password. Please check your credentials or create a new account.';
+        setErrorMessage(errorText);
+        setShowErrorModal(true);
+        Alert.alert('Login Failed', errorText);
         setLoading(false);
         return;
       }
 
       if (params.role && data.role !== params.role && data.role !== 'admin') {
-        Alert.alert(
-          'Account Role Mismatch',
-          `This account is registered as a "${data.role}". Please go back and select the correct role.`
-        );
+        const roleLabelStr = data.role === 'influencer' ? 'Creator' : data.role === 'brand' ? 'Brand' : data.role;
+        const mismatchMsg = `This account is registered as a "${roleLabelStr}". Please use the ${roleLabelStr} login section.`;
+        setErrorMessage(mismatchMsg);
+        setShowErrorModal(true);
+        Alert.alert('Account Role Mismatch', mismatchMsg);
         setLoading(false);
         return;
       }
@@ -103,7 +113,10 @@ const Login = () => {
       }
     } catch (error) {
       console.error('Login Error:', error);
-      Alert.alert('Connection Error', 'Could not connect to the server.');
+      const connMsg = 'Could not connect to server. Please check your internet connection.';
+      setErrorMessage(connMsg);
+      setShowErrorModal(true);
+      Alert.alert('Connection Error', connMsg);
     } finally {
       setLoading(false);
     }
@@ -157,6 +170,24 @@ const Login = () => {
           showsVerticalScrollIndicator={false}
         >
           <Animated.View entering={FadeInDown.delay(250).duration(650)} style={styles.formContainer}>
+            {!!errorMessage && (
+              <Animated.View entering={FadeInDown.duration(300)} style={styles.errorBanner}>
+                <View style={styles.errorBannerHeader}>
+                  <MaterialCommunityIcons name="alert-circle-outline" size={20} color="#FF4D4D" />
+                  <Text style={styles.errorBannerTitle}>Incorrect Email/ID or Password</Text>
+                </View>
+                <Text style={styles.errorBannerText}>{errorMessage}</Text>
+                <TouchableOpacity
+                  style={styles.errorBannerSignupBtn}
+                  onPress={() => router.push({ pathname: '/role-selection', params: { mode: 'signup' } })}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.errorBannerSignupText}>New to Fluencer? Create a new account</Text>
+                  <MaterialCommunityIcons name="arrow-right" size={14} color="#C084FC" />
+                </TouchableOpacity>
+              </Animated.View>
+            )}
+
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Email or Mobile Number</Text>
               <View style={styles.inputWrapper}>
@@ -201,58 +232,6 @@ const Login = () => {
                     size={20}
                     color={COLORS.textLight}
                   />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Quick 1-Tap Demo Fill */}
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>⚡ Quick 1-Tap Demo Fill:</Text>
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                <TouchableOpacity
-                  style={{
-                    flex: 1,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 6,
-                    backgroundColor: 'rgba(168, 85, 247, 0.14)',
-                    paddingVertical: 10,
-                    borderRadius: 12,
-                    borderWidth: 1,
-                    borderColor: 'rgba(168, 85, 247, 0.3)'
-                  }}
-                  onPress={() => {
-                    setEmail('testuser99@fluencer.app');
-                    setPassword('testpass123');
-                  }}
-                  activeOpacity={0.8}
-                >
-                  <MaterialCommunityIcons name="star-face" size={15} color="#C084FC" />
-                  <Text style={{ color: '#C084FC', fontSize: 12.5, fontWeight: '700' }}>Demo Creator</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={{
-                    flex: 1,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 6,
-                    backgroundColor: 'rgba(56, 189, 248, 0.14)',
-                    paddingVertical: 10,
-                    borderRadius: 12,
-                    borderWidth: 1,
-                    borderColor: 'rgba(56, 189, 248, 0.3)'
-                  }}
-                  onPress={() => {
-                    setEmail('krishna@fluencer.app');
-                    setPassword('Test@123');
-                  }}
-                  activeOpacity={0.8}
-                >
-                  <MaterialCommunityIcons name="domain" size={15} color="#38BDF8" />
-                  <Text style={{ color: '#38BDF8', fontSize: 12.5, fontWeight: '700' }}>Demo Brand</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -318,6 +297,50 @@ const Login = () => {
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Custom Error Alert Modal */}
+      {showErrorModal && (
+        <View style={styles.modalOverlay}>
+          <Animated.View entering={FadeInDown.duration(300)} style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <View style={styles.errorIconBadge}>
+                <MaterialCommunityIcons name="alert-circle-outline" size={26} color="#FF4D4D" />
+              </View>
+              <Text style={styles.modalTitle}>Login Failed</Text>
+            </View>
+            <Text style={styles.modalBodyText}>{errorMessage}</Text>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalSecondaryBtn}
+                onPress={() => setShowErrorModal(false)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.modalSecondaryBtnText}>Try Again</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.modalPrimaryBtn}
+                onPress={() => {
+                  setShowErrorModal(false);
+                  router.push({ pathname: '/role-selection', params: { mode: 'signup' } });
+                }}
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={['#8B5CF6', '#EC4899']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.modalPrimaryBtnGradient}
+                >
+                  <Text style={styles.modalPrimaryBtnText}>Create Account</Text>
+                  <MaterialCommunityIcons name="arrow-right" size={16} color="#FFF" />
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </View>
+      )}
     </View>
   );
 };
@@ -548,6 +571,135 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontWeight: '800',
     fontSize: 14,
+  },
+  errorBanner: {
+    backgroundColor: 'rgba(255, 77, 77, 0.1)',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 77, 77, 0.35)',
+    marginBottom: 20,
+  },
+  errorBannerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  errorBannerTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FF4D4D',
+  },
+  errorBannerText: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.85)',
+    lineHeight: 19,
+    marginBottom: 12,
+  },
+  errorBannerSignupBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 77, 77, 0.2)',
+  },
+  errorBannerSignupText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#C084FC',
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.82)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    zIndex: 9999,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 400,
+    backgroundColor: '#161622',
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 77, 77, 0.35)',
+    shadowColor: '#FF4D4D',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 14,
+  },
+  errorIconBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 77, 77, 0.12)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 77, 77, 0.25)',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#FFF',
+  },
+  modalBodyText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+    lineHeight: 21,
+    marginBottom: 22,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  modalSecondaryBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalSecondaryBtnText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  modalPrimaryBtn: {
+    flex: 1.3,
+    height: 48,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  modalPrimaryBtnGradient: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+  },
+  modalPrimaryBtnText: {
+    color: '#FFF',
+    fontSize: 13.5,
+    fontWeight: '800',
   },
 });
 

@@ -1,7 +1,6 @@
 {
   "expo": {
     "sdkVersion": "57.0.0",
-
     "name": "Fluencer",
     "slug": "Influish_Frontend",
     "version": "1.0.0",
@@ -13,7 +12,7 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "com.fluencer.app",
+      "package": "com.fluencers.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundColor": "#E6F4FE"

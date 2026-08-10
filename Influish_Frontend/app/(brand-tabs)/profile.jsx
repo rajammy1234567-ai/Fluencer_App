@@ -40,6 +40,8 @@ import { storage } from '../../utils/storage';
 import { uploadToCloudinary } from '../../utils/cloudinary';
 import { COLORS } from '../../constants/colors';
 import { SlideUp, PopIn } from '../../components/motion';
+import WhatsAppProfilePreviewModal from '../../components/WhatsAppProfilePreviewModal';
+import * as ImagePicker from 'expo-image-picker';
 
 const PRIMARY_COLOR = COLORS.primary;
 const FALLBACK_LOGO = require('../../assets/images/icon.png');
@@ -72,6 +74,11 @@ export default function BrandProfile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [uploadingProfilePic, setUploadingProfilePic] = useState(false);
+  
+  // WhatsApp Profile Picture Preview State
+  const [previewImageUri, setPreviewImageUri] = useState(null);
+  const [previewFileOrUri, setPreviewFileOrUri] = useState(null);
+  const [previewModalVisible, setPreviewModalVisible] = useState(false);
   
   // Lifecycle safety
   const isMountedRef = useRef(true);
@@ -335,88 +342,107 @@ export default function BrandProfile() {
     );
   }
 
-  const handleUploadProfilePic = async () => {
+  const handleConfirmProfilePicUpload = async () => {
+    if (!previewFileOrUri) return;
     try {
       setUploadingProfilePic(true);
+      const uploadedUrl = await uploadToCloudinary(previewFileOrUri);
+      if (uploadedUrl) {
+        const token = await storage.getToken();
+        if (token) {
+          await fetch(`${API_CONFIG.BASE_URL}/api/brands/upload-image`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ image_url: uploadedUrl, profile_image: uploadedUrl, logo: uploadedUrl })
+          });
 
-      const saveImageToBackend = async (fileOrUri) => {
-        try {
-          const uploadedUrl = await uploadToCloudinary(fileOrUri);
-          if (uploadedUrl) {
-            const token = await storage.getToken();
-            if (token) {
-              await fetch(`${API_CONFIG.BASE_URL}/api/brands/upload-image`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ image_url: uploadedUrl, profile_image: uploadedUrl, logo: uploadedUrl })
-              });
-
-              await fetch(`${API_CONFIG.BASE_URL}/api/brands/profile`, {
-                method: 'PUT',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ profile_picture: uploadedUrl, profile_image: uploadedUrl, logo: uploadedUrl })
-              });
-            }
-
-            setProfile(prev => ({
-              ...prev,
-              profile_picture: uploadedUrl,
-              profile_image: uploadedUrl,
-              logo: uploadedUrl,
-            }));
-
-            if (Platform.OS === 'web' && typeof window !== 'undefined') {
-              window.alert('🎉 Brand Profile Logo updated!');
-            } else {
-              Alert.alert('🎉 Success', 'Brand profile logo updated successfully!');
-            }
-          }
-        } catch (err) {
-          console.error('Error saving brand logo:', err);
-          Alert.alert('Error', 'Failed to save brand logo');
-        } finally {
-          setUploadingProfilePic(false);
+          await fetch(`${API_CONFIG.BASE_URL}/api/brands/profile`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ profile_picture: uploadedUrl, profile_image: uploadedUrl, logo: uploadedUrl })
+          });
         }
-      };
 
+        setProfile(prev => ({
+          ...prev,
+          profile_picture: uploadedUrl,
+          profile_image: uploadedUrl,
+          logo: uploadedUrl,
+        }));
+
+        setPreviewModalVisible(false);
+        setPreviewImageUri(null);
+        setPreviewFileOrUri(null);
+
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          window.alert('🎉 Brand Profile Logo updated!');
+        } else {
+          Alert.alert('🎉 Success', 'Brand profile logo updated successfully!');
+        }
+      }
+    } catch (err) {
+      console.error('Error saving brand logo:', err);
+      Alert.alert('Error', 'Failed to save brand logo');
+    } finally {
+      setUploadingProfilePic(false);
+    }
+  };
+
+  const openPreviewModalForFile = (fileOrUri) => {
+    let previewUrl = '';
+    if (typeof fileOrUri === 'string') {
+      previewUrl = fileOrUri;
+    } else if (fileOrUri && typeof URL !== 'undefined' && URL.createObjectURL) {
+      try {
+        previewUrl = URL.createObjectURL(fileOrUri);
+      } catch (e) {
+        previewUrl = '';
+      }
+    }
+    setPreviewFileOrUri(fileOrUri);
+    setPreviewImageUri(previewUrl || (typeof fileOrUri === 'string' ? fileOrUri : null));
+    setPreviewModalVisible(true);
+  };
+
+  const handleUploadProfilePic = async () => {
+    try {
       if (Platform.OS === 'web' && typeof document !== 'undefined') {
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/*';
-        input.onchange = async (e) => {
+        input.onchange = (e) => {
           const file = e.target.files?.[0];
           if (file) {
-            await saveImageToBackend(file);
-          } else {
-            setUploadingProfilePic(false);
+            openPreviewModalForFile(file);
           }
         };
         input.click();
       } else {
-        if (typeof window !== 'undefined' && window.prompt) {
-          const url = window.prompt('Enter Brand Logo Image URL:', '');
-          if (url) await saveImageToBackend(url);
-          else setUploadingProfilePic(false);
-        } else {
-          Alert.prompt(
-            'Upload Brand Logo 📸',
-            'Paste logo image URL below:',
-            [
-              { text: 'Cancel', style: 'cancel', onPress: () => setUploadingProfilePic(false) },
-              { text: 'Save', onPress: async (u) => { if (u) await saveImageToBackend(u); else setUploadingProfilePic(false); } }
-            ]
-          );
+        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permissionResult.granted) {
+          Alert.alert('Permission Required', 'Please allow photo gallery access to change your brand logo.');
+          return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.8,
+        });
+
+        if (!result.canceled && result.assets?.[0]?.uri) {
+          openPreviewModalForFile(result.assets[0].uri);
         }
       }
     } catch (e) {
       console.error('Upload brand logo error:', e);
-      setUploadingProfilePic(false);
     }
   };
 
@@ -698,11 +724,25 @@ export default function BrandProfile() {
             activeOpacity={0.85}
           >
             <MaterialCommunityIcons name="logout" size={24} color="#ef4444" />
-            <Text style={styles.logoutButtonText}>Logout</Text>
           </TouchableOpacity>
           </SlideUp>
         </ScrollView>
       </LinearGradient>
+
+      {/* WhatsApp Profile Picture Preview Modal */}
+      <WhatsAppProfilePreviewModal
+        visible={previewModalVisible}
+        imageUri={previewImageUri}
+        userName={profile?.company_name || profile?.name || 'Brand Logo Preview'}
+        onClose={() => {
+          setPreviewModalVisible(false);
+          setPreviewImageUri(null);
+          setPreviewFileOrUri(null);
+        }}
+        onConfirm={handleConfirmProfilePicUpload}
+        onChooseAnother={handleUploadProfilePic}
+        uploading={uploadingProfilePic}
+      />
     </SafeAreaView>
   );
 }

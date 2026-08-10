@@ -22,6 +22,7 @@ import { getAuthHeader } from '../../utils/storage';
 import { API, getApiUrl } from '../../constants/api';
 import { uploadToCloudinary } from '../../utils/cloudinary';
 import { SlideUp } from '../../components/motion';
+import * as ImagePicker from 'expo-image-picker';
 
 // Safe lazy getter for ImagePicker using NativeModules check first to prevent JSI exceptions
 const getImagePicker = () => {
@@ -93,24 +94,33 @@ export default function CreateCampaign() {
     }
 
     try {
-      const { launchImageLibrary } = require('react-native-image-picker');
-      launchImageLibrary({ mediaType: 'photo', quality: 0.8 }, async (response) => {
-        if (response.didCancel) return;
-        if (response.assets?.[0]?.uri) {
-          setUploadingImage(true);
-          const uploadedUrl = await uploadToCloudinary(response.assets[0].uri);
-          if (uploadedUrl) {
-            setProductImage(uploadedUrl);
-            Alert.alert('🎉 Uploaded', 'Product image uploaded to Cloudinary successfully!');
-          } else {
-            setProductImage(response.assets[0].uri);
-          }
-          setUploadingImage(false);
-        }
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Permission Required', 'Please grant photo gallery permission to choose a product photo.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
       });
+
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        setUploadingImage(true);
+        const uploadedUrl = await uploadToCloudinary(result.assets[0].uri);
+        if (uploadedUrl) {
+          setProductImage(uploadedUrl);
+          Alert.alert('🎉 Uploaded', 'Product image uploaded to Cloudinary successfully!');
+        } else {
+          setProductImage(result.assets[0].uri);
+        }
+      }
     } catch (err) {
       console.error('Gallery pick error:', err);
       Alert.alert('Error', 'Failed to pick image from gallery');
+    } finally {
       setUploadingImage(false);
     }
   };
@@ -144,24 +154,32 @@ export default function CreateCampaign() {
     }
 
     try {
-      const { launchCamera } = require('react-native-image-picker');
-      launchCamera({ mediaType: 'photo', quality: 0.8 }, async (response) => {
-        if (response.didCancel) return;
-        if (response.assets?.[0]?.uri) {
-          setUploadingImage(true);
-          const uploadedUrl = await uploadToCloudinary(response.assets[0].uri);
-          if (uploadedUrl) {
-            setProductImage(uploadedUrl);
-            Alert.alert('🎉 Uploaded', 'Product image uploaded to Cloudinary successfully!');
-          } else {
-            setProductImage(response.assets[0].uri);
-          }
-          setUploadingImage(false);
-        }
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Permission Required', 'Please grant camera permission to take a product photo.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 0.8,
       });
+
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        setUploadingImage(true);
+        const uploadedUrl = await uploadToCloudinary(result.assets[0].uri);
+        if (uploadedUrl) {
+          setProductImage(uploadedUrl);
+          Alert.alert('🎉 Uploaded', 'Product image captured & uploaded successfully!');
+        } else {
+          setProductImage(result.assets[0].uri);
+        }
+      }
     } catch (err) {
       console.error('Camera capture error:', err);
       Alert.alert('Error', 'Failed to capture photo from camera');
+    } finally {
       setUploadingImage(false);
     }
   };

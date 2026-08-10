@@ -10,6 +10,7 @@ import {
   ScrollView,
   Animated,
   Platform,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -63,6 +64,8 @@ const AnimatedCampaignCard = ({ item, onComplete, onToggleStatus }) => {
 
   const statusInfo = getStatusInfo(item.status);
 
+  const imgUri = item.product_image || (item.reference_images && item.reference_images[0]) || item.brand_image || item.company_logo || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=800&q=80';
+
   return (
     <Animated.View
       style={[
@@ -76,13 +79,21 @@ const AnimatedCampaignCard = ({ item, onComplete, onToggleStatus }) => {
       <View style={styles.card}>
         {/* Top Section */}
         <View style={styles.cardTop}>
+          <View style={styles.avatarGlowRing}>
+            <Image
+              source={{ uri: imgUri }}
+              style={styles.campaignAvatar}
+              resizeMode="cover"
+            />
+          </View>
+
           <View style={styles.cardTopLeft}>
             <Text style={styles.cardTitle} numberOfLines={2}>
               {item.campaign_name}
             </Text>
             <View style={styles.locationRow}>
               <MaterialCommunityIcons name="map-marker" size={14} color="rgba(255,255,255,0.55)" />
-              <Text style={styles.locationText}>{item.influencer_location}</Text>
+              <Text style={styles.locationText}>{item.influencer_location || 'Pan India'}</Text>
             </View>
           </View>
           
@@ -518,9 +529,25 @@ const styles = StyleSheet.create({
 
   cardTop: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     marginBottom: 14,
+  },
+  avatarGlowRing: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 2,
+    borderColor: '#9333EA',
+    backgroundColor: '#0F172A',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    overflow: 'hidden',
+  },
+  campaignAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
   },
   cardTopLeft: {
     flex: 1,

@@ -5,7 +5,7 @@
 // - For iOS Simulator: Use 'http://localhost:3000'
 // - Current IP might be outdated - check console logs if APIs fail
 export const API_CONFIG = {
-  BASE_URL: 'https://fluencer-app.onrender.com', // Live Render production backend
+  BASE_URL: process.env.EXPO_PUBLIC_API_URL || 'https://fluencer-app.onrender.com', // Live Render production backend or local EXPO_PUBLIC_API_URL
 
   // Endpoints for utils/api.js
   endpoints: {

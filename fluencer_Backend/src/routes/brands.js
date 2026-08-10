@@ -181,11 +181,10 @@ router.get('/profile', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.userId;
 
-    const profile = await BrandProfile.findOne({ user_id: userId }).lean();
+    let profile = await BrandProfile.findOne({ user_id: userId }).lean();
 
     if (!profile) {
-      // If no brand profile, return user info only
-      const user = await User.findById(userId).select('id email role').lean();
+      const user = await User.findById(userId).select('id email role company_name').lean();
 
       if (!user) {
         return res.status(404).json({ 
@@ -194,11 +193,16 @@ router.get('/profile', authMiddleware, async (req, res) => {
         });
       }
 
-      return res.status(200).json({
-        id: user._id.toString(),
-        email: user.email,
-        role: user.role
+      // Upsert a default BrandProfile for new brand users
+      profile = await BrandProfile.create({
+        user_id: userId,
+        company_name: user.company_name || 'Brand Partner',
+        category: 'Fashion & Apparel',
+        address: 'Mumbai, Maharashtra',
+        description: 'Welcome to Fluencer brand partner dashboard.',
+        profile_image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500'
       });
+      profile = profile.toObject();
     }
 
     const user = await User.findById(userId).select('email').lean();
@@ -262,22 +266,37 @@ router.get('/public/:id', optionalAuth, async (req, res) => {
       if (!profile) {
         profile = await BrandProfile.findOne({ user_id: targetId }).lean();
       }
+      // If targetId is a Campaign ID, find campaign and its brand profile
+      if (!profile && targetId.length === 24) {
+        const Campaign = (await import('../models/Campaign.js')).default;
+        const campaign = await Campaign.findById(targetId).lean();
+        if (campaign) {
+          if (campaign.brand_id) {
+            profile = await BrandProfile.findOne({ user_id: campaign.brand_id }).lean();
+          }
+          if (!profile && (campaign.company_name || campaign.brand_name)) {
+            const nameToFind = campaign.company_name || campaign.brand_name;
+            profile = await BrandProfile.findOne({ company_name: new RegExp(`^${nameToFind}$`, 'i') }).lean();
+          }
+          if (!profile) {
+            profile = {
+              _id: campaign._id,
+              user_id: campaign.brand_id,
+              company_name: campaign.company_name || campaign.brand_name || 'Krishna Private Limited',
+              category: campaign.brand_category || 'Fashion & Apparel',
+              address: campaign.influencer_location || 'Mumbai, Maharashtra',
+              profile_image: campaign.brand_image || null,
+              description: campaign.brand_description || 'Premier Indian luxury fashion & lifestyle brand.'
+            };
+          }
+        }
+      }
     }
 
     if (!profile) {
-      // Fallback to sample profile if not found
-      return res.status(200).json({
-        success: true,
-        profile: {
-          company_name: 'Apex Pro Fitness',
-          category: 'Health & Fitness',
-          address: 'Bandra West, Mumbai, Maharashtra 400050',
-          profile_image: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=500',
-          total_campaigns: 5,
-          active_campaigns: 2,
-          total_collabs: 14,
-          verified: true
-        }
+      return res.status(404).json({
+        success: false,
+        message: 'Brand profile not found'
       });
     }
 

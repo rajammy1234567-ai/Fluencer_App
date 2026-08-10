@@ -110,6 +110,12 @@ async function seedCleanRealData() {
         min_followers: 10000,
         cost_per_influencer: 5000,
         total_budget: 25000,
+        product_image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=800&q=80',
+        reference_images: [
+          'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=800&q=80',
+          'https://images.unsplash.com/photo-1583391733956-6c78276477e2?w=800&q=80',
+          'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&q=80'
+        ],
         shooting_location_guide: 'Aesthetic outdoor courtyard, heritage monument, or well-lit studio with natural sunlight and aesthetic props.',
         guidelines: '1. Show quick outfit transition in first 3 seconds.\n2. Wear matching accessories.\n3. Tag @krishnaprivatelimited.\n4. Use trending audio and hashtag #KrishnaSummerVibes.',
         sample_reel_url: 'https://instagram.com/reel/C_ethnic_fashion_summer',
@@ -125,6 +131,12 @@ async function seedCleanRealData() {
         min_followers: 5000,
         cost_per_influencer: 7500,
         total_budget: 30000,
+        product_image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&q=80',
+        reference_images: [
+          'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&q=80',
+          'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=800&q=80',
+          'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=800&q=80'
+        ],
         shooting_location_guide: 'Brightly lit bathroom vanity, mirror setup, or clean aesthetic bedroom with morning daylight.',
         guidelines: '1. Show product application step-by-step on clean face.\n2. Highlight 100% organic and cruelty-free benefits.\n3. Tag @glowaura_skincare.',
         sample_reel_url: 'https://instagram.com/reel/C_glow_skincare_routine',
@@ -140,6 +152,12 @@ async function seedCleanRealData() {
         min_followers: 15000,
         cost_per_influencer: 6000,
         total_budget: 36000,
+        product_image: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=800&q=80',
+        reference_images: [
+          'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=800&q=80',
+          'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=800&q=80',
+          'https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?w=800&q=80'
+        ],
         shooting_location_guide: 'Urban streetscape, graffiti wall, rooftop, or city skyline background.',
         guidelines: '1. Pair denim jacket with white sneakers and sunglasses.\n2. Sync transitions to upbeat hip-hop track.\n3. Tag @urbanthread_studio.',
         sample_reel_url: 'https://instagram.com/reel/C_streetwear_denim_look',
@@ -155,6 +173,12 @@ async function seedCleanRealData() {
         min_followers: 8000,
         cost_per_influencer: 8000,
         total_budget: 64000,
+        product_image: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&q=80',
+        reference_images: [
+          'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&q=80',
+          'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=800&q=80',
+          'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=800&q=80'
+        ],
         shooting_location_guide: 'Gym environment, home workout station, or kitchen counter setup.',
         guidelines: '1. Demonstrate scoop mixability in shaker bottle.\n2. Mention 24g pure whey protein per serving.\n3. Tag @apexfit_nutrition.',
         sample_reel_url: 'https://instagram.com/reel/C_fitness_whey_shake',

@@ -2,7 +2,7 @@ import { getApiUrl, API_CONFIG } from '../constants/api';
 import { storage } from './storage';
 
 // Generic API call handler with error handling & fast timeout protection
-export const apiCall = async (endpoint, options = {}, timeoutMs = 5000) => {
+export const apiCall = async (endpoint, options = {}, timeoutMs = 15000) => {
   const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
   const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
   try {

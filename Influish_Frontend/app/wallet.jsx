@@ -19,6 +19,7 @@ import BackButton from '../components/BackButton';
 import { COLORS } from '../constants/colors';
 import { getAuthHeader } from '../utils/storage';
 import { API_CONFIG } from '../constants/api';
+import { initiatePayment } from '../utils/payment';
 
 export default function Wallet() {
   const [loading, setLoading] = useState(true);
@@ -48,28 +49,28 @@ export default function Wallet() {
       const txRes = await fetch(`${apiBase}/api/wallet/transactions`, { headers });
       const txData = await txRes.json();
 
-      if (balData.success) {
-        const totalBal = (balData.data.wallet_balance || 0) + (balData.data.escrow_balance || 0);
+      if (balData.success && balData.data) {
+        const walletBal = Number(balData.data.wallet_balance || 0);
+        const escrowBal = Number(balData.data.escrow_balance || 0);
+        const totalBal = walletBal + escrowBal;
         setBalance({
-          total: totalBal > 0 ? totalBal : 149980,
-          pending: balData.data.escrow_balance || 121500,
-          available: balData.data.wallet_balance || 28480,
+          total: totalBal,
+          pending: escrowBal,
+          available: walletBal,
           role: balData.data.role || 'influencer'
         });
+      } else {
+        setBalance({ total: 0, pending: 0, available: 0, role: 'influencer' });
       }
-      if (txData.success && Array.isArray(txData.data) && txData.data.length > 0) {
+      if (txData.success && Array.isArray(txData.data)) {
         setTransactions(txData.data);
       } else {
-        // High-end sample transactions for UI demonstration
-        setTransactions([
-          { id: '1', description: 'Deal Locked: ₹500 held in Escrow for Campaign', amount: 500, type: 'debit', status: 'pending', date: 'Today, 2:15 PM' },
-          { id: '2', description: 'Deal Locked: ₹10,000 held in Escrow for Reel Promo', amount: 10000, type: 'debit', status: 'pending', date: 'Yesterday' },
-          { id: '3', description: 'Escrow Payout Released to Creator Wallet', amount: 15000, type: 'credit', status: 'completed', date: '28 Jul 2026' },
-        ]);
+        setTransactions([]);
       }
     } catch (error) {
       console.error('Wallet fetch error:', error);
-      setBalance({ total: 149980, pending: 121500, available: 28480, role: 'influencer' });
+      setBalance({ total: 0, pending: 0, available: 0, role: 'influencer' });
+      setTransactions([]);
     } finally {
       setLoading(false);
     }
@@ -98,41 +99,46 @@ export default function Wallet() {
       Alert.alert('Error', 'Please enter a valid deposit amount');
       return;
     }
-    setSubmittingAction(true);
-    try {
-      const headers = await getAuthHeader();
-      const res = await fetch(`${API_CONFIG.BASE_URL}/api/wallet/deposit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...headers },
-        body: JSON.stringify({ amount, is_simulation: true })
-      });
-      const data = await res.json();
-      if (data.success) {
-        setTopUpModalVisible(false);
-        Alert.alert('🎉 Deposit Successful', `₹${amount.toLocaleString('en-IN')} credited to your Brand Wallet!`);
+    setTopUpModalVisible(false);
+    initiatePayment({
+      amount,
+      description: 'Brand Wallet Deposit via Razorpay',
+      onSuccess: () => {
         fetchWalletData();
-      } else {
-        Alert.alert('Error', data.message || 'Failed to top-up wallet');
+      },
+      onFailure: (err) => {
+        console.warn('Top-up cancelled or failed:', err);
       }
-    } catch (err) {
-      Alert.alert('Error', 'Failed to deposit funds');
-    } finally {
-      setSubmittingAction(false);
-    }
+    });
   };
 
   const handleWithdraw = () => {
-    const maxAmount = balance.available > 0 ? balance.available : 28480;
-    setWithdrawInputAmount(String(maxAmount));
-    setWithdrawUpiId(balance.role === 'brand' ? 'krishna@upi' : 'ananya@okicici');
+    const available = Number(balance.available || 0);
+    if (available <= 0) {
+      Alert.alert(
+        'Insufficient Balance ⚠️',
+        'Your available wallet balance is ₹0. You can only withdraw funds when you have earnings in your wallet from completed campaigns!'
+      );
+      return;
+    }
+    setWithdrawInputAmount(String(available));
+    setWithdrawUpiId('');
     setWithdrawModalVisible(true);
   };
 
   const submitWithdraw = async () => {
+    const available = Number(balance.available || 0);
+    if (available <= 0) {
+      Alert.alert(
+        'Insufficient Balance ⚠️',
+        'Your available wallet balance is ₹0. Unable to process withdrawal.'
+      );
+      setWithdrawModalVisible(false);
+      return;
+    }
     const amount = parseFloat(withdrawInputAmount);
-    const maxAllowed = balance.available > 0 ? balance.available : 28480;
-    if (!amount || amount <= 0 || amount > maxAllowed) {
-      Alert.alert('Error', `Please enter a valid amount up to ₹${maxAllowed.toLocaleString('en-IN')}`);
+    if (!amount || amount <= 0 || amount > available) {
+      Alert.alert('Error', `Please enter a valid amount up to ₹${available.toLocaleString('en-IN')}`);
       return;
     }
     if (!withdrawUpiId.trim()) {

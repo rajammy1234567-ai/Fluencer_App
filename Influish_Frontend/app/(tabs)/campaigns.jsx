@@ -74,6 +74,7 @@ export default function InfluencerCampaigns() {
   // Detail Modal State
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState(null);
+  const [activeModalImgIndex, setActiveModalImgIndex] = useState(0);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -220,10 +221,16 @@ export default function InfluencerCampaigns() {
     if (Platform.OS === 'web' && String(imgUri).startsWith('file://')) {
       imgUri = FALLBACK_INDIAN;
     }
+    const refImgs = Array.isArray(item.reference_images) && item.reference_images.length > 0 
+      ? item.reference_images 
+      : [imgUri];
+
     return {
-      id: item.id,
+      id: item.id || item._id,
       name: item.campaign_name, // Main Title
       image: { uri: imgUri },
+      product_image: imgUri,
+      productImage: imgUri,
       rating: item.brand_rating || 'New',
       description: item.description || `Looking for ${item.content_type} creators in ${item.influencer_location}`,
       category: item.content_type?.toUpperCase(),
@@ -233,7 +240,8 @@ export default function InfluencerCampaigns() {
       shooting_location_guide: item.shooting_location_guide || '',
       sample_reel_url: item.sample_reel_url || '',
       guidelines: item.guidelines || '',
-      reference_images: item.reference_images || []
+      reference_images: refImgs,
+      referenceImages: refImgs
     };
   });
 
@@ -433,6 +441,7 @@ export default function InfluencerCampaigns() {
   // Card tap handler - opens detail modal
   const handleCardTap = (cardData) => {
     setSelectedCampaign(cardData);
+    setActiveModalImgIndex(0);
     setDetailModalVisible(true);
   };
   
@@ -703,14 +712,15 @@ export default function InfluencerCampaigns() {
                 <View style={styles.newDesignLeftCol}>
                   <View style={styles.newDesignMainImageContainer}>
                     <Image 
-                      source={
-                        selectedCampaign?.product_image 
-                          ? { uri: selectedCampaign.product_image }
-                          : selectedCampaign?.image?.uri 
-                            ? { uri: selectedCampaign.image.uri } 
-                            : { uri: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80' }
-                      } 
+                      source={{
+                        uri: (selectedCampaign?.reference_images && selectedCampaign?.reference_images[activeModalImgIndex]) ||
+                             selectedCampaign?.product_image ||
+                             selectedCampaign?.productImage ||
+                             selectedCampaign?.image?.uri ||
+                             'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80'
+                      }} 
                       style={styles.newDesignMainImage} 
+                      resizeMode="cover"
                     />
 
                     {/* Featured Campaign Badge (Top Left) */}
@@ -721,21 +731,24 @@ export default function InfluencerCampaigns() {
 
                     {/* Gallery Thumbnails Row (Bottom Left) */}
                     <View style={styles.newDesignThumbnailsRow}>
-                      <Image 
-                        source={{ uri: selectedCampaign?.product_image || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c' }} 
-                        style={styles.newDesignThumbImage} 
-                      />
-                      <Image 
-                        source={{ uri: selectedCampaign?.product_image || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c' }} 
-                        style={styles.newDesignThumbImage} 
-                      />
-                      <Image 
-                        source={{ uri: selectedCampaign?.product_image || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c' }} 
-                        style={styles.newDesignThumbImage} 
-                      />
-                      <View style={styles.newDesignMoreThumbBox}>
-                        <Text style={styles.newDesignMoreThumbText}>+3</Text>
-                      </View>
+                      {((selectedCampaign?.reference_images && selectedCampaign.reference_images.length > 0)
+                          ? selectedCampaign.reference_images
+                          : [selectedCampaign?.product_image || selectedCampaign?.image?.uri || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c']
+                      ).slice(0, 4).map((imgUrl, imgIdx) => (
+                        <TouchableOpacity
+                          key={imgIdx}
+                          onPress={() => setActiveModalImgIndex(imgIdx)}
+                          activeOpacity={0.8}
+                          style={[
+                            { borderRadius: 10, borderWidth: activeModalImgIndex === imgIdx ? 2 : 1, borderColor: activeModalImgIndex === imgIdx ? '#7C3AED' : 'rgba(255,255,255,0.3)' }
+                          ]}
+                        >
+                          <Image 
+                            source={{ uri: imgUrl }} 
+                            style={styles.newDesignThumbImage} 
+                          />
+                        </TouchableOpacity>
+                      ))}
                     </View>
                   </View>
                 </View>
@@ -1301,18 +1314,19 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   newDesignDualColumn: {
-    flexDirection: Platform.OS === 'web' ? 'row' : 'column',
-    gap: 20,
+    flexDirection: SCREEN_WIDTH >= 768 ? 'row' : 'column',
+    gap: SCREEN_WIDTH >= 768 ? 20 : 14,
   },
   newDesignLeftCol: {
-    width: Platform.OS === 'web' ? 320 : '100%',
+    width: SCREEN_WIDTH >= 768 ? 320 : '100%',
   },
   newDesignRightCol: {
     flex: 1,
+    width: '100%',
   },
   newDesignMainImageContainer: {
     width: '100%',
-    height: 440,
+    height: SCREEN_WIDTH >= 768 ? 380 : 250,
     borderRadius: 20,
     overflow: 'hidden',
     position: 'relative',

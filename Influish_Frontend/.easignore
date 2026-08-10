@@ -1,0 +1,7 @@
+# EAS Build ignore rules for Influish_Frontend
+node_modules/
+.expo/
+dist/
+web-build/
+*.apk
+*.aab

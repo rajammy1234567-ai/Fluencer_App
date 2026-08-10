@@ -25,6 +25,7 @@ router.post('/', authMiddleware, async (req, res) => {
       min_followers,
       cost_per_influencer,
       description,
+      product_image,
       reference_images,
       shooting_location_guide,
       sample_reel_url,
@@ -77,6 +78,7 @@ router.post('/', authMiddleware, async (req, res) => {
       min_followers: min_followers || 0,
       cost_per_influencer: cost_per_influencer || 0,
       description: description || '',
+      product_image: product_image || (reference_images && reference_images[0]) || '',
       reference_images: reference_images || [],
       shooting_location_guide: shooting_location_guide || '',
       sample_reel_url: sample_reel_url || '',
@@ -130,6 +132,7 @@ router.get('/my-campaigns', authMiddleware, async (req, res) => {
       c.id = c._id.toString();
       c.applications_count = apps.length;
       c.accepted_count = apps.filter(a => a.status === 'accepted').length;
+      c.rejected_count = apps.filter(a => a.status === 'rejected').length;
       c.pending_count = apps.filter(a => a.status === 'pending').length;
       return c;
     }));
@@ -145,6 +148,28 @@ router.get('/my-campaigns', authMiddleware, async (req, res) => {
       message: 'Failed to fetch campaigns', 
       error: error.message 
     });
+  }
+});
+
+// Update campaign status (open / paused) (Business only)
+router.put('/:id/status', authMiddleware, async (req, res) => {
+  try {
+    const campaignId = req.params.id;
+    const { status } = req.body;
+    const brandId = req.user.userId;
+
+    const campaign = await Campaign.findOne({ _id: campaignId, brand_id: brandId });
+    if (!campaign) {
+      return res.status(404).json({ success: false, message: 'Campaign not found' });
+    }
+
+    campaign.status = status;
+    await campaign.save();
+
+    res.status(200).json({ success: true, message: `Campaign status updated to ${status}` });
+  } catch (error) {
+    console.error('Status update error:', error);
+    res.status(500).json({ success: false, message: 'Failed to update campaign status' });
   }
 });
 
@@ -582,6 +607,8 @@ router.get('/active/all', optionalAuth, async (req, res) => {
       }
 
       c.id = c._id.toString();
+      c.product_image = c.product_image || (c.reference_images && c.reference_images[0]) || '';
+      c.reference_images = Array.isArray(c.reference_images) && c.reference_images.length > 0 ? c.reference_images : (c.product_image ? [c.product_image] : []);
       c.brand_name = bp ? bp.company_name : 'Krishna Private Limited';
       c.company_name = bp ? bp.company_name : 'Krishna Private Limited';
       c.brand_image = bp ? bp.profile_image : null;

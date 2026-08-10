@@ -42,6 +42,8 @@ import { storage } from '../../utils/storage';
 import { uploadToCloudinary } from '../../utils/cloudinary';
 import { COLORS } from '../../constants/colors';
 import { SlideUp, PopIn } from '../../components/motion';
+import WhatsAppProfilePreviewModal from '../../components/WhatsAppProfilePreviewModal';
+import * as ImagePicker from 'expo-image-picker';
 
 const PRIMARY_COLOR = COLORS.primary;
 const FALLBACK_LOGO = require('../../assets/images/icon.png');
@@ -87,6 +89,11 @@ export default function Profile() {
   const [uploadingProfilePic, setUploadingProfilePic] = useState(false);
   const [imageError, setImageError] = useState(false);
 
+  // WhatsApp Profile Picture Preview State
+  const [previewImageUri, setPreviewImageUri] = useState(null);
+  const [previewFileOrUri, setPreviewFileOrUri] = useState(null);
+  const [previewModalVisible, setPreviewModalVisible] = useState(false);
+
   // Local File (Photo / Video MP4) picker for Cloudinary upload
   const handlePickLocalFile = async (typeToPick) => {
     try {
@@ -113,30 +120,27 @@ export default function Profile() {
         return;
       }
 
-      // Mobile React Native Image Picker (react-native-image-picker)
-      const { launchImageLibrary } = require('react-native-image-picker');
-      const options = {
-        mediaType: typeToPick === 'reel' ? 'video' : 'photo',
-        quality: 0.8,
-        selectionLimit: 1,
-      };
+      // Mobile Expo Image Picker
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('Permission Required', 'Please grant photo gallery permission to upload media.');
+        setUploadingMedia(false);
+        return;
+      }
 
-      launchImageLibrary(options, async (response) => {
-        if (response.didCancel) return;
-        if (response.errorCode) {
-          console.warn('ImagePicker Error:', response.errorMessage);
-          return;
-        }
-        if (response.assets?.[0]?.uri) {
-          setUploadingMedia(true);
-          const uploadedUrl = await uploadToCloudinary(response.assets[0].uri);
-          if (uploadedUrl) {
-            setMediaUrl(uploadedUrl);
-            setMediaType(typeToPick);
-          }
-          setUploadingMedia(false);
-        }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: typeToPick === 'reel' ? ['videos'] : ['images'],
+        quality: 0.8,
       });
+
+      if (!result.canceled && result.assets?.[0]?.uri) {
+        setUploadingMedia(true);
+        const uploadedUrl = await uploadToCloudinary(result.assets[0].uri);
+        if (uploadedUrl) {
+          setMediaUrl(uploadedUrl);
+          setMediaType(typeToPick);
+        }
+      }
     } catch (err) {
       console.error('Pick local file error:', err);
     } finally {
@@ -494,88 +498,107 @@ export default function Profile() {
     }
   };
 
-  const handleUploadProfilePic = async () => {
+  const handleConfirmProfilePicUpload = async () => {
+    if (!previewFileOrUri) return;
     try {
       setUploadingProfilePic(true);
+      const uploadedUrl = await uploadToCloudinary(previewFileOrUri);
+      if (uploadedUrl) {
+        const token = await storage.getToken();
+        if (token) {
+          await fetch(`${API_CONFIG.BASE_URL}/api/influencers/upload-image`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ image_url: uploadedUrl, profile_image: uploadedUrl, profile_picture: uploadedUrl })
+          });
 
-      const saveImageToBackend = async (fileOrUri) => {
-        try {
-          const uploadedUrl = await uploadToCloudinary(fileOrUri);
-          if (uploadedUrl) {
-            const token = await storage.getToken();
-            if (token) {
-              await fetch(`${API_CONFIG.BASE_URL}/api/influencers/upload-image`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ image_url: uploadedUrl, profile_image: uploadedUrl, profile_picture: uploadedUrl })
-              });
-
-              await fetch(`${API_CONFIG.BASE_URL}/api/influencers/profile`, {
-                method: 'PUT',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ profile_picture: uploadedUrl, profile_image: uploadedUrl })
-              });
-            }
-
-            setProfile(prev => ({
-              ...prev,
-              profile_picture: uploadedUrl,
-              profile_image: uploadedUrl,
-              avatar: uploadedUrl,
-            }));
-
-            if (Platform.OS === 'web' && typeof window !== 'undefined') {
-              window.alert('🎉 Creator Profile Picture updated!');
-            } else {
-              Alert.alert('🎉 Success', 'Profile picture updated successfully!');
-            }
-          }
-        } catch (err) {
-          console.error('Error saving image:', err);
-          Alert.alert('Error', 'Failed to save profile picture');
-        } finally {
-          setUploadingProfilePic(false);
+          await fetch(`${API_CONFIG.BASE_URL}/api/influencers/profile`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ profile_picture: uploadedUrl, profile_image: uploadedUrl })
+          });
         }
-      };
 
+        setProfile(prev => ({
+          ...prev,
+          profile_picture: uploadedUrl,
+          profile_image: uploadedUrl,
+          avatar: uploadedUrl,
+        }));
+
+        setPreviewModalVisible(false);
+        setPreviewImageUri(null);
+        setPreviewFileOrUri(null);
+
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+          window.alert('🎉 Creator Profile Picture updated!');
+        } else {
+          Alert.alert('🎉 Success', 'Profile picture updated successfully!');
+        }
+      }
+    } catch (err) {
+      console.error('Error saving image:', err);
+      Alert.alert('Error', 'Failed to save profile picture');
+    } finally {
+      setUploadingProfilePic(false);
+    }
+  };
+
+  const openPreviewModalForFile = (fileOrUri) => {
+    let previewUrl = '';
+    if (typeof fileOrUri === 'string') {
+      previewUrl = fileOrUri;
+    } else if (fileOrUri && typeof URL !== 'undefined' && URL.createObjectURL) {
+      try {
+        previewUrl = URL.createObjectURL(fileOrUri);
+      } catch (e) {
+        previewUrl = '';
+      }
+    }
+    setPreviewFileOrUri(fileOrUri);
+    setPreviewImageUri(previewUrl || (typeof fileOrUri === 'string' ? fileOrUri : null));
+    setPreviewModalVisible(true);
+  };
+
+  const handleUploadProfilePic = async () => {
+    try {
       if (Platform.OS === 'web' && typeof document !== 'undefined') {
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/*';
-        input.onchange = async (e) => {
+        input.onchange = (e) => {
           const file = e.target.files?.[0];
           if (file) {
-            await saveImageToBackend(file);
-          } else {
-            setUploadingProfilePic(false);
+            openPreviewModalForFile(file);
           }
         };
         input.click();
       } else {
-        if (typeof window !== 'undefined' && window.prompt) {
-          const url = window.prompt('Enter Profile Picture Image URL:', '');
-          if (url) await saveImageToBackend(url);
-          else setUploadingProfilePic(false);
-        } else {
-          Alert.prompt(
-            'Upload Creator Photo 📸',
-            'Paste image URL below:',
-            [
-              { text: 'Cancel', style: 'cancel', onPress: () => setUploadingProfilePic(false) },
-              { text: 'Save', onPress: async (u) => { if (u) await saveImageToBackend(u); else setUploadingProfilePic(false); } }
-            ]
-          );
+        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permissionResult.granted) {
+          Alert.alert('Permission Required', 'Please allow photo gallery access to change your profile picture.');
+          return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.8,
+        });
+
+        if (!result.canceled && result.assets?.[0]?.uri) {
+          openPreviewModalForFile(result.assets[0].uri);
         }
       }
     } catch (e) {
       console.error('Upload profile pic error:', e);
-      setUploadingProfilePic(false);
     }
   };
 
@@ -1156,6 +1179,21 @@ export default function Profile() {
           )}
         </View>
       </Modal>
+
+      {/* WhatsApp Profile Picture Preview Modal */}
+      <WhatsAppProfilePreviewModal
+        visible={previewModalVisible}
+        imageUri={previewImageUri}
+        userName={profile?.name || 'Profile Picture Preview'}
+        onClose={() => {
+          setPreviewModalVisible(false);
+          setPreviewImageUri(null);
+          setPreviewFileOrUri(null);
+        }}
+        onConfirm={handleConfirmProfilePicUpload}
+        onChooseAnother={handleUploadProfilePic}
+        uploading={uploadingProfilePic}
+      />
     </SafeAreaView>
   );
 }
