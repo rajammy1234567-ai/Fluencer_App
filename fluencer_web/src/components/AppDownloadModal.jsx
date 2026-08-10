@@ -1,11 +1,11 @@
 import React from 'react';
-import { X, Download, Smartphone, QrCode, ShieldCheck, CheckCircle2, ExternalLink } from 'lucide-react';
+import { X, Download, Smartphone, ShieldCheck, ExternalLink } from 'lucide-react';
 
 export default function AppDownloadModal({ isOpen, onClose }) {
   if (!isOpen) return null;
 
-  // EAS Expo build artifact or direct APK link
-  const apkDownloadUrl = "https://expo.dev/accounts/krishna73/projects/Influish_Frontend/builds";
+  // Direct generated APK artifact URL from EAS Build
+  const apkDownloadUrl = "https://expo.dev/artifacts/eas/zK5PUWVA3L6krH-b1k-DLUdJfgEz4y5fEQ_p3Fj5CBI.apk";
 
   return (
     <div style={{
@@ -62,7 +62,7 @@ export default function AppDownloadModal({ isOpen, onClose }) {
             Download Fluencer App
           </h3>
           <p style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.6)', lineHeight: '1.5' }}>
-            Install the Fluencer Android APK built with Expo & EAS, or access Google Play & App Store releases.
+            Install the Fluencer Android APK built live via Expo EAS Build.
           </p>
         </div>
 
@@ -92,10 +92,10 @@ export default function AppDownloadModal({ isOpen, onClose }) {
               </div>
               <div>
                 <span style={{ fontSize: '15px', fontWeight: '700', color: '#FFFFFF', display: 'block' }}>
-                  Download Android APK (EAS Build)
+                  Download Android APK (Direct Link)
                 </span>
                 <span style={{ fontSize: '11px', color: '#34D399', fontWeight: '600' }}>
-                  Version 1.0.0 • Verified APK Build
+                  Fluencer-v1.0.0.apk • EAS Build Ready
                 </span>
               </div>
             </div>
@@ -115,7 +115,7 @@ export default function AppDownloadModal({ isOpen, onClose }) {
             }}
           >
             <Download style={{ width: '16px', height: '16px' }} />
-            <span>Download APK / EAS Build Artifact</span>
+            <span>Download Direct APK File</span>
             <ExternalLink style={{ width: '14px', height: '14px' }} />
           </a>
         </div>
@@ -158,7 +158,7 @@ export default function AppDownloadModal({ isOpen, onClose }) {
         {/* Footer Guarantee */}
         <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'center', gap: '8px', fontSize: '12px', color: 'rgba(255,255,255,0.5)', textAlign: 'center', margin: '0 auto' }}>
           <ShieldCheck style={{ width: '16px', height: '16px', color: '#34D399' }} />
-          <span>100% Virus Free • Powered by Expo & EAS Build</span>
+          <span>100% Verified Android Build • EAS Cloud Artifact</span>
         </div>
 
       </div>
