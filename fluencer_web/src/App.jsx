@@ -1,6 +1,7 @@
 import React, { useState, Component } from 'react';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
+import PhotoDemonstration from './components/PhotoDemonstration';
 import HowItWorks from './components/HowItWorks';
 import DealSimulator from './components/DealSimulator';
 import LegalPolicy from './components/LegalPolicy';
@@ -67,9 +68,8 @@ export default function App() {
             <>
               <Hero 
                 onExplore={() => {
-                  setActiveTab('how-it-works');
-                  const el = document.getElementById('how-it-works');
-                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  setActiveTab('photo-demo');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 onOpenSimulator={() => {
                   setActiveTab('deal-lock');
@@ -81,6 +81,7 @@ export default function App() {
                 }}
                 onOpenDownload={() => setDownloadModalOpen(true)}
               />
+              <PhotoDemonstration />
               <HowItWorks 
                 onOpenSimulator={() => {
                   setActiveTab('deal-lock');
@@ -91,6 +92,12 @@ export default function App() {
               <DealSimulator />
               <LegalPolicy />
             </>
+          )}
+
+          {activeTab === 'photo-demo' && (
+            <div style={{ paddingTop: '80px' }}>
+              <PhotoDemonstration />
+            </div>
           )}
 
           {activeTab === 'how-it-works' && (

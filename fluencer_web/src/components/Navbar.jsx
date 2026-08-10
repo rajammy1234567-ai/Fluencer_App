@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   Sparkles, 
   ShieldCheck, 
@@ -7,12 +7,14 @@ import {
   Lock, 
   FileText, 
   Download, 
-  PhoneCall
+  PhoneCall,
+  Camera
 } from 'lucide-react';
 
 export default function Navbar({ activeTab, setActiveTab, onOpenContact, onOpenDownload }) {
   const navItems = [
     { id: 'overview', label: 'Overview', icon: Sparkles },
+    { id: 'photo-demo', label: 'Photo Demo', icon: Camera },
     { id: 'how-it-works', label: 'How It Works', icon: Layers },
     { id: 'brand-flow', label: 'For Brands', icon: MessageSquare },
     { id: 'influencer-flow', label: 'For Influencers', icon: ShieldCheck },
@@ -27,7 +29,7 @@ export default function Navbar({ activeTab, setActiveTab, onOpenContact, onOpenD
 
   return (
     <nav className="glass-nav">
-      <div className="site-container flex items-center justify-between" style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between' }}>
+      <div className="site-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         
         {/* Brand Logo */}
         <div 
