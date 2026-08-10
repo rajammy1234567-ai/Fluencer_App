@@ -47,10 +47,8 @@ export default function Navbar({ activeTab, setActiveTab, onOpenContact }) {
                 className="w-8 h-8 object-contain transform group-hover:scale-110 transition-transform duration-300"
                 onError={(e) => {
                   e.target.style.display = 'none';
-                  e.target.nextSibling.style.display = 'block';
                 }}
               />
-              <span className="hidden font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400 text-lg">F</span>
             </div>
           </div>
           <div>
