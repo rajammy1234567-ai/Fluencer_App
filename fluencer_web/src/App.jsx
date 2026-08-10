@@ -1,4 +1,4 @@
-import React, { useState, Component } from 'react';
+import React, { useState, useEffect, Component } from 'react';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import PhotoDemonstration from './components/PhotoDemonstration';
@@ -47,10 +47,66 @@ class ErrorBoundary extends Component {
   }
 }
 
+// Helper to determine initial tab from URL path or hash
+const getTabFromUrl = () => {
+  const path = window.location.pathname.toLowerCase();
+  const hash = window.location.hash.toLowerCase();
+
+  if (path.includes('/privacy') || path.includes('/privacy-policy') || hash === '#privacy' || hash === '#privacy-policy') {
+    return 'privacy';
+  }
+  if (path.includes('/how-it-works') || hash === '#how-it-works') {
+    return 'how-it-works';
+  }
+  if (path.includes('/for-brands') || path.includes('/brand-flow') || hash === '#brand-flow') {
+    return 'brand-flow';
+  }
+  if (path.includes('/for-influencers') || path.includes('/influencer-flow') || hash === '#influencer-flow') {
+    return 'influencer-flow';
+  }
+  if (path.includes('/deal-lock') || hash === '#deal-lock') {
+    return 'deal-lock';
+  }
+  if (path.includes('/photo-demo') || hash === '#photo-demo') {
+    return 'photo-demo';
+  }
+  return 'overview';
+};
+
 export default function App() {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(getTabFromUrl);
   const [contactModalOpen, setContactModalOpen] = useState(false);
   const [downloadModalOpen, setDownloadModalOpen] = useState(false);
+
+  // Sync activeTab with URL pushState
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    let targetPath = '/';
+    if (tabId === 'privacy') targetPath = '/privacy-policy';
+    else if (tabId === 'how-it-works') targetPath = '/how-it-works';
+    else if (tabId === 'brand-flow') targetPath = '/for-brands';
+    else if (tabId === 'influencer-flow') targetPath = '/for-influencers';
+    else if (tabId === 'deal-lock') targetPath = '/deal-lock';
+    else if (tabId === 'photo-demo') targetPath = '/photo-demo';
+
+    if (window.location.pathname !== targetPath) {
+      window.history.pushState({ tabId }, '', targetPath);
+    }
+  };
+
+  // Sync state on browser back/forward buttons or hash change
+  useEffect(() => {
+    const handleLocationChange = () => {
+      setActiveTab(getTabFromUrl());
+    };
+
+    window.addEventListener('popstate', handleLocationChange);
+    window.addEventListener('hashchange', handleLocationChange);
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+      window.removeEventListener('hashchange', handleLocationChange);
+    };
+  }, []);
 
   return (
     <ErrorBoundary>
@@ -59,7 +115,7 @@ export default function App() {
         {/* Fixed Navigation Bar */}
         <Navbar 
           activeTab={activeTab} 
-          setActiveTab={setActiveTab} 
+          setActiveTab={handleTabChange} 
           onOpenContact={() => setContactModalOpen(true)}
           onOpenDownload={() => setDownloadModalOpen(true)}
         />
@@ -70,15 +126,15 @@ export default function App() {
             <>
               <Hero 
                 onExplore={() => {
-                  setActiveTab('how-it-works');
+                  handleTabChange('how-it-works');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 onOpenSimulator={() => {
-                  setActiveTab('deal-lock');
+                  handleTabChange('deal-lock');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 onOpenPrivacy={() => {
-                  setActiveTab('privacy');
+                  handleTabChange('privacy');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 onOpenDownload={() => setDownloadModalOpen(true)}
@@ -86,7 +142,7 @@ export default function App() {
               <PhotoDemonstration />
               <HowItWorks 
                 onOpenSimulator={() => {
-                  setActiveTab('deal-lock');
+                  handleTabChange('deal-lock');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 onOpenDownload={() => setDownloadModalOpen(true)}
@@ -106,7 +162,7 @@ export default function App() {
             <div style={{ paddingTop: '80px' }}>
               <HowItWorks 
                 onOpenSimulator={() => {
-                  setActiveTab('deal-lock');
+                  handleTabChange('deal-lock');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 onOpenDownload={() => setDownloadModalOpen(true)}
@@ -118,7 +174,7 @@ export default function App() {
             <div style={{ paddingTop: '80px' }}>
               <BrandWorkflow 
                 onOpenSimulator={() => {
-                  setActiveTab('deal-lock');
+                  handleTabChange('deal-lock');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 onOpenDownload={() => setDownloadModalOpen(true)}
@@ -130,7 +186,7 @@ export default function App() {
             <div style={{ paddingTop: '80px' }}>
               <InfluencerWorkflow 
                 onOpenSimulator={() => {
-                  setActiveTab('deal-lock');
+                  handleTabChange('deal-lock');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 onOpenDownload={() => setDownloadModalOpen(true)}
@@ -165,7 +221,7 @@ export default function App() {
 
         {/* Footer */}
         <Footer 
-          setActiveTab={setActiveTab} 
+          setActiveTab={handleTabChange} 
           onOpenContact={() => setContactModalOpen(true)}
           onOpenDownload={() => setDownloadModalOpen(true)}
         />
