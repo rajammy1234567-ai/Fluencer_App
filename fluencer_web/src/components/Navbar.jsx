@@ -7,14 +7,10 @@ import {
   Lock, 
   FileText, 
   Download, 
-  Menu, 
-  X,
   PhoneCall
 } from 'lucide-react';
 
-export default function Navbar({ activeTab, setActiveTab, onOpenContact }) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
+export default function Navbar({ activeTab, setActiveTab, onOpenContact, onOpenDownload }) {
   const navItems = [
     { id: 'overview', label: 'Overview', icon: Sparkles },
     { id: 'how-it-works', label: 'How It Works', icon: Layers },
@@ -26,13 +22,12 @@ export default function Navbar({ activeTab, setActiveTab, onOpenContact }) {
 
   const handleNavClick = (id) => {
     setActiveTab(id);
-    setMobileMenuOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
     <nav className="glass-nav">
-      <div className="site-container flex items-center justify-between" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="site-container flex items-center justify-between" style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between' }}>
         
         {/* Brand Logo */}
         <div 
@@ -127,7 +122,7 @@ export default function Navbar({ activeTab, setActiveTab, onOpenContact }) {
           </button>
           
           <button 
-            onClick={() => handleNavClick('how-it-works')}
+            onClick={onOpenDownload}
             className="btn-primary"
             style={{ fontSize: '12px', padding: '10px 18px' }}
           >
