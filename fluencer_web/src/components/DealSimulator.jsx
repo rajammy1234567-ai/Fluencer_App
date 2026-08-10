@@ -1,17 +1,13 @@
 import React, { useState } from 'react';
 import { 
-  MessageSquare, 
   Send, 
   Lock, 
-  CheckCircle2, 
   Shield, 
   Building2, 
   User, 
   Headphones, 
   RefreshCw,
-  Sparkles,
-  FileCheck,
-  Zap
+  FileCheck
 } from 'lucide-react';
 
 export default function DealSimulator() {
@@ -91,76 +87,118 @@ export default function DealSimulator() {
   };
 
   return (
-    <section id="deal-lock" className="py-20 px-4 lg:px-8 bg-[#121218] relative">
-      
-      <div className="max-w-6xl mx-auto space-y-8">
+    <section id="deal-lock" style={{ padding: '100px 0', backgroundColor: '#121218', width: '100%' }}>
+      <div className="site-container-narrow">
         
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto space-y-4">
-          <div className="badge-gold mx-auto px-4 py-1">
-            <Lock className="w-4 h-4 text-gold" />
+        <div style={{ textAlign: 'center', margin: '0 auto 40px auto' }}>
+          <div className="badge-gold" style={{ marginBottom: '16px' }}>
+            <Lock style={{ width: '14px', height: '14px', color: '#F5A623' }} />
             <span>Interactive Deal Lock Engine</span>
           </div>
-          <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight font-['Plus_Jakarta_Sans']">
-            Live Chat & <span className="gradient-text-gold">Deal Lock Visualizer</span>
+          <h2 style={{ fontSize: '42px', fontWeight: '800', letterSpacing: '-0.5px', color: '#FFFFFF', marginBottom: '16px' }}>
+            Live Chat & <span className="gradient-gold">Deal Lock Visualizer</span>
           </h2>
-          <p className="text-gray-300 text-sm sm:text-base">
-            Experience how Brands and Influencers text inside the app, consult with the Fluencer App team, and click <strong className="text-emerald-400">Lock Deal</strong> to activate escrow security.
+          <p style={{ fontSize: '16px', color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.6' }}>
+            Experience how Brands and Influencers text inside the app, consult with the Fluencer App team, and click <strong style={{ color: '#34D399' }}>Lock Deal</strong> to activate escrow security.
           </p>
         </div>
 
-        {/* Control Toolbar */}
-        <div className="flex flex-wrap items-center justify-between gap-4 bg-[#14141C] p-4 rounded-2xl border border-white/10">
-          
+        {/* Toolbar */}
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '16px',
+          background: '#14141C',
+          padding: '16px 24px',
+          borderRadius: '20px',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          marginBottom: '24px'
+        }}>
           {/* Role Switcher */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-400 font-medium">Switch View:</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>Switch View:</span>
             <button
               onClick={() => setActiveRole('brand')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                activeRole === 'brand'
-                  ? 'bg-purple-600 text-white shadow-md'
-                  : 'bg-white/5 text-gray-400 hover:text-white'
-              }`}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '12px',
+                fontSize: '12px',
+                fontWeight: '600',
+                border: 'none',
+                cursor: 'pointer',
+                background: activeRole === 'brand' ? '#7C3AED' : 'rgba(255,255,255,0.06)',
+                color: '#FFFFFF',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
             >
-              <Building2 className="w-3.5 h-3.5" />
+              <Building2 style={{ width: '14px', height: '14px' }} />
               Brand View
             </button>
             <button
               onClick={() => setActiveRole('influencer')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                activeRole === 'influencer'
-                  ? 'bg-pink-600 text-white shadow-md'
-                  : 'bg-white/5 text-gray-400 hover:text-white'
-              }`}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '12px',
+                fontSize: '12px',
+                fontWeight: '600',
+                border: 'none',
+                cursor: 'pointer',
+                background: activeRole === 'influencer' ? '#EC4899' : 'rgba(255,255,255,0.06)',
+                color: '#FFFFFF',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
             >
-              <User className="w-3.5 h-3.5" />
+              <User style={{ width: '14px', height: '14px' }} />
               Influencer View
             </button>
             <button
               onClick={() => setActiveRole('app')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                activeRole === 'app'
-                  ? 'bg-amber-600 text-white shadow-md'
-                  : 'bg-white/5 text-gray-400 hover:text-white'
-              }`}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '12px',
+                fontSize: '12px',
+                fontWeight: '600',
+                border: 'none',
+                cursor: 'pointer',
+                background: activeRole === 'app' ? '#D97706' : 'rgba(255,255,255,0.06)',
+                color: '#FFFFFF',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
             >
-              <Headphones className="w-3.5 h-3.5" />
+              <Headphones style={{ width: '14px', height: '14px' }} />
               App Team View
             </button>
           </div>
 
-          {/* Action Button: Lock Deal */}
-          <div className="flex items-center gap-3">
+          {/* Action Button */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <button
               onClick={handleToggleLock}
-              className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-lg ${
-                isLocked
-                  ? 'bg-emerald-600 text-white shadow-emerald-600/40'
-                  : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white'
-              }`}
+              style={{
+                padding: '10px 20px',
+                borderRadius: '12px',
+                fontSize: '12px',
+                fontWeight: '700',
+                border: 'none',
+                cursor: 'pointer',
+                background: isLocked ? '#059669' : 'linear-gradient(135deg, #7C3AED, #EC4899)',
+                color: '#FFFFFF',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: isLocked ? '0 4px 16px rgba(16, 185, 129, 0.4)' : '0 4px 16px rgba(236, 72, 153, 0.4)'
+              }}
             >
-              <Lock className="w-4 h-4" />
+              <Lock style={{ width: '16px', height: '16px' }} />
               <span>{isLocked ? 'DEAL LOCKED (#FL-9912)' : 'CLICK TO LOCK DEAL'}</span>
             </button>
 
@@ -186,118 +224,147 @@ export default function DealSimulator() {
                   }
                 ]);
               }}
-              title="Reset Simulator"
-              className="p-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-white"
+              style={{ padding: '8px', borderRadius: '10px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)', cursor: 'pointer' }}
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw style={{ width: '16px', height: '16px' }} />
             </button>
           </div>
-
         </div>
 
-        {/* Chat Window Mockup */}
-        <div className="glass-card-static rounded-3xl border border-white/15 overflow-hidden shadow-2xl bg-[#0B0B10]">
+        {/* Chat Window */}
+        <div className="glass-card-static" style={{ borderRadius: '24px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.15)', background: '#0B0B10' }}>
           
-          {/* Top Bar of Chat */}
-          <div className="bg-[#14141C] p-4 border-b border-white/10 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <img 
-                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80" 
-                  className="w-10 h-10 rounded-full object-cover border border-purple-500/50" 
-                  alt="Avatar" 
-                />
-                <span className="w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#14141C] absolute bottom-0 right-0" />
-              </div>
+          {/* Header */}
+          <div style={{ background: '#14141C', padding: '16px 24px', borderBottom: '1px solid rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <img 
+                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80" 
+                style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} 
+                alt="Avatar" 
+              />
               <div>
-                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   ZARA India × Ria Sharma
-                  <span className="badge-neon text-[10px] px-2 py-0">Active Negotiation</span>
+                  <span className="badge-neon" style={{ fontSize: '10px', padding: '2px 8px' }}>Active Negotiation</span>
                 </h4>
-                <p className="text-xs text-gray-400">Campaign ID: #CAMP-8841 • Budget: ₹35,000</p>
+                <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>Campaign ID: #CAMP-8841 • Budget: ₹35,000</p>
               </div>
             </div>
 
-            {/* Escrow Status Tag */}
-            <div className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-2 ${
-              isLocked 
-                ? 'bg-emerald-950/60 border-emerald-500/50 text-emerald-300' 
-                : 'bg-amber-950/60 border-amber-500/40 text-amber-300'
-            }`}>
-              <Shield className="w-4 h-4" />
+            <div style={{
+              padding: '6px 14px',
+              borderRadius: '12px',
+              border: isLocked ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(245, 166, 35, 0.4)',
+              background: isLocked ? 'rgba(6, 78, 59, 0.5)' : 'rgba(120, 53, 15, 0.5)',
+              color: isLocked ? '#6EE7B7' : '#FDE68A',
+              fontSize: '12px',
+              fontWeight: '700',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}>
+              <Shield style={{ width: '14px', height: '14px' }} />
               <span>{isLocked ? 'Escrow Funded & Locked' : 'Pending Deal Lock'}</span>
             </div>
           </div>
 
-          {/* Messages Body */}
-          <div className="p-4 sm:p-6 space-y-4 max-h-[420px] overflow-y-auto bg-grid-pattern">
-            
+          {/* Messages */}
+          <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '420px', overflowY: 'auto', background: 'radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px)', backgroundSize: '24px 24px' }}>
             {messages.map((msg) => {
               const isBrand = msg.sender === 'brand';
               const isApp = msg.sender === 'app';
               return (
                 <div 
                   key={msg.id}
-                  className={`flex gap-3 max-w-xl ${
-                    isBrand ? 'ml-auto flex-row-reverse' : isApp ? 'mx-auto max-w-lg' : 'mr-auto'
-                  }`}
+                  style={{
+                    display: 'flex',
+                    gap: '12px',
+                    maxWidth: '80%',
+                    marginLeft: isBrand ? 'auto' : '0',
+                    marginRight: isBrand ? '0' : 'auto',
+                    flexDirection: isBrand ? 'row-reverse' : 'row'
+                  }}
                 >
                   {!isApp && (
                     <img 
                       src={msg.avatar} 
-                      className="w-8 h-8 rounded-full object-cover shrink-0 border border-white/10" 
+                      style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} 
                       alt="User" 
                     />
                   )}
 
-                  <div className={`p-3.5 rounded-2xl text-xs space-y-1 ${
-                    isApp 
-                      ? 'bg-gradient-to-r from-purple-900/60 to-pink-900/60 border border-purple-500/40 text-purple-200 text-center w-full shadow-lg' 
+                  <div style={{
+                    padding: '14px 16px',
+                    borderRadius: '16px',
+                    fontSize: '13px',
+                    background: isApp 
+                      ? 'linear-gradient(135deg, rgba(88, 28, 135, 0.7), rgba(131, 24, 67, 0.7))' 
                       : isBrand 
-                      ? 'bg-gradient-to-r from-[#6D28FF] to-[#7C3AED] text-white rounded-tr-none' 
-                      : 'bg-[#14141C] border border-white/10 text-gray-200 rounded-tl-none'
-                  }`}>
-                    <div className="flex items-center justify-between gap-4 font-semibold text-[10px] text-gray-300">
+                      ? 'linear-gradient(135deg, #6D28FF, #7C3AED)' 
+                      : '#14141C',
+                    border: isApp ? '1px solid rgba(168, 85, 247, 0.4)' : isBrand ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                    color: '#FFFFFF',
+                    width: isApp ? '100%' : 'auto'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', fontSize: '11px', fontWeight: '600', opacity: 0.8, marginBottom: '4px' }}>
                       <span>{msg.name}</span>
-                      <span className="opacity-70">{msg.time}</span>
+                      <span>{msg.time}</span>
                     </div>
-                    <p className="text-xs leading-relaxed">{msg.text}</p>
+                    <p style={{ margin: 0, lineHeight: '1.5' }}>{msg.text}</p>
                   </div>
                 </div>
               );
             })}
 
             {isLocked && (
-              <div className="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 text-emerald-200 text-center space-y-2 max-w-lg mx-auto shadow-2xl animate-pulse">
-                <div className="flex items-center justify-center gap-2 font-bold text-sm text-emerald-300">
-                  <FileCheck className="w-5 h-5 text-emerald-400" />
+              <div style={{
+                padding: '16px',
+                borderRadius: '16px',
+                background: 'rgba(6, 78, 59, 0.4)',
+                border: '1px solid rgba(16, 185, 129, 0.4)',
+                color: '#6EE7B7',
+                textAlign: 'center',
+                maxWidth: '500px',
+                margin: '0 auto'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontWeight: '700', fontSize: '14px', marginBottom: '4px' }}>
+                  <FileCheck style={{ width: '18px', height: '18px', color: '#34D399' }} />
                   Binding Contract Generated & Escrow Locked
                 </div>
-                <p className="text-xs text-gray-300">
+                <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.8)', margin: 0 }}>
                   Influencer can now submit draft content. Payment will release immediately upon Brand approval inside Fluencer App.
                 </p>
               </div>
             )}
-
           </div>
 
-          {/* Chat Input Bar */}
-          <form onSubmit={handleSendMessage} className="p-3 bg-[#14141C] border-t border-white/10 flex items-center gap-3">
-            <span className="text-xs text-gray-400 font-semibold px-2">
-              Typing as <strong className="text-purple-300 uppercase">{activeRole}</strong>:
+          {/* Form */}
+          <form onSubmit={handleSendMessage} style={{ background: '#14141C', padding: '16px 24px', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', fontWeight: '600', textTransform: 'uppercase' }}>
+              {activeRole}:
             </span>
             <input 
               type="text"
               value={inputMsg}
               onChange={(e) => setInputMsg(e.target.value)}
               placeholder={`Type message as ${activeRole}...`}
-              className="flex-1 bg-[#0B0B10] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+              style={{
+                flex: 1,
+                background: '#0B0B10',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '12px',
+                padding: '10px 16px',
+                fontSize: '13px',
+                color: '#FFFFFF',
+                outline: 'none'
+              }}
             />
             <button 
               type="submit"
-              className="btn-primary text-xs py-2.5 px-4"
+              className="btn-primary"
+              style={{ fontSize: '12px', padding: '10px 20px' }}
             >
-              <Send className="w-3.5 h-3.5" />
+              <Send style={{ width: '14px', height: '14px' }} />
               <span>Send</span>
             </button>
           </form>

@@ -4,20 +4,16 @@ import {
   Send, 
   MessageSquare, 
   Lock, 
-  ShieldCheck, 
   CheckCircle, 
-  Smartphone,
-  Layers,
-  Sparkles,
-  UserCheck,
-  Building2,
-  Headphones,
+  Layers, 
+  Sparkles, 
+  UserCheck, 
+  Building2, 
+  Headphones, 
   ArrowRight
 } from 'lucide-react';
 
 export default function HowItWorks({ onOpenSimulator }) {
-  const [activeWorkflowTab, setActiveWorkflowTab] = useState('all');
-
   const steps = [
     {
       stepNumber: '01',
@@ -32,8 +28,8 @@ export default function HowItWorks({ onOpenSimulator }) {
         'Target follower count & engagement demographics'
       ],
       icon: PlusCircle,
-      accentColor: 'text-purple-400',
-      borderGlow: 'border-purple-500/30'
+      accentColor: '#C084FC',
+      borderGlow: 'rgba(168, 85, 247, 0.3)'
     },
     {
       stepNumber: '02',
@@ -48,8 +44,8 @@ export default function HowItWorks({ onOpenSimulator }) {
         'Instant notification sent to the Brand dashboard'
       ],
       icon: Send,
-      accentColor: 'text-pink-400',
-      borderGlow: 'border-pink-500/30'
+      accentColor: '#F472B6',
+      borderGlow: 'rgba(236, 72, 153, 0.3)'
     },
     {
       stepNumber: '03',
@@ -64,8 +60,8 @@ export default function HowItWorks({ onOpenSimulator }) {
         'Platform guidelines & compliance verification'
       ],
       icon: Headphones,
-      accentColor: 'text-gold',
-      borderGlow: 'border-amber-500/30'
+      accentColor: '#F5A623',
+      borderGlow: 'rgba(245, 166, 35, 0.3)'
     },
     {
       stepNumber: '04',
@@ -80,8 +76,8 @@ export default function HowItWorks({ onOpenSimulator }) {
         'Zero external messaging risks — everything logged safely'
       ],
       icon: MessageSquare,
-      accentColor: 'text-purple-300',
-      borderGlow: 'border-purple-500/40'
+      accentColor: '#A855F7',
+      borderGlow: 'rgba(168, 85, 247, 0.4)'
     },
     {
       stepNumber: '05',
@@ -96,155 +92,138 @@ export default function HowItWorks({ onOpenSimulator }) {
         'Release payout to Influencer upon Brand content approval'
       ],
       icon: Lock,
-      accentColor: 'text-emerald-400',
-      borderGlow: 'border-emerald-500/40'
+      accentColor: '#34D399',
+      borderGlow: 'rgba(16, 185, 129, 0.4)'
     }
   ];
 
   return (
-    <section id="how-it-works" className="py-20 px-4 lg:px-8 relative bg-[#0B0B10]">
-      
-      {/* Background glow */}
-      <div className="absolute top-1/2 left-0 w-96 h-96 bg-purple-900/10 rounded-full blur-[150px] pointer-events-none" />
-      <div className="absolute bottom-10 right-0 w-96 h-96 bg-pink-900/10 rounded-full blur-[150px] pointer-events-none" />
-
-      <div className="max-w-7xl mx-auto">
+    <section id="how-it-works" style={{ padding: '100px 0', backgroundColor: '#0B0B10', width: '100%' }}>
+      <div className="site-container">
         
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto space-y-4 mb-16">
-          <div className="badge-neon mx-auto px-4 py-1">
-            <Layers className="w-4 h-4 text-purple-400" />
+        <div style={{ textAlign: 'center', maxWidth: '750px', margin: '0 auto 60px auto' }}>
+          <div className="badge-neon" style={{ marginBottom: '16px' }}>
+            <Layers style={{ width: '14px', height: '14px', color: '#A855F7' }} />
             <span>Complete App Ecosystem</span>
           </div>
-          <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight font-['Plus_Jakarta_Sans']">
-            How <span className="gradient-text-primary">Fluencer Works</span> Step-by-Step
+          <h2 style={{ fontSize: '42px', fontWeight: '800', letterSpacing: '-0.5px', color: '#FFFFFF', marginBottom: '16px' }}>
+            How <span className="gradient-heading">Fluencer Works</span> Step-by-Step
           </h2>
-          <p className="text-gray-300 text-sm sm:text-base leading-relaxed">
+          <p style={{ fontSize: '16px', color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.6' }}>
             From campaign creation to direct chat, App team support, and secure Deal Locking — here is how Brands and Influencers collaborate seamlessly inside the mobile app.
           </p>
         </div>
 
-        {/* Roles Filter Selector */}
-        <div className="flex justify-center mb-12">
-          <div className="bg-[#14141C] p-1.5 rounded-2xl border border-white/10 flex gap-2">
-            <button
-              onClick={() => setActiveWorkflowTab('all')}
-              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
-                activeWorkflowTab === 'all'
-                  ? 'bg-gradient-to-r from-[#6D28FF] to-[#7C3AED] text-white shadow-lg'
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              Full 5-Step Workflow
-            </button>
-
-            <button
-              onClick={() => setActiveWorkflowTab('brand')}
-              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 ${
-                activeWorkflowTab === 'brand'
-                  ? 'bg-gradient-to-r from-[#6D28FF] to-[#EC4899] text-white shadow-lg'
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              <Building2 className="w-3.5 h-3.5" />
-              Brand Journey
-            </button>
-
-            <button
-              onClick={() => setActiveWorkflowTab('influencer')}
-              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 ${
-                activeWorkflowTab === 'influencer'
-                  ? 'bg-gradient-to-r from-[#EC4899] to-pink-600 text-white shadow-lg'
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              <UserCheck className="w-3.5 h-3.5" />
-              Influencer Journey
-            </button>
-          </div>
-        </div>
-
-        {/* Timeline Grid */}
-        <div className="space-y-8 relative">
+        {/* Steps Column */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
           
           {steps.map((step, idx) => {
             const Icon = step.icon;
             return (
               <div 
                 key={idx}
-                className={`glass-card p-6 sm:p-8 rounded-3xl border ${step.borderGlow} relative overflow-hidden transition-all duration-300`}
+                className="glass-card"
+                style={{
+                  padding: '32px',
+                  borderRadius: '24px',
+                  borderColor: step.borderGlow,
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 2fr 1fr',
+                  gap: '32px',
+                  alignItems: 'start'
+                }}
               >
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                  
-                  {/* Left Column: Number & Icon */}
-                  <div className="lg:col-span-3 flex lg:flex-col items-center lg:items-start justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#14141C] to-[#121218] border border-white/15 flex items-center justify-center shadow-inner">
-                        <Icon className={`w-7 h-7 ${step.accentColor}`} />
-                      </div>
-                      <div>
-                        <span className="text-xs font-mono text-gray-400 tracking-wider">STEP</span>
-                        <div className="text-3xl font-extrabold font-mono text-white">{step.stepNumber}</div>
-                      </div>
+                {/* Left: Step number & Icon */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div style={{
+                      width: '56px',
+                      height: '56px',
+                      borderRadius: '16px',
+                      background: 'linear-gradient(135deg, #14141C, #121218)',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <Icon style={{ width: '28px', height: '28px', color: step.accentColor }} />
                     </div>
-                    <div className="mt-2">
-                      <span className={`${step.badgeClass} text-xs`}>{step.badge}</span>
+                    <div>
+                      <span style={{ fontSize: '11px', fontFamily: 'monospace', color: 'rgba(255,255,255,0.4)', letterSpacing: '1px' }}>STEP</span>
+                      <div style={{ fontSize: '32px', fontWeight: '800', fontFamily: 'monospace', color: '#FFFFFF' }}>{step.stepNumber}</div>
                     </div>
                   </div>
-
-                  {/* Middle Column: Details */}
-                  <div className="lg:col-span-6 space-y-3">
-                    <h3 className="text-xl sm:text-2xl font-bold text-white font-['Plus_Jakarta_Sans'] flex items-center gap-2">
-                      {step.title}
-                    </h3>
-                    <p className="text-xs text-purple-300 font-medium italic bg-purple-950/40 p-2.5 rounded-xl border border-purple-800/30">
-                      💡 {step.hindiDesc}
-                    </p>
-                    <p className="text-sm text-gray-300 leading-relaxed">
-                      {step.description}
-                    </p>
+                  <div>
+                    <span className={step.badgeClass}>{step.badge}</span>
                   </div>
-
-                  {/* Right Column: Key Takeaways */}
-                  <div className="lg:col-span-3 bg-[#121218] p-4 rounded-2xl border border-white/5 space-y-2">
-                    <div className="text-xs font-semibold text-gray-300 border-b border-white/10 pb-2 flex items-center justify-between">
-                      <span>Key Features</span>
-                      <Sparkles className="w-3.5 h-3.5 text-gold" />
-                    </div>
-                    <ul className="space-y-1.5 text-xs text-gray-400">
-                      {step.details.map((detail, dIdx) => (
-                        <li key={dIdx} className="flex items-start gap-2">
-                          <CheckCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                          <span>{detail}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
                 </div>
+
+                {/* Center: Details */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <h3 style={{ fontSize: '22px', fontWeight: '700', color: '#FFFFFF' }}>{step.title}</h3>
+                  <p style={{
+                    fontSize: '13px',
+                    color: '#E9D5FF',
+                    fontStyle: 'italic',
+                    background: 'rgba(124, 58, 237, 0.15)',
+                    padding: '10px 14px',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(168, 85, 247, 0.2)'
+                  }}>
+                    💡 {step.hindiDesc}
+                  </p>
+                  <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.72)', lineHeight: '1.6' }}>
+                    {step.description}
+                  </p>
+                </div>
+
+                {/* Right: Key Features */}
+                <div style={{ background: '#121218', padding: '20px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{ fontSize: '12px', fontWeight: '600', color: 'rgba(255,255,255,0.8)', paddingBottom: '10px', borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>Key Features</span>
+                    <Sparkles style={{ width: '14px', height: '14px', color: '#F5A623' }} />
+                  </div>
+                  <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>
+                    {step.details.map((detail, dIdx) => (
+                      <li key={dIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                        <CheckCircle style={{ width: '14px', height: '14px', color: '#34D399', flexShrink: 0, marginTop: '2px' }} />
+                        <span>{detail}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
               </div>
             );
           })}
 
         </div>
 
-        {/* Callout Box to Try Deal Simulator */}
-        <div className="mt-16 glass-card-static p-8 rounded-3xl border border-pink-500/30 text-center bg-gradient-to-r from-[#14141C] via-[#1A1025] to-[#14141C] relative overflow-hidden">
-          <div className="max-w-2xl mx-auto space-y-4">
-            <span className="badge-pink text-xs">Interactive Feature</span>
-            <h3 className="text-2xl sm:text-3xl font-extrabold text-white">
+        {/* CTA Callout Box */}
+        <div className="glass-card-static" style={{
+          marginTop: '60px',
+          padding: '40px',
+          textAlign: 'center',
+          background: 'linear-gradient(135deg, #14141C 0%, #1A1025 50%, #14141C 100%)',
+          border: '1px solid rgba(236, 72, 153, 0.3)'
+        }}>
+          <div style={{ maxWidth: '650px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
+            <span className="badge-pink">Interactive Demo Engine</span>
+            <h3 style={{ fontSize: '28px', fontWeight: '800', color: '#FFFFFF' }}>
               Want to see how Brand & Influencer text and lock deals live?
             </h3>
-            <p className="text-sm text-gray-300">
+            <p style={{ fontSize: '14px', color: 'rgba(255, 255, 255, 0.7)' }}>
               Try our embedded deal locking visualizer right here in your browser to experience the real-time chat and contract confirmation.
             </p>
             <button 
               onClick={onOpenSimulator}
-              className="btn-glow-pink py-3 px-6 text-xs mx-auto"
+              className="btn-glow-pink"
+              style={{ marginTop: '8px' }}
             >
-              <Lock className="w-4 h-4" />
-              <span>Launch Live Deal Simulator</span>
-              <ArrowRight className="w-4 h-4" />
+              <Lock style={{ width: '16px', height: '16px' }} />
+              <span>Launch Live Deal Lock Engine</span>
+              <ArrowRight style={{ width: '16px', height: '16px' }} />
             </button>
           </div>
         </div>

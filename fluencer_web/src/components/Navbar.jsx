@@ -20,7 +20,7 @@ export default function Navbar({ activeTab, setActiveTab, onOpenContact }) {
     { id: 'how-it-works', label: 'How It Works', icon: Layers },
     { id: 'brand-flow', label: 'For Brands', icon: MessageSquare },
     { id: 'influencer-flow', label: 'For Influencers', icon: ShieldCheck },
-    { id: 'deal-lock', label: 'Deal Lock', icon: Lock },
+    { id: 'deal-lock', label: 'Deal Lock Engine', icon: Lock },
     { id: 'privacy', label: 'Privacy Policy', icon: FileText },
   ];
 
@@ -31,39 +31,60 @@ export default function Navbar({ activeTab, setActiveTab, onOpenContact }) {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 glass-nav px-4 lg:px-8 py-3 transition-all duration-300">
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
+    <nav className="glass-nav">
+      <div className="site-container flex items-center justify-between" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         
         {/* Brand Logo */}
         <div 
           onClick={() => handleNavClick('overview')} 
-          className="flex items-center gap-3 cursor-pointer group"
+          style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
         >
-          <div className="relative w-10 h-10 rounded-xl bg-gradient-to-tr from-[#6D28FF] to-[#EC4899] p-[2px] shadow-lg shadow-[#6D28FF]/40">
-            <div className="w-full h-full bg-[#0B0B10] rounded-[10px] flex items-center justify-center overflow-hidden">
+          <div style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '12px',
+            background: 'linear-gradient(135deg, #6D28FF, #EC4899)',
+            padding: '2px',
+            boxShadow: '0 8px 20px rgba(109, 40, 255, 0.4)'
+          }}>
+            <div style={{
+              width: '100%',
+              height: '100%',
+              backgroundColor: '#0B0B10',
+              borderRadius: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
               <img 
                 src="/icon.png" 
                 alt="Fluencer Logo" 
-                className="w-8 h-8 object-contain transform group-hover:scale-110 transition-transform duration-300"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                }}
+                style={{ width: '28px', height: '28px', objectFit: 'contain' }}
+                onError={(e) => { e.target.style.display = 'none'; }}
               />
             </div>
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="font-extrabold text-xl tracking-tight text-white font-['Plus_Jakarta_Sans']">
-                Fluencer<span className="text-[#EC4899]">.</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '20px', fontWeight: '800', letterSpacing: '-0.5px', color: '#FFFFFF' }}>
+                Fluencer<span style={{ color: '#EC4899' }}>.</span>
               </span>
-              <span className="badge-neon text-[10px] px-2 py-0.5">App & Web</span>
+              <span className="badge-neon" style={{ fontSize: '10px', padding: '2px 8px' }}>App & Web</span>
             </div>
-            <p className="text-[10px] text-gray-400 tracking-wider">COLLABORATION PLATFORM</p>
+            <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.8px' }}>COLLABORATION PLATFORM</p>
           </div>
         </div>
 
         {/* Desktop Links */}
-        <div className="hidden lg:flex items-center gap-1 bg-[#14141C]/80 border border-white/10 rounded-full px-4 py-1.5 backdrop-blur-md">
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px',
+          background: 'rgba(20, 20, 28, 0.8)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          borderRadius: '30px',
+          padding: '6px 16px'
+        }}>
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -71,88 +92,51 @@ export default function Navbar({ activeTab, setActiveTab, onOpenContact }) {
               <button
                 key={item.id}
                 onClick={() => handleNavClick(item.id)}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${
-                  isActive
-                    ? 'bg-gradient-to-r from-[#6D28FF] to-[#7C3AED] text-white shadow-md shadow-[#6D28FF]/30'
-                    : 'text-gray-300 hover:text-white hover:bg-white/5'
-                }`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 14px',
+                  borderRadius: '20px',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  background: isActive ? 'linear-gradient(135deg, #6D28FF, #7C3AED)' : 'transparent',
+                  color: isActive ? '#FFFFFF' : 'rgba(255, 255, 255, 0.7)',
+                  boxShadow: isActive ? '0 4px 14px rgba(109, 40, 255, 0.4)' : 'none'
+                }}
               >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-purple-400'}`} />
+                <Icon style={{ width: '14px', height: '14px', color: isActive ? '#FFFFFF' : '#A855F7' }} />
                 {item.label}
               </button>
             );
           })}
         </div>
 
-        {/* Desktop CTAs */}
-        <div className="hidden md:flex items-center gap-3">
+        {/* Action CTAs */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button 
             onClick={onOpenContact}
-            className="btn-secondary text-xs px-4 py-2"
+            className="btn-secondary"
+            style={{ fontSize: '12px', padding: '10px 16px' }}
           >
-            <PhoneCall className="w-3.5 h-3.5 text-pink-400" />
-            <span>Contact App Support</span>
+            <PhoneCall style={{ width: '14px', height: '14px', color: '#EC4899' }} />
+            <span>Contact Support</span>
           </button>
           
           <button 
             onClick={() => handleNavClick('how-it-works')}
-            className="btn-primary text-xs px-4 py-2"
+            className="btn-primary"
+            style={{ fontSize: '12px', padding: '10px 18px' }}
           >
-            <Download className="w-3.5 h-3.5 text-white" />
+            <Download style={{ width: '14px', height: '14px', color: '#FFFFFF' }} />
             <span>Get App</span>
           </button>
         </div>
 
-        {/* Mobile Hamburger Toggle */}
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="lg:hidden p-2 rounded-xl bg-white/5 border border-white/10 text-gray-300 hover:text-white"
-        >
-          {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
-
       </div>
-
-      {/* Mobile Drawer */}
-      {mobileMenuOpen && (
-        <div className="lg:hidden mt-3 pt-3 border-t border-white/10 flex flex-col gap-2 pb-4 bg-[#0B0B10]/95 backdrop-blur-xl rounded-2xl p-4 shadow-2xl">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleNavClick(item.id)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
-                  isActive
-                    ? 'bg-gradient-to-r from-[#6D28FF] to-[#7C3AED] text-white'
-                    : 'text-gray-300 hover:bg-white/5'
-                }`}
-              >
-                <Icon className="w-4 h-4 text-purple-400" />
-                {item.label}
-              </button>
-            );
-          })}
-
-          <div className="pt-2 flex flex-col gap-2 border-t border-white/10 mt-2">
-            <button 
-              onClick={() => { onOpenContact(); setMobileMenuOpen(false); }}
-              className="btn-secondary w-full justify-center text-xs py-2.5"
-            >
-              <PhoneCall className="w-4 h-4 text-pink-400" />
-              <span>Contact Support & App Team</span>
-            </button>
-            <button 
-              onClick={() => { handleNavClick('how-it-works'); }}
-              className="btn-primary w-full justify-center text-xs py-2.5"
-            >
-              <Download className="w-4 h-4" />
-              <span>Download Mobile App</span>
-            </button>
-          </div>
-        </div>
-      )}
     </nav>
   );
 }
