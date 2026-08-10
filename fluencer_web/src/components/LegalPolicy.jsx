@@ -7,13 +7,12 @@ import {
   Mail, 
   Building2, 
   UserCheck, 
-  Smartphone,
   Eye,
   Server,
   HelpCircle
 } from 'lucide-react';
 
-export default function PrivacyPolicy() {
+export default function LegalPolicy() {
   const lastUpdated = "August 10, 2026";
 
   return (

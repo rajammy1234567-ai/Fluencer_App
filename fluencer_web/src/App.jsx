@@ -3,7 +3,7 @@ import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import HowItWorks from './components/HowItWorks';
 import DealSimulator from './components/DealSimulator';
-import PrivacyPolicy from './components/PrivacyPolicy';
+import LegalPolicy from './components/LegalPolicy';
 import ContactModal from './components/ContactModal';
 import Footer from './components/Footer';
 
@@ -84,7 +84,7 @@ export default function App() {
                 }}
               />
               <DealSimulator />
-              <PrivacyPolicy />
+              <LegalPolicy />
             </>
           )}
 
@@ -129,7 +129,7 @@ export default function App() {
 
           {activeTab === 'privacy' && (
             <div className="pt-24">
-              <PrivacyPolicy />
+              <LegalPolicy />
             </div>
           )}
         </main>
