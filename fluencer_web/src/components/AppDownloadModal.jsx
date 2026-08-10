@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Download, Smartphone, ShieldCheck, ExternalLink } from 'lucide-react';
+import { X, Download, Smartphone, ExternalLink } from 'lucide-react';
 
 export default function AppDownloadModal({ isOpen, onClose }) {
   if (!isOpen) return null;
@@ -22,7 +22,7 @@ export default function AppDownloadModal({ isOpen, onClose }) {
     }}>
       <div className="glass-card-static" style={{
         width: '100%',
-        maxWidth: '520px',
+        maxWidth: '480px',
         padding: '32px',
         borderRadius: '28px',
         border: '1px solid rgba(168, 85, 247, 0.35)',
@@ -76,7 +76,7 @@ export default function AppDownloadModal({ isOpen, onClose }) {
           flexDirection: 'column',
           gap: '12px'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{
                 width: '40px',
@@ -109,8 +109,8 @@ export default function AppDownloadModal({ isOpen, onClose }) {
             style={{
               justifyContent: 'center',
               textDecoration: 'none',
-              padding: '12px',
-              fontSize: '13px',
+              padding: '14px',
+              fontSize: '14px',
               fontWeight: '700'
             }}
           >
@@ -118,47 +118,6 @@ export default function AppDownloadModal({ isOpen, onClose }) {
             <span>Download Direct APK File</span>
             <ExternalLink style={{ width: '14px', height: '14px' }} />
           </a>
-        </div>
-
-        {/* Store Options Grid */}
-        <div className="grid-2" style={{ gap: '12px' }}>
-          
-          <div style={{
-            background: '#121218',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: '16px',
-            padding: '14px',
-            textAlign: 'center',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '4px'
-          }}>
-            <span style={{ fontSize: '18px' }}>🤖</span>
-            <span style={{ fontSize: '12px', fontWeight: '700', color: '#FFFFFF' }}>Google Play Store</span>
-            <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>Listing Submitted</span>
-          </div>
-
-          <div style={{
-            background: '#121218',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: '16px',
-            padding: '14px',
-            textAlign: 'center',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '4px'
-          }}>
-            <span style={{ fontSize: '18px' }}>🍏</span>
-            <span style={{ fontSize: '12px', fontWeight: '700', color: '#FFFFFF' }}>Apple App Store</span>
-            <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>TestFlight Ready</span>
-          </div>
-
-        </div>
-
-        {/* Footer Guarantee */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'center', gap: '8px', fontSize: '12px', color: 'rgba(255,255,255,0.5)', textAlign: 'center', margin: '0 auto' }}>
-          <ShieldCheck style={{ width: '16px', height: '16px', color: '#34D399' }} />
-          <span>100% Verified Android Build • EAS Cloud Artifact</span>
         </div>
 
       </div>
