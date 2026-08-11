@@ -34,11 +34,18 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 import { getAdminPageContent } from './adminHtml.js';
+import { getPrivacyPageContent } from './privacyHtml.js';
 
 // Serve Web Admin Dashboard HTML
 app.get(['/admin', '/admin/'], (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=UTF-8');
   return res.status(200).send(getAdminPageContent());
+});
+
+// Serve Privacy Policy HTML (Google Play Store & App Store compliant)
+app.get(['/privacy-policy', '/privacy-policy/', '/privacy', '/privacy/'], (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=UTF-8');
+  return res.status(200).send(getPrivacyPageContent());
 });
 
 // CRITICAL: Ensure API responses are JSON by default
