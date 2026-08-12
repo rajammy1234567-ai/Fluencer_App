@@ -114,6 +114,7 @@ export default function InfluencerCampaigns() {
   };
 
   const handleUnlockProPass = () => {
+    if (unlockingPro) return;
     setUnlockingPro(true);
     initiatePayment({
       amount: 499,
@@ -146,13 +147,11 @@ export default function InfluencerCampaigns() {
   const fetchCampaigns = async () => {
     try {
       const headers = await getAuthHeader();
-      console.log('Fetching campaigns from:', getApiUrl(API.CAMPAIGNS.ACTIVE_ALL));
       const response = await fetch(getApiUrl(API.CAMPAIGNS.ACTIVE_ALL), {
         headers,
       });
 
       const data = await response.json();
-      console.log('Campaigns Response:', JSON.stringify(data, null, 2));
 
       if (response.ok && data.success && Array.isArray(data.campaigns)) {
         if (data.is_pro_member === false) {
@@ -215,14 +214,25 @@ export default function InfluencerCampaigns() {
     }
   };
 
+  const sanitizeUri = (url) => {
+    if (!url || typeof url !== 'string') return FALLBACK_INDIAN;
+    const clean = url.trim();
+    if (Platform.OS === 'web' && (clean.startsWith('file://') || clean.startsWith('/data/user/'))) {
+      return FALLBACK_INDIAN;
+    }
+    if (!clean.startsWith('http://') && !clean.startsWith('https://') && !clean.startsWith('data:image')) {
+      return FALLBACK_INDIAN;
+    }
+    return clean;
+  };
+
   // Map campaign data to BrandSwipeCard format
   const formattedCampaigns = campaigns.map(item => {
-    let imgUri = item.product_image || (item.reference_images && item.reference_images[0]) || item.brand_image || item.company_logo || FALLBACK_INDIAN;
-    if (Platform.OS === 'web' && String(imgUri).startsWith('file://')) {
-      imgUri = FALLBACK_INDIAN;
-    }
-    const refImgs = Array.isArray(item.reference_images) && item.reference_images.length > 0 
-      ? item.reference_images 
+    let rawUri = item.product_image || (item.reference_images && item.reference_images[0]) || item.brand_image || item.company_logo || FALLBACK_INDIAN;
+    const imgUri = sanitizeUri(rawUri);
+
+    const refImgs = (Array.isArray(item.reference_images) && item.reference_images.length > 0)
+      ? item.reference_images.map(sanitizeUri)
       : [imgUri];
 
     return {
@@ -713,11 +723,12 @@ export default function InfluencerCampaigns() {
                   <View style={styles.newDesignMainImageContainer}>
                     <Image 
                       source={{
-                        uri: (selectedCampaign?.reference_images && selectedCampaign?.reference_images[activeModalImgIndex]) ||
-                             selectedCampaign?.product_image ||
-                             selectedCampaign?.productImage ||
-                             selectedCampaign?.image?.uri ||
-                             'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80'
+                        uri: sanitizeUri(
+                          (selectedCampaign?.reference_images && selectedCampaign?.reference_images[activeModalImgIndex]) ||
+                          selectedCampaign?.product_image ||
+                          selectedCampaign?.productImage ||
+                          selectedCampaign?.image?.uri
+                        )
                       }} 
                       style={styles.newDesignMainImage} 
                       resizeMode="cover"
@@ -744,7 +755,7 @@ export default function InfluencerCampaigns() {
                           ]}
                         >
                           <Image 
-                            source={{ uri: imgUrl }} 
+                            source={{ uri: sanitizeUri(imgUrl) }} 
                             style={styles.newDesignThumbImage} 
                           />
                         </TouchableOpacity>

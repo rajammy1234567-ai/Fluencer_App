@@ -31,6 +31,7 @@ const Signup = () => {
   
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   // Default to creator if no role passed (fallback)
   const isBrand = role === 'brand' || role === 'business';
@@ -50,9 +51,12 @@ const Signup = () => {
   };
 
   const handleSignup = async () => {
+    setErrorMsg('');
     const inputVal = email.trim();
     if (!inputVal) {
-      Alert.alert('Error', 'Please enter your email or mobile number');
+      const err = 'Please enter your email or mobile number';
+      setErrorMsg(err);
+      Alert.alert('Error', err);
       return;
     }
 
@@ -60,7 +64,9 @@ const Signup = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const phoneRegex = /^\+?[0-9\s\-]{7,15}$/;
     if (!emailRegex.test(inputVal) && !phoneRegex.test(inputVal)) {
-      Alert.alert('Error', 'Please enter a valid email address or mobile number');
+      const err = 'Please enter a valid email address or mobile number';
+      setErrorMsg(err);
+      Alert.alert('Error', err);
       return;
     }
 
@@ -90,12 +96,15 @@ const Signup = () => {
           params: { email: inputVal, role: isBrand ? 'brand' : 'influencer', initialOtp: generatedOtp },
         });
       } else {
-        // Specific error handling for cross-role registration
-        Alert.alert('Signup Failed', data.message || 'Failed to send OTP');
+        const message = data.message || 'Failed to send OTP';
+        setErrorMsg(message);
+        Alert.alert('Signup Failed', message);
       }
     } catch (error) {
       console.error('Signup error:', error);
-      Alert.alert('Connection Error', 'Could not connect to the server.');
+      const err = 'Could not connect to the server.';
+      setErrorMsg(err);
+      Alert.alert('Connection Error', err);
     } finally {
       setLoading(false);
     }
@@ -161,6 +170,24 @@ const Signup = () => {
             style={styles.formContainer}
           >
             <View style={styles.card}>
+              {/* Error Message Banner */}
+              {!!errorMsg && (
+                <View style={styles.errorBanner}>
+                  <MaterialCommunityIcons name="alert-circle-outline" size={18} color="#EF4444" style={{ marginTop: 2 }} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.errorBannerText}>{errorMsg}</Text>
+                    {errorMsg.toLowerCase().includes('already registered') && (
+                      <TouchableOpacity 
+                        style={styles.loginQuickBtn} 
+                        onPress={() => router.push('/(auth)/login')}
+                      >
+                        <Text style={styles.loginQuickText}>Go to Log In →</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+              )}
+
               {/* Input */}
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Email or Mobile Number</Text>
@@ -171,7 +198,10 @@ const Signup = () => {
                     placeholder="name@example.com or 9876543210"
                     placeholderTextColor={COLORS.textLight}
                     value={email}
-                    onChangeText={setEmail}
+                    onChangeText={(val) => {
+                      setEmail(val);
+                      if (errorMsg) setErrorMsg('');
+                    }}
                     autoCapitalize="none"
                     keyboardType="default"
                   />
@@ -483,6 +513,34 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 14,
   },
+  errorBanner: {
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.4)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  errorBannerText: {
+    color: '#F87171',
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 18,
+  },
+  loginQuickBtn: {
+    marginTop: 6,
+    alignSelf: 'flex-start',
+  },
+  loginQuickText: {
+    color: COLORS.primary,
+    fontSize: 13,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
+  },
 });
 
 export default Signup;
+

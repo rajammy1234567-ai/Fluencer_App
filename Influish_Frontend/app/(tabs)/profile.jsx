@@ -150,6 +150,7 @@ export default function Profile() {
 
   // Add Portfolio Item handler
   const handleAddPortfolioItem = async () => {
+    if (uploadingMedia) return;
     if (!mediaUrl.trim()) {
       Alert.alert('Required', 'Please provide an Image or Reel Video URL');
       return;
@@ -292,7 +293,6 @@ export default function Profile() {
     }
 
     const url = `${API_CONFIG.BASE_URL}${apiEndpoint}`;
-    console.log('📡 Fetching influencer profile from:', url);
 
     try {
       const response = await fetch(url, {
@@ -306,7 +306,6 @@ export default function Profile() {
       if (!isMountedRef.current) return;
 
       const data = await response.json();
-      console.log('📊 Influencer profile response:', data);
 
       // Strict validation
       if (response.ok && data && data.profile) {
@@ -463,6 +462,7 @@ export default function Profile() {
   }
 
   const handleUpdateFollowers = async () => {
+    if (updatingFollowers) return;
     const val = customFollowers.trim();
     if (!val) {
       Alert.alert('Error', 'Please enter follower count (e.g. 5000, 125K, 45,000)');
@@ -499,7 +499,7 @@ export default function Profile() {
   };
 
   const handleConfirmProfilePicUpload = async () => {
-    if (!previewFileOrUri) return;
+    if (!previewFileOrUri || uploadingProfilePic) return;
     try {
       setUploadingProfilePic(true);
       const uploadedUrl = await uploadToCloudinary(previewFileOrUri);

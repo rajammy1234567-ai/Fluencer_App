@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, Image, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Image, StyleSheet, Dimensions, TouchableOpacity, Platform } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -14,6 +14,20 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SWIPE_THRESHOLD = 100;
+const FALLBACK_CAMPAIGN_IMG = 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80';
+
+const getImageUri = (img) => {
+  let uri = typeof img === 'string' ? img : img?.uri;
+  if (!uri || typeof uri !== 'string') return FALLBACK_CAMPAIGN_IMG;
+  const trimmed = uri.trim();
+  if (Platform.OS === 'web' && (trimmed.startsWith('file://') || trimmed.startsWith('/data/user/'))) {
+    return FALLBACK_CAMPAIGN_IMG;
+  }
+  if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://') && !trimmed.startsWith('data:image')) {
+    return FALLBACK_CAMPAIGN_IMG;
+  }
+  return trimmed;
+};
 
 const BrandSwipeCard = ({ brand, onSwipeRight, onSwipeLeft, index = 0, isTop = false, onSwipeProgress, onCardTap }) => {
   const translateX = useSharedValue(0);
@@ -21,6 +35,11 @@ const BrandSwipeCard = ({ brand, onSwipeRight, onSwipeLeft, index = 0, isTop = f
   const [isRemoved, setIsRemoved] = useState(false);
   const startX = useSharedValue(0);
   const startY = useSharedValue(0);
+  const [imageUri, setImageUri] = useState(() => getImageUri(brand.image || brand.product_image || brand.productImage));
+
+  useEffect(() => {
+    setImageUri(getImageUri(brand.image || brand.product_image || brand.productImage));
+  }, [brand]);
 
   const panGesture = Gesture.Pan()
     .activeOffsetX([-10, 10])
@@ -142,16 +161,10 @@ const BrandSwipeCard = ({ brand, onSwipeRight, onSwipeLeft, index = 0, isTop = f
         {/* Card Main Image */}
         <View style={styles.imageContainer}>
           <Image 
-            source={
-              typeof brand.image === 'string'
-                ? { uri: brand.image }
-                : brand.image?.uri
-                  ? { uri: brand.image.uri }
-                  : { uri: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80' }
-            } 
+            source={{ uri: imageUri }} 
             style={styles.image} 
             resizeMode="cover"
-            defaultSource={{ uri: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80' }}
+            onError={() => setImageUri(FALLBACK_CAMPAIGN_IMG)}
           />
           
           <LinearGradient

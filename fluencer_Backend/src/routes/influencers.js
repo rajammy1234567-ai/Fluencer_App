@@ -395,10 +395,22 @@ router.post('/portfolio', authMiddleware, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Media URL is required' });
     }
 
+    const cleanUrl = url.trim();
+
+    // Prevent duplicate entry if same URL already exists in user portfolio
+    const existingProf = await InfluencerProfile.findOne({ user_id: userId });
+    if (existingProf && (existingProf.portfolio || []).some(item => item.url === cleanUrl)) {
+      return res.json({
+        success: true,
+        message: 'Item already exists in portfolio!',
+        portfolio: existingProf.portfolio || []
+      });
+    }
+
     const newItem = {
       id: `media_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
       type: type === 'reel' ? 'reel' : 'photo',
-      url: url.trim(),
+      url: cleanUrl,
       title: title ? String(title).trim() : '',
       created_at: new Date()
     };

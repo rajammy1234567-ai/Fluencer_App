@@ -5,9 +5,9 @@ import { Platform } from "react-native";
 import { isAuthenticated } from "../utils/storage";
 import GlobalErrorBoundary from "../components/GlobalErrorBoundary";
 
-// Suppress ExponentImagePicker web proxy warning globally across all components
+// Suppress ExponentImagePicker web proxy warning & verbose debug noise globally across all components
 if (Platform.OS === 'web' && typeof window !== 'undefined') {
-  const isTarget = (msg) => typeof msg === 'string' && (msg.includes('ExponentImagePicker') || msg.includes('NativeModules'));
+  const isTarget = (msg) => typeof msg === 'string' && (msg.includes('ExponentImagePicker') || msg.includes('NativeModules') || msg.includes('pointerEvents') || msg.includes('resizeMode'));
   
   const origWarn = window.console.warn;
   window.console.warn = function (...args) {
@@ -19,6 +19,29 @@ if (Platform.OS === 'web' && typeof window !== 'undefined') {
   window.console.error = function (...args) {
     if (isTarget(args[0])) return;
     if (origError) origError.apply(window.console, args);
+  };
+
+  const origLog = window.console.log;
+  window.console.log = function (...args) {
+    const first = String(args[0] || '');
+    if (
+      first.includes('Campaigns Response:') ||
+      first.includes('Fetching campaigns from:') ||
+      first.includes('Auth headers:') ||
+      first.includes('Fetching influencer profile from:') ||
+      first.includes('Influencer profile response:') ||
+      first.includes('Fetching brand profile') ||
+      first.includes('Brand profile response') ||
+      first.includes('Response status:') ||
+      first.includes('Response text:') ||
+      first.includes('🌐 API Call:') ||
+      first.includes('📤 Request:') ||
+      first.includes('📥 Response') ||
+      first.includes('Not allowed to load local resource')
+    ) {
+      return;
+    }
+    if (origLog) origLog.apply(window.console, args);
   };
 }
 

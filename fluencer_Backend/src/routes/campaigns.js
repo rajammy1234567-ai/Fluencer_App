@@ -338,26 +338,32 @@ router.get('/:id/applications', authMiddleware, async (req, res) => {
 router.post('/:id/apply', authMiddleware, async (req, res) => {
   try {
     const campaignId = req.params.id;
-    const influencerId = req.user.userId;
+    const influencerId = req.user.userId || req.user.id;
     const { message } = req.body;
 
-    // Check if already applied
-    const existing = await query(
-      'SELECT * FROM campaign_applications WHERE campaign_id = ? AND influencer_id = ?',
-      [campaignId, influencerId]
-    );
+    const Application = (await import('../models/Application.js')).default;
+    
+    // Check if already applied in MongoDB
+    const existing = await Application.findOne({
+      campaign_id: campaignId,
+      influencer_id: influencerId
+    });
 
-    if (existing.length > 0) {
+    if (existing) {
       return res.status(400).json({ 
         success: false, 
+        already_applied: true,
         message: 'Already applied to this campaign'
       });
     }
 
-    await query(
-      'INSERT INTO campaign_applications (campaign_id, influencer_id, message, status, created_at) VALUES (?, ?, ?, "pending", NOW())',
-      [campaignId, influencerId, message || null]
-    );
+    await Application.create({
+      campaign_id: campaignId,
+      influencer_id: influencerId,
+      message: message || 'Interested in this campaign!',
+      status: 'pending',
+      created_at: new Date()
+    });
 
     res.status(201).json({ 
       success: true, 

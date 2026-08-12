@@ -270,6 +270,7 @@ function EditProfile() {
   }, []);
 
   const handleSave = async () => {
+    if (saving) return;
     // Validation
     if (!profile.name.trim()) {
       Alert.alert('Validation Error', 'Please enter your name');

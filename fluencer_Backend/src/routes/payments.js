@@ -11,10 +11,10 @@ const router = express.Router();
 router.post('/create-order', authenticateToken, async (req, res) => {
   try {
     const { amount, campaignId, description } = req.body;
-    const userId = req.user.userId;
+    const userId = req.user.userId || req.user.id || 'guest_user';
 
     if (!amount || amount <= 0) {
-      return res.status(400).json({ message: 'Invalid amount' });
+      return res.status(400).json({ success: false, message: 'Invalid amount' });
     }
 
     // Create Razorpay order
@@ -26,10 +26,12 @@ router.post('/create-order', authenticateToken, async (req, res) => {
       user_id: userId,
       campaign_id: campaignId || null,
       amount: amount,
-      currency: order.currency,
+      currency: order.currency || 'INR',
       status: 'created',
       description: description || ''
     });
+
+    const activeKeyId = (process.env.RAZORPAY_KEY_ID || 'rzp_live_T4iwnAIVpqcNUl').trim().replace(/[\s"']/g, '');
 
     res.json({
       success: true,
@@ -37,12 +39,12 @@ router.post('/create-order', authenticateToken, async (req, res) => {
         id: order.id,
         amount: order.amount,
         currency: order.currency,
-        key_id: process.env.RAZORPAY_KEY_ID
+        key_id: activeKeyId
       }
     });
   } catch (error) {
     console.error('Create order error:', error);
-    res.status(500).json({ message: 'Failed to create order', error: error.message });
+    res.status(500).json({ success: false, message: 'Failed to create order', error: error.message });
   }
 });
 
@@ -50,7 +52,7 @@ router.post('/create-order', authenticateToken, async (req, res) => {
 router.post('/verify-payment', authenticateToken, async (req, res) => {
   try {
     const { orderId, paymentId, signature } = req.body;
-    const userId = req.user.userId;
+    const userId = req.user.userId || req.user.id || 'guest_user';
 
     if (!orderId || !paymentId || !signature) {
       return res.status(400).json({ message: 'Missing payment details' });

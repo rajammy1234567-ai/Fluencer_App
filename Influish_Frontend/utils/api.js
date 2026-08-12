@@ -7,7 +7,6 @@ export const apiCall = async (endpoint, options = {}, timeoutMs = 15000) => {
   const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
   try {
     const url = getApiUrl(endpoint);
-    console.log('🌐 API Call:', url);
     const authHeader = await storage.getAuthHeader();
 
     const defaultOptions = {
@@ -28,14 +27,10 @@ export const apiCall = async (endpoint, options = {}, timeoutMs = 15000) => {
       signal: controller ? controller.signal : undefined,
     };
 
-    console.log('📤 Request:', { method: fetchOptions.method || 'GET', body: options.body?.substring(0, 100) });
-
     const response = await fetch(url, fetchOptions);
     if (timeoutId) clearTimeout(timeoutId);
-    console.log('📥 Response status:', response.status);
 
     const data = await response.json();
-    console.log('✅ Response data:', { success: data.success, hasToken: !!data.token });
 
     if (!response.ok) {
       throw {
