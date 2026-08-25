@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import authRoutes from './routes/auth.js';
 import facebookRoutes from './routes/facebook.js';
@@ -36,16 +37,21 @@ app.use(express.urlencoded({ extended: true }));
 import { getAdminPageContent } from './adminHtml.js';
 import { getPrivacyPageContent } from './privacyHtml.js';
 
+// Static files (Web App and Uploads)
+const webDistPath = path.join(__dirname, '../public/web');
+const rootDistPath = path.join(__dirname, '../../fluencer_web/dist');
+const effectiveWebDist = fs.existsSync(webDistPath) ? webDistPath : (fs.existsSync(rootDistPath) ? rootDistPath : null);
+
+if (effectiveWebDist) {
+  app.use(express.static(effectiveWebDist));
+}
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use(express.static(path.join(__dirname, '../public')));
+
 // Serve Web Admin Dashboard HTML
 app.get(['/admin', '/admin/'], (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=UTF-8');
   return res.status(200).send(getAdminPageContent());
-});
-
-// Serve Privacy Policy HTML (Google Play Store & App Store compliant)
-app.get(['/privacy-policy', '/privacy-policy/', '/privacy', '/privacy/'], (req, res) => {
-  res.setHeader('Content-Type', 'text/html; charset=UTF-8');
-  return res.status(200).send(getPrivacyPageContent());
 });
 
 // CRITICAL: Ensure API responses are JSON by default
@@ -54,10 +60,7 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
-// Serve static files (uploaded images)
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
-
-// Routes
+// API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/auth', facebookRoutes);
 app.use('/api/influencers', influencerRoutes);
@@ -72,8 +75,52 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/banners', bannerRoutes);
 
-// CRITICAL: Root health check - MUST return JSON
-app.get('/', (req, res) => {
+// API Health Check
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    success: true, 
+    status: 'running', 
+    message: 'Influish Backend API', 
+    version: '1.0.0',
+    timestamp: new Date().toISOString() 
+  });
+});
+
+// Web Routes: Serve React Web App for Browser Navigation
+const webRoutes = [
+  '/', 
+  '/how-it-works', 
+  '/for-brands', 
+  '/for-influencers', 
+  '/deal-lock', 
+  '/photo-demo', 
+  '/privacy', 
+  '/privacy-policy'
+];
+
+app.get(webRoutes, (req, res, next) => {
+  // If client explicitly requests JSON, return API status
+  if (req.headers.accept && req.headers.accept.includes('application/json') && !req.headers.accept.includes('text/html')) {
+    return res.json({ 
+      success: true,
+      status: 'running', 
+      message: 'Influish Backend API',
+      version: '1.0.0',
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  // Otherwise serve React SPA index.html
+  if (effectiveWebDist && fs.existsSync(path.join(effectiveWebDist, 'index.html'))) {
+    return res.sendFile(path.join(effectiveWebDist, 'index.html'));
+  }
+
+  // Fallback for privacy-policy if web dist not present
+  if (req.path.includes('privacy')) {
+    res.setHeader('Content-Type', 'text/html; charset=UTF-8');
+    return res.status(200).send(getPrivacyPageContent());
+  }
+
   res.json({ 
     success: true,
     status: 'running', 
@@ -102,8 +149,12 @@ app.use('/api/*', (req, res) => {
   });
 });
 
-// CRITICAL: General 404 handler for non-API routes
+// CRITICAL: SPA Fallback for any other HTML request
 app.use((req, res, next) => {
+  if (req.method === 'GET' && req.accepts('html') && effectiveWebDist && fs.existsSync(path.join(effectiveWebDist, 'index.html'))) {
+    return res.sendFile(path.join(effectiveWebDist, 'index.html'));
+  }
+
   res.status(404).json({ 
     success: false, 
     message: 'Route not found',
@@ -115,7 +166,6 @@ app.use((req, res, next) => {
 app.use((err, req, res, next) => {
   console.error('❌ Unhandled Error:', err);
   
-  // Prevent sending response if headers already sent
   if (res.headersSent) {
     return next(err);
   }
@@ -130,4 +180,4 @@ app.use((err, req, res, next) => {
   });
 });
 
-export default app;
+export default app;

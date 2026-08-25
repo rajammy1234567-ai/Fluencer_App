@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Send, CheckCircle2, PhoneCall, Mail, Building2, User } from 'lucide-react';
+import { X, Send, CheckCircle2, PhoneCall, Building2, User } from 'lucide-react';
 
 export default function ContactModal({ isOpen, onClose }) {
   const [submitted, setSubmitted] = useState(false);
@@ -18,24 +18,74 @@ export default function ContactModal({ isOpen, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in" style={{ zIndex: 3000 }}>
-      <div className="glass-card-static w-full max-w-lg p-5 sm:p-8 rounded-3xl border border-purple-500/30 bg-[#14141C] relative shadow-2xl space-y-5" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
+    <div style={{
+      position: 'fixed',
+      inset: 0,
+      zIndex: 3000,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '16px',
+      backgroundColor: 'rgba(0, 0, 0, 0.85)',
+      backdropFilter: 'blur(12px)',
+      WebkitBackdropFilter: 'blur(12px)'
+    }}>
+      <div className="glass-card-static" style={{
+        width: '100%',
+        maxWidth: '480px',
+        maxHeight: '90vh',
+        overflowY: 'auto',
+        padding: 'clamp(20px, 4vw, 32px)',
+        borderRadius: '24px',
+        border: '1px solid rgba(168, 85, 247, 0.35)',
+        backgroundColor: '#14141C',
+        position: 'relative',
+        boxShadow: '0 25px 60px rgba(0, 0, 0, 0.8)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '20px'
+      }}>
         
         {/* Close Button */}
         <button 
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-white"
+          style={{
+            position: 'absolute',
+            top: '16px',
+            right: '16px',
+            padding: '8px',
+            borderRadius: '10px',
+            background: 'rgba(255, 255, 255, 0.06)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            color: 'rgba(255, 255, 255, 0.6)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
         >
-          <X className="w-5 h-5" />
+          <X style={{ width: '16px', height: '16px' }} />
         </button>
 
         {submitted ? (
-          <div className="text-center py-8 space-y-4">
-            <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/40 animate-bounce">
-              <CheckCircle2 className="w-8 h-8" />
+          <div style={{ textAlign: 'center', padding: '24px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(16, 185, 129, 0.2)',
+              color: '#34D399',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '1px solid rgba(16, 185, 129, 0.4)'
+            }}>
+              <CheckCircle2 style={{ width: '28px', height: '28px' }} />
             </div>
-            <h3 className="text-2xl font-bold text-white">Message Sent Successfully!</h3>
-            <p className="text-xs text-gray-300 max-w-xs mx-auto">
+            <h3 style={{ fontSize: '20px', fontWeight: '800', color: '#FFFFFF', margin: 0 }}>
+              Message Sent Successfully!
+            </h3>
+            <p style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.7)', maxWidth: '340px', lineHeight: '1.5', margin: 0 }}>
               Thank you for reaching out. The Fluencer App Support team will respond to your email within 24 hours.
             </p>
             <button
@@ -43,92 +93,175 @@ export default function ContactModal({ isOpen, onClose }) {
                 setSubmitted(false);
                 onClose();
               }}
-              className="btn-primary text-xs py-2.5 px-6 mx-auto"
+              className="btn-primary"
+              style={{ fontSize: '12px', padding: '10px 24px', marginTop: '8px' }}
             >
               Back to Website
             </button>
           </div>
         ) : (
           <>
-            <div className="space-y-2">
-              <div className="badge-pink text-xs">
-                <PhoneCall className="w-3.5 h-3.5" />
-                App Team Support Desk
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div className="badge-pink" style={{ width: 'fit-content', fontSize: '10px', padding: '2px 8px' }}>
+                <PhoneCall style={{ width: '12px', height: '12px' }} />
+                <span>App Team Support Desk</span>
               </div>
-              <h3 className="text-2xl font-extrabold text-white font-['Plus_Jakarta_Sans']">
+              <h3 style={{ fontSize: 'clamp(18px, 3.5vw, 22px)', fontWeight: '800', color: '#FFFFFF', margin: '4px 0 0 0' }}>
                 Talk to Fluencer Team
               </h3>
-              <p className="text-xs text-gray-400">
+              <p style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.6)', lineHeight: '1.5', margin: 0 }}>
                 Brands & Influencers can submit campaign inquiries, integration questions, or support requests.
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               
-              <div className="grid grid-cols-2 gap-2 p-1 bg-[#0B0B10] rounded-xl border border-white/10">
+              {/* Role Toggle */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '8px',
+                padding: '4px',
+                backgroundColor: '#0B0B10',
+                borderRadius: '12px',
+                border: '1px solid rgba(255, 255, 255, 0.1)'
+              }}>
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, role: 'brand' })}
-                  className={`py-2 rounded-lg font-semibold flex items-center justify-center gap-1.5 transition-all ${
-                    formData.role === 'brand' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'
-                  }`}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    fontWeight: '700',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    transition: 'all 0.2s ease',
+                    background: formData.role === 'brand' ? '#7C3AED' : 'transparent',
+                    color: formData.role === 'brand' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.5)'
+                  }}
                 >
-                  <Building2 className="w-3.5 h-3.5" />
-                  I'm a Brand
+                  <Building2 style={{ width: '14px', height: '14px' }} />
+                  <span>I'm a Brand</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setFormData({ ...formData, role: 'influencer' })}
-                  className={`py-2 rounded-lg font-semibold flex items-center justify-center gap-1.5 transition-all ${
-                    formData.role === 'influencer' ? 'bg-pink-600 text-white' : 'text-gray-400 hover:text-white'
-                  }`}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    fontWeight: '700',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    transition: 'all 0.2s ease',
+                    background: formData.role === 'influencer' ? '#EC4899' : 'transparent',
+                    color: formData.role === 'influencer' ? '#FFFFFF' : 'rgba(255, 255, 255, 0.5)'
+                  }}
                 >
-                  <User className="w-3.5 h-3.5" />
-                  I'm an Influencer
+                  <User style={{ width: '14px', height: '14px' }} />
+                  <span>I'm an Influencer</span>
                 </button>
               </div>
 
-              <div>
-                <label className="block text-gray-300 font-semibold mb-1">Your Name</label>
+              {/* Name */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(255, 255, 255, 0.8)' }}>
+                  Your Name
+                </label>
                 <input 
                   type="text" 
                   required
                   placeholder="e.g. Rahul Sharma"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full bg-[#0B0B10] border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                  style={{
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    backgroundColor: '#0B0B10',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    borderRadius: '12px',
+                    padding: '10px 14px',
+                    fontSize: '12px',
+                    color: '#FFFFFF',
+                    outline: 'none'
+                  }}
                 />
               </div>
 
-              <div>
-                <label className="block text-gray-300 font-semibold mb-1">Email Address</label>
+              {/* Email */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(255, 255, 255, 0.8)' }}>
+                  Email Address
+                </label>
                 <input 
                   type="email" 
                   required
                   placeholder="e.g. rahul@brand.com"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full bg-[#0B0B10] border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                  style={{
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    backgroundColor: '#0B0B10',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    borderRadius: '12px',
+                    padding: '10px 14px',
+                    fontSize: '12px',
+                    color: '#FFFFFF',
+                    outline: 'none'
+                  }}
                 />
               </div>
 
-              <div>
-                <label className="block text-gray-300 font-semibold mb-1">Message / Inquiry</label>
+              {/* Message */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(255, 255, 255, 0.8)' }}>
+                  Message / Inquiry
+                </label>
                 <textarea 
                   required
-                  rows="4"
+                  rows={3}
                   placeholder="Describe your campaign requirement or app query..."
                   value={formData.message}
                   onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                  className="w-full bg-[#0B0B10] border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                  style={{
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    backgroundColor: '#0B0B10',
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
+                    borderRadius: '12px',
+                    padding: '10px 14px',
+                    fontSize: '12px',
+                    color: '#FFFFFF',
+                    outline: 'none',
+                    resize: 'vertical'
+                  }}
                 />
               </div>
 
+              {/* Submit */}
               <button 
                 type="submit"
-                className="btn-glow-pink w-full justify-center py-3 text-xs"
+                className="btn-glow-pink"
+                style={{
+                  width: '100%',
+                  justifyContent: 'center',
+                  padding: '12px',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  marginTop: '4px'
+                }}
               >
-                <Send className="w-4 h-4" />
+                <Send style={{ width: '14px', height: '14px' }} />
                 <span>Submit Inquiry to App Team</span>
               </button>
 
@@ -140,3 +273,4 @@ export default function ContactModal({ isOpen, onClose }) {
     </div>
   );
 }
+
