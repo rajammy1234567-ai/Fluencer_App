@@ -16,19 +16,19 @@ export default function LegalPolicy() {
   const lastUpdated = "August 10, 2026";
 
   return (
-    <section id="privacy" style={{ padding: '100px 0', backgroundColor: '#0B0B10', color: 'rgba(255,255,255,0.8)', width: '100%' }}>
+    <section id="privacy" style={{ padding: 'clamp(60px, 10vw, 100px) 0', backgroundColor: '#0B0B10', color: 'rgba(255,255,255,0.8)', width: '100%' }}>
       <div className="site-container-narrow">
         
         {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-          <div className="badge-success" style={{ marginBottom: '16px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '36px' }}>
+          <div className="badge-success" style={{ marginBottom: '14px' }}>
             <ShieldCheck style={{ width: '14px', height: '14px', color: '#34D399' }} />
             <span>Google Play & App Store Compliant</span>
           </div>
-          <h1 className="gradient-heading" style={{ fontSize: '42px', fontWeight: '800', marginBottom: '12px' }}>
+          <h1 className="section-title gradient-heading" style={{ marginBottom: '10px' }}>
             Privacy Policy & Data Protection
           </h1>
-          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>
+          <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>
             Effective Date: {lastUpdated} • Fluencer Mobile Application & Web Ecosystem
           </p>
         </div>

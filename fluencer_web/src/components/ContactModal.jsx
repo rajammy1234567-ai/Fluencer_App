@@ -18,13 +18,13 @@ export default function ContactModal({ isOpen, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-      <div className="glass-card-static w-full max-w-lg p-6 sm:p-8 rounded-3xl border border-purple-500/30 bg-[#14141C] relative shadow-2xl space-y-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in" style={{ zIndex: 3000 }}>
+      <div className="glass-card-static w-full max-w-lg p-5 sm:p-8 rounded-3xl border border-purple-500/30 bg-[#14141C] relative shadow-2xl space-y-5" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
         
         {/* Close Button */}
         <button 
           onClick={onClose}
-          className="absolute top-5 right-5 p-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-white"
+          className="absolute top-4 right-4 p-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-white"
         >
           <X className="w-5 h-5" />
         </button>

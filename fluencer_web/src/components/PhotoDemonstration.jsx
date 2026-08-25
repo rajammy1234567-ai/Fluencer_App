@@ -67,19 +67,19 @@ export default function PhotoDemonstration() {
   const Icon = currentStep.icon;
 
   return (
-    <section id="demo-photos" style={{ padding: '100px 0', backgroundColor: '#14141C', width: '100%', position: 'relative' }}>
+    <section id="demo-photos" style={{ padding: 'clamp(60px, 10vw, 100px) 0', backgroundColor: '#14141C', width: '100%', position: 'relative' }}>
       <div className="site-container">
         
         {/* Header */}
-        <div style={{ textAlign: 'center', maxWidth: '800px', margin: '0 auto 50px auto' }}>
-          <div className="badge-neon" style={{ marginBottom: '16px' }}>
+        <div style={{ textAlign: 'center', maxWidth: '800px', margin: '0 auto 40px auto' }}>
+          <div className="badge-neon" style={{ marginBottom: '14px' }}>
             <Camera style={{ width: '14px', height: '14px', color: '#A855F7' }} />
             <span>Visual Photo Walkthrough</span>
           </div>
-          <h2 style={{ fontSize: '42px', fontWeight: '800', letterSpacing: '-0.5px', color: '#FFFFFF', marginBottom: '16px' }}>
+          <h2 className="section-title">
             App Demonstration <span className="gradient-heading">Via Real Photos</span>
           </h2>
-          <p style={{ fontSize: '16px', color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.6' }}>
+          <p style={{ fontSize: 'clamp(13px, 2.2vw, 16px)', color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.6' }}>
             See exactly how the Fluencer Mobile App interface works across each phase — from campaign post to direct text chat and Escrow Deal Lock.
           </p>
         </div>
@@ -89,27 +89,27 @@ export default function PhotoDemonstration() {
           display: 'flex',
           flexWrap: 'wrap',
           justifyContent: 'center',
-          gap: '12px',
-          marginBottom: '40px'
+          gap: '10px',
+          marginBottom: '32px'
         }}>
           {demoSteps.map((step, idx) => (
             <button
               key={step.id}
               onClick={() => setActiveStep(idx)}
               style={{
-                padding: '12px 20px',
-                borderRadius: '16px',
-                fontSize: '13px',
+                padding: '10px 16px',
+                borderRadius: '14px',
+                fontSize: '12px',
                 fontWeight: '700',
                 border: 'none',
                 cursor: 'pointer',
                 transition: 'all 0.25s ease',
                 background: activeStep === idx ? 'linear-gradient(135deg, #6D28FF, #7C3AED)' : 'rgba(255, 255, 255, 0.06)',
-                color: activeStep === idx ? '#FFFFFF' : 'rgba(255, 255, 255, 0.6)',
+                color: activeStep === idx ? '#FFFFFF' : 'rgba(255, 255, 255, 0.65)',
                 boxShadow: activeStep === idx ? '0 8px 24px rgba(109, 40, 255, 0.4)' : 'none',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px'
+                gap: '6px'
               }}
             >
               <span>{step.title}</span>
@@ -118,22 +118,18 @@ export default function PhotoDemonstration() {
         </div>
 
         {/* Main Photo Demonstration Stage */}
-        <div className="glass-card-static" style={{
-          padding: '40px',
+        <div className="glass-card-static split-grid-responsive" style={{
+          padding: 'clamp(20px, 4vw, 40px)',
           borderRadius: '28px',
           border: '1px solid rgba(168, 85, 247, 0.3)',
-          background: 'linear-gradient(135deg, #14141C 0%, #0B0B10 100%)',
-          display: 'grid',
-          gridTemplateColumns: '1.2fr 1fr',
-          gap: '40px',
-          alignItems: 'center'
+          background: 'linear-gradient(135deg, #14141C 0%, #0B0B10 100%)'
         }}>
           
           {/* Left: Smartphone Photo Screen */}
-          <div style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
-            <div style={{
+          <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', width: '100%' }}>
+            <div className="mobile-phone-frame" style={{
               width: '100%',
-              maxWidth: '380px',
+              maxWidth: '360px',
               borderRadius: '24px',
               overflow: 'hidden',
               boxShadow: '0 25px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(124, 58, 237, 0.25)',
@@ -157,15 +153,15 @@ export default function PhotoDemonstration() {
                 onClick={() => setModalImage(currentStep.image)}
                 style={{
                   position: 'absolute',
-                  bottom: '16px',
-                  right: '16px',
+                  bottom: '12px',
+                  right: '12px',
                   background: 'rgba(11, 11, 16, 0.85)',
                   backdropFilter: 'blur(10px)',
                   border: '1px solid rgba(255, 255, 255, 0.2)',
                   color: '#FFFFFF',
-                  padding: '8px 14px',
-                  borderRadius: '12px',
-                  fontSize: '12px',
+                  padding: '6px 12px',
+                  borderRadius: '10px',
+                  fontSize: '11px',
                   fontWeight: '600',
                   cursor: 'pointer',
                   display: 'flex',
@@ -173,31 +169,32 @@ export default function PhotoDemonstration() {
                   gap: '6px'
                 }}
               >
-                <Maximize2 style={{ width: '14px', height: '14px' }} />
-                <span>View Full Photo</span>
+                <Maximize2 style={{ width: '13px', height: '13px' }} />
+                <span>View Full</span>
               </button>
             </div>
           </div>
 
           {/* Right: Detailed Explanation */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{
-                width: '48px',
-                height: '48px',
+                width: '44px',
+                height: '44px',
                 borderRadius: '14px',
                 background: 'rgba(124, 58, 237, 0.2)',
                 border: '1px solid rgba(168, 85, 247, 0.4)',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                flexShrink: 0
               }}>
-                <Icon style={{ width: '24px', height: '24px', color: currentStep.accent }} />
+                <Icon style={{ width: '22px', height: '22px', color: currentStep.accent }} />
               </div>
               <div>
                 <span className={currentStep.badgeClass} style={{ fontSize: '11px' }}>{currentStep.badge}</span>
-                <h3 style={{ fontSize: '24px', fontWeight: '800', color: '#FFFFFF', marginTop: '2px' }}>
+                <h3 className="card-title" style={{ color: '#FFFFFF', marginTop: '2px' }}>
                   {currentStep.title}
                 </h3>
               </div>
@@ -206,38 +203,38 @@ export default function PhotoDemonstration() {
             <div style={{
               background: 'rgba(124, 58, 237, 0.12)',
               border: '1px solid rgba(168, 85, 247, 0.25)',
-              padding: '14px 18px',
-              borderRadius: '16px',
+              padding: '12px 16px',
+              borderRadius: '14px',
               color: '#E9D5FF',
-              fontSize: '13px',
+              fontSize: '12px',
               fontWeight: '500',
               lineHeight: '1.6'
             }}>
               💡 <strong>Hindi Summary:</strong> {currentStep.hindiDesc}
             </div>
 
-            <p style={{ fontSize: '15px', color: 'rgba(255, 255, 255, 0.75)', lineHeight: '1.7' }}>
+            <p style={{ fontSize: '14px', color: 'rgba(255, 255, 255, 0.75)', lineHeight: '1.6' }}>
               {currentStep.description}
             </p>
 
             {/* Navigation Controls */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '8px', flexWrap: 'wrap' }}>
               <button
                 onClick={() => setActiveStep((prev) => (prev > 0 ? prev - 1 : demoSteps.length - 1))}
                 className="btn-secondary"
-                style={{ fontSize: '12px', padding: '10px 16px' }}
+                style={{ fontSize: '12px', padding: '9px 14px' }}
               >
-                <ChevronLeft style={{ width: '16px', height: '16px' }} />
-                <span>Previous Photo</span>
+                <ChevronLeft style={{ width: '15px', height: '15px' }} />
+                <span>Prev Step</span>
               </button>
 
               <button
                 onClick={() => setActiveStep((prev) => (prev < demoSteps.length - 1 ? prev + 1 : 0))}
                 className="btn-primary"
-                style={{ fontSize: '12px', padding: '10px 18px' }}
+                style={{ fontSize: '12px', padding: '9px 16px' }}
               >
-                <span>Next Step Photo</span>
-                <ChevronRight style={{ width: '16px', height: '16px' }} />
+                <span>Next Step</span>
+                <ChevronRight style={{ width: '15px', height: '15px' }} />
               </button>
             </div>
 
@@ -246,51 +243,51 @@ export default function PhotoDemonstration() {
         </div>
 
         {/* Real Brand Campaign Showcase Grid */}
-        <div style={{ marginTop: '60px' }}>
-          <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-            <h4 style={{ fontSize: '20px', fontWeight: '700', color: '#FFFFFF' }}>
+        <div style={{ marginTop: '50px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+            <h4 style={{ fontSize: 'clamp(16px, 3vw, 20px)', fontWeight: '700', color: '#FFFFFF' }}>
               Active Brand Campaigns & Portfolio Previews
             </h4>
-            <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>
+            <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>
               Real live campaign listings running on the Fluencer platform.
             </p>
           </div>
 
-          <div className="grid-4" style={{ gap: '20px' }}>
+          <div className="grid-4" style={{ gap: '16px' }}>
             
-            <div className="glass-card-static" style={{ overflow: 'hidden', padding: 0, borderRadius: '20px' }}>
-              <img src="/campaign_1.png" alt="Campaign 1" style={{ width: '100%', height: '180px', objectFit: 'cover' }} />
-              <div style={{ padding: '16px' }}>
-                <span className="badge-neon" style={{ fontSize: '10px' }}>Fashion & Lifestyle</span>
-                <h5 style={{ fontSize: '14px', fontWeight: '700', color: '#FFFFFF', marginTop: '6px' }}>Super 60 Apparel Campaign</h5>
-                <p style={{ fontSize: '12px', color: '#34D399', fontWeight: '600', marginTop: '4px' }}>Budget: ₹65,000</p>
+            <div className="glass-card-static" style={{ overflow: 'hidden', padding: 0, borderRadius: '18px' }}>
+              <img src="/campaign_1.png" alt="Campaign 1" style={{ width: '100%', height: '160px', objectFit: 'cover' }} />
+              <div style={{ padding: '14px' }}>
+                <span className="badge-neon" style={{ fontSize: '9px', padding: '2px 8px' }}>Fashion & Lifestyle</span>
+                <h5 style={{ fontSize: '13px', fontWeight: '700', color: '#FFFFFF', marginTop: '6px' }}>Super 60 Apparel Campaign</h5>
+                <p style={{ fontSize: '11px', color: '#34D399', fontWeight: '600', marginTop: '4px' }}>Budget: ₹65,000</p>
               </div>
             </div>
 
-            <div className="glass-card-static" style={{ overflow: 'hidden', padding: 0, borderRadius: '20px' }}>
-              <img src="/campaign_2.png" alt="Campaign 2" style={{ width: '100%', height: '180px', objectFit: 'cover' }} />
-              <div style={{ padding: '16px' }}>
-                <span className="badge-pink" style={{ fontSize: '10px' }}>Tech & Gadgets</span>
-                <h5 style={{ fontSize: '14px', fontWeight: '700', color: '#FFFFFF', marginTop: '6px' }}>Smart Gear Launch</h5>
-                <p style={{ fontSize: '12px', color: '#34D399', fontWeight: '600', marginTop: '4px' }}>Budget: ₹80,000</p>
+            <div className="glass-card-static" style={{ overflow: 'hidden', padding: 0, borderRadius: '18px' }}>
+              <img src="/campaign_2.png" alt="Campaign 2" style={{ width: '100%', height: '160px', objectFit: 'cover' }} />
+              <div style={{ padding: '14px' }}>
+                <span className="badge-pink" style={{ fontSize: '9px', padding: '2px 8px' }}>Tech & Gadgets</span>
+                <h5 style={{ fontSize: '13px', fontWeight: '700', color: '#FFFFFF', marginTop: '6px' }}>Smart Gear Launch</h5>
+                <p style={{ fontSize: '11px', color: '#34D399', fontWeight: '600', marginTop: '4px' }}>Budget: ₹80,000</p>
               </div>
             </div>
 
-            <div className="glass-card-static" style={{ overflow: 'hidden', padding: 0, borderRadius: '20px' }}>
-              <img src="/campiagn_3.png" alt="Campaign 3" style={{ width: '100%', height: '180px', objectFit: 'cover' }} />
-              <div style={{ padding: '16px' }}>
-                <span className="badge-gold" style={{ fontSize: '10px' }}>Beauty & Skincare</span>
-                <h5 style={{ fontSize: '14px', fontWeight: '700', color: '#FFFFFF', marginTop: '6px' }}>Glow Skincare Reel</h5>
-                <p style={{ fontSize: '12px', color: '#34D399', fontWeight: '600', marginTop: '4px' }}>Budget: ₹40,000</p>
+            <div className="glass-card-static" style={{ overflow: 'hidden', padding: 0, borderRadius: '18px' }}>
+              <img src="/campiagn_3.png" alt="Campaign 3" style={{ width: '100%', height: '160px', objectFit: 'cover' }} />
+              <div style={{ padding: '14px' }}>
+                <span className="badge-gold" style={{ fontSize: '9px', padding: '2px 8px' }}>Beauty & Skincare</span>
+                <h5 style={{ fontSize: '13px', fontWeight: '700', color: '#FFFFFF', marginTop: '6px' }}>Glow Skincare Reel</h5>
+                <p style={{ fontSize: '11px', color: '#34D399', fontWeight: '600', marginTop: '4px' }}>Budget: ₹40,000</p>
               </div>
             </div>
 
-            <div className="glass-card-static" style={{ overflow: 'hidden', padding: 0, borderRadius: '20px' }}>
-              <img src="/campaign_4.png" alt="Campaign 4" style={{ width: '100%', height: '180px', objectFit: 'cover' }} />
-              <div style={{ padding: '16px' }}>
-                <span className="badge-neon" style={{ fontSize: '10px' }}>Fitness & Wellness</span>
-                <h5 style={{ fontSize: '14px', fontWeight: '700', color: '#FFFFFF', marginTop: '6px' }}>FitPro Supplement Campaign</h5>
-                <p style={{ fontSize: '12px', color: '#34D399', fontWeight: '600', marginTop: '4px' }}>Budget: ₹55,000</p>
+            <div className="glass-card-static" style={{ overflow: 'hidden', padding: 0, borderRadius: '18px' }}>
+              <img src="/campaign_4.png" alt="Campaign 4" style={{ width: '100%', height: '160px', objectFit: 'cover' }} />
+              <div style={{ padding: '14px' }}>
+                <span className="badge-neon" style={{ fontSize: '9px', padding: '2px 8px' }}>Fitness & Wellness</span>
+                <h5 style={{ fontSize: '13px', fontWeight: '700', color: '#FFFFFF', marginTop: '6px' }}>FitPro Supplement Campaign</h5>
+                <p style={{ fontSize: '11px', color: '#34D399', fontWeight: '600', marginTop: '4px' }}>Budget: ₹55,000</p>
               </div>
             </div>
 
@@ -305,34 +302,37 @@ export default function PhotoDemonstration() {
           position: 'fixed',
           inset: 0,
           zIndex: 3000,
-          backgroundColor: 'rgba(0,0,0,0.9)',
+          backgroundColor: 'rgba(0,0,0,0.92)',
           backdropFilter: 'blur(16px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '24px'
+          padding: '16px'
         }}>
-          <div style={{ position: 'relative', maxWidth: '600px', width: '100%' }}>
+          <div style={{ position: 'relative', maxWidth: '500px', width: '100%' }}>
             <button
               onClick={() => setModalImage(null)}
               style={{
                 position: 'absolute',
-                top: '-48px',
+                top: '-44px',
                 right: '0',
-                background: 'rgba(255,255,255,0.1)',
+                background: 'rgba(255,255,255,0.15)',
                 border: 'none',
                 color: '#FFFFFF',
                 padding: '8px',
                 borderRadius: '50%',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
             >
-              <Maximize2 style={{ width: '20px', height: '20px' }} />
+              <Maximize2 style={{ width: '18px', height: '18px' }} />
             </button>
             <img 
               src={modalImage} 
               alt="Full Preview"
-              style={{ width: '100%', borderRadius: '20px', border: '2px solid rgba(168, 85, 247, 0.4)', boxShadow: '0 25px 60px rgba(0,0,0,0.9)' }}
+              style={{ width: '100%', borderRadius: '18px', border: '2px solid rgba(168, 85, 247, 0.4)', boxShadow: '0 25px 60px rgba(0,0,0,0.9)' }}
             />
           </div>
         </div>

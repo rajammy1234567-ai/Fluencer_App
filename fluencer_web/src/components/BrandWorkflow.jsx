@@ -53,74 +53,72 @@ export default function BrandWorkflow({ onOpenSimulator, onOpenDownload }) {
     }
   ];
 
-  return (
-    <section id="brand-flow" style={{ padding: '100px 0', backgroundColor: '#0B0B10', color: '#FFFFFF', width: '100%' }}>
+  return <section id="brand-flow" style={{ padding: 'clamp(60px, 10vw, 100px) 0', backgroundColor: '#0B0B10', width: '100%', position: 'relative' }}>
       <div className="site-container">
         
         {/* Header */}
-        <div style={{ textAlign: 'center', maxWidth: '800px', margin: '0 auto 50px auto' }}>
-          <div className="badge-neon" style={{ marginBottom: '16px' }}>
-            <Building2 style={{ width: '14px', height: '14px', color: '#C084FC' }} />
-            <span>Dedicated Brand Experience</span>
+        <div style={{ textAlign: 'center', maxWidth: '800px', margin: '0 auto 40px auto' }}>
+          <div className="badge-gold" style={{ marginBottom: '14px' }}>
+            <Building2 style={{ width: '14px', height: '14px', color: '#F5A623' }} />
+            <span>Dedicated Brand Ecosystem</span>
           </div>
-          <h2 style={{ fontSize: '42px', fontWeight: '800', letterSpacing: '-0.5px', color: '#FFFFFF', marginBottom: '16px' }}>
+          <h2 className="section-title">
             For Brands: <span className="gradient-heading">Scale Influencer Marketing</span>
           </h2>
-          <p style={{ fontSize: '16px', color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.6' }}>
+          <p style={{ fontSize: 'clamp(13px, 2.2vw, 16px)', color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.6' }}>
             From campaign creation to applicant curation, direct live chat, and escrow deal locking — here is how Brands run high-ROI campaigns on Fluencer.
           </p>
         </div>
 
         {/* Feature Hero Card */}
-        <div className="glass-card-static" style={{
-          padding: '40px',
+        <div className="glass-card-static split-grid-responsive" style={{
+          padding: 'clamp(20px, 4vw, 40px)',
           borderRadius: '28px',
           border: '1px solid rgba(168, 85, 247, 0.3)',
           background: 'linear-gradient(135deg, rgba(109, 40, 255, 0.15), rgba(20, 20, 28, 0.8))',
-          display: 'grid',
-          gridTemplateColumns: '1.2fr 1fr',
-          gap: '40px',
-          alignItems: 'center',
-          marginBottom: '60px'
+          marginBottom: '40px'
         }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <span className="badge-gold" style={{ width: 'fit-content' }}>Brand Growth Engine</span>
-            <h3 style={{ fontSize: '32px', fontWeight: '800', color: '#FFFFFF', lineHeight: '1.2' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <span className="badge-gold">Brand Growth Engine</span>
+            <h3 style={{ fontSize: 'clamp(22px, 4vw, 32px)', fontWeight: '800', color: '#FFFFFF', lineHeight: '1.25' }}>
               Create Campaigns. Text Creators. <br />
               <span className="gradient-gold">Lock Guaranteed Deliverables.</span>
             </h3>
-            <p style={{ fontSize: '15px', color: 'rgba(255, 255, 255, 0.75)', lineHeight: '1.6' }}>
+            <p style={{ fontSize: '14px', color: 'rgba(255, 255, 255, 0.75)', lineHeight: '1.6' }}>
               No more endless DMs or unfulfilled deals. Fluencer provides Brands with a streamlined dashboard to post campaigns, text creators directly, consult with our App team, and hold payments safely in escrow.
             </p>
-            <div style={{ display: 'flex', gap: '16px', marginTop: '8px' }}>
-              <button onClick={onOpenSimulator} className="btn-glow-pink">
-                <Lock style={{ width: '16px', height: '16px' }} />
+            <div style={{ display: 'flex', gap: '12px', marginTop: '6px', flexWrap: 'wrap' }}>
+              <button onClick={onOpenSimulator} className="btn-glow-pink" style={{ fontSize: '13px' }}>
+                <Lock style={{ width: '15px', height: '15px' }} />
                 <span>Test Brand Deal Lock</span>
               </button>
-              <button onClick={onOpenDownload} className="btn-secondary">
-                <Building2 style={{ width: '16px', height: '16px', color: '#C084FC' }} />
+              <button onClick={onOpenDownload} className="btn-secondary" style={{ fontSize: '13px' }}>
+                <Building2 style={{ width: '15px', height: '15px', color: '#C084FC' }} />
                 <span>Get Brand Mobile App</span>
               </button>
             </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <img 
-              src="/demo/step1_campaign_add.png" 
-              alt="Brand Campaign Dashboard" 
-              style={{
-                width: '100%',
-                maxWidth: '340px',
-                borderRadius: '24px',
-                border: '2px solid rgba(255, 255, 255, 0.15)',
-                boxShadow: '0 25px 60px rgba(109, 40, 255, 0.4)'
-              }}
-            />
+          <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+            <div className="mobile-phone-frame" style={{ width: '100%', maxWidth: '320px' }}>
+              <img 
+                src="/demo/step1_campaign_add.png" 
+                alt="Brand Campaign Dashboard" 
+                style={{
+                  width: '100%',
+                  height: 'auto',
+                  borderRadius: '24px',
+                  border: '2px solid rgba(255, 255, 255, 0.15)',
+                  boxShadow: '0 25px 60px rgba(109, 40, 255, 0.4)',
+                  display: 'block'
+                }}
+              />
+            </div>
           </div>
         </div>
 
         {/* 4 Brand Steps Grid */}
-        <div className="grid-2" style={{ gap: '24px' }}>
+        <div className="grid-2" style={{ gap: '20px' }}>
           {brandSteps.map((step, idx) => {
             const Icon = step.icon;
             return (
@@ -128,45 +126,46 @@ export default function BrandWorkflow({ onOpenSimulator, onOpenDownload }) {
                 key={idx} 
                 className="glass-card"
                 style={{
-                  padding: '32px',
-                  borderRadius: '24px',
+                  padding: 'clamp(18px, 3.5vw, 30px)',
+                  borderRadius: '22px',
                   border: '1px solid rgba(255, 255, 255, 0.12)',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '16px'
+                  gap: '14px'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', justifyBetween: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{
-                      width: '44px',
-                      height: '44px',
-                      borderRadius: '14px',
+                      width: '42px',
+                      height: '42px',
+                      borderRadius: '13px',
                       background: 'rgba(124, 58, 237, 0.2)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: step.accent
+                      color: step.accent,
+                      flexShrink: 0
                     }}>
-                      <Icon style={{ width: '22px', height: '22px' }} />
+                      <Icon style={{ width: '20px', height: '20px' }} />
                     </div>
                     <div>
                       <span style={{ fontSize: '11px', fontFamily: 'monospace', color: 'rgba(255,255,255,0.4)' }}>STEP {step.number}</span>
-                      <h4 style={{ fontSize: '18px', fontWeight: '700', color: '#FFFFFF' }}>{step.title}</h4>
+                      <h4 style={{ fontSize: '16px', fontWeight: '700', color: '#FFFFFF' }}>{step.title}</h4>
                     </div>
                   </div>
-                  <span className="badge-neon" style={{ marginLeft: 'auto', fontSize: '10px' }}>{step.badge}</span>
+                  <span className="badge-neon" style={{ fontSize: '10px', padding: '2px 8px' }}>{step.badge}</span>
                 </div>
 
-                <p style={{ fontSize: '14px', color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.6' }}>
+                <p style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.6' }}>
                   {step.desc}
                 </p>
 
-                <div style={{ background: '#121218', padding: '16px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.06)', marginTop: 'auto' }}>
+                <div style={{ background: '#121218', padding: '14px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.06)', marginTop: 'auto' }}>
                   <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px', color: 'rgba(255,255,255,0.65)' }}>
                     {step.details.map((d, dIdx) => (
                       <li key={dIdx} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <CheckCircle2 style={{ width: '14px', height: '14px', color: '#34D399' }} />
+                        <CheckCircle2 style={{ width: '14px', height: '14px', color: '#34D399', flexShrink: 0 }} />
                         <span>{d}</span>
                       </li>
                     ))}
@@ -178,6 +177,5 @@ export default function BrandWorkflow({ onOpenSimulator, onOpenDownload }) {
         </div>
 
       </div>
-    </section>
-  );
+    </section>;
 }

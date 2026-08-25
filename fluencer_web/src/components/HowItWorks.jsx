@@ -103,99 +103,94 @@ export default function HowItWorks({ onOpenSimulator }) {
     }
   ];
 
-  return (
-    <section id="how-it-works" style={{ padding: '100px 0', backgroundColor: '#0B0B10', width: '100%', position: 'relative' }}>
+  return <section id="how-it-works" style={{ padding: 'clamp(60px, 10vw, 100px) 0', backgroundColor: '#0B0B10', width: '100%', position: 'relative' }}>
       <div className="site-container">
         
-        {/* Section Header */}
-        <div style={{ textAlign: 'center', maxWidth: '800px', margin: '0 auto 60px auto' }}>
-          <div className="badge-neon" style={{ marginBottom: '16px' }}>
+        {/* Header */}
+        <div style={{ textAlign: 'center', maxWidth: '850px', margin: '0 auto 40px auto' }}>
+          <div className="badge-neon" style={{ marginBottom: '14px' }}>
             <Layers style={{ width: '14px', height: '14px', color: '#A855F7' }} />
-            <span>Visual Demonstration Workflow</span>
+            <span>Complete 4-Step App Workflow</span>
           </div>
-          <h2 style={{ fontSize: '42px', fontWeight: '800', letterSpacing: '-0.5px', color: '#FFFFFF', marginBottom: '16px' }}>
+          <h2 className="section-title">
             How <span className="gradient-heading">Fluencer Works</span> (With App Photos)
           </h2>
-          <p style={{ fontSize: '16px', color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.6' }}>
+          <p style={{ fontSize: 'clamp(13px, 2.2vw, 16px)', color: 'rgba(255, 255, 255, 0.7)', lineHeight: '1.6' }}>
             See real screenshot demonstrations of how Brands post campaigns, Influencers apply, both text in live chat, and deals lock with Escrow safety.
           </p>
         </div>
 
         {/* Steps List with App Photos */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
           
           {steps.map((step, idx) => {
             const Icon = step.icon;
-            const isEven = idx % 2 === 1;
             return (
               <div 
                 key={idx}
-                className="glass-card"
+                className="glass-card split-grid-responsive"
                 style={{
-                  padding: '40px',
+                  padding: 'clamp(20px, 4vw, 40px)',
                   borderRadius: '28px',
                   borderColor: step.borderGlow,
-                  display: 'grid',
-                  gridTemplateColumns: '1.2fr 1fr',
-                  gap: '40px',
-                  alignItems: 'center',
                   background: 'linear-gradient(135deg, rgba(20, 20, 28, 0.8), rgba(11, 11, 16, 0.9))'
                 }}
               >
                 {/* Text Content Column */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                     <div style={{
-                      width: '56px',
-                      height: '56px',
-                      borderRadius: '18px',
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '16px',
                       background: 'linear-gradient(135deg, #14141C, #121218)',
                       border: '1px solid rgba(255, 255, 255, 0.15)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      boxShadow: '0 8px 20px rgba(0,0,0,0.4)'
+                      boxShadow: '0 8px 20px rgba(0,0,0,0.4)',
+                      flexShrink: 0
                     }}>
-                      <Icon style={{ width: '28px', height: '28px', color: step.accentColor }} />
+                      <Icon style={{ width: '24px', height: '24px', color: step.accentColor }} />
                     </div>
                     <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ fontSize: '12px', fontFamily: 'monospace', color: 'rgba(255,255,255,0.4)', letterSpacing: '1px' }}>STEP {step.stepNumber}</span>
-                        <span className={step.badgeClass} style={{ fontSize: '11px' }}>{step.badge}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '11px', fontFamily: 'monospace', color: 'rgba(255,255,255,0.4)', letterSpacing: '1px' }}>STEP {step.stepNumber}</span>
+                        <span className={step.badgeClass} style={{ fontSize: '10px', padding: '2px 8px' }}>{step.badge}</span>
                       </div>
-                      <h3 style={{ fontSize: '26px', fontWeight: '800', color: '#FFFFFF', marginTop: '2px' }}>
+                      <h3 className="card-title" style={{ color: '#FFFFFF', marginTop: '2px' }}>
                         {step.title}
                       </h3>
                     </div>
                   </div>
 
                   <div style={{
-                    fontSize: '13px',
+                    fontSize: '12px',
                     color: '#E9D5FF',
                     fontStyle: 'italic',
                     background: 'rgba(124, 58, 237, 0.15)',
-                    padding: '12px 16px',
-                    borderRadius: '14px',
+                    padding: '10px 14px',
+                    borderRadius: '12px',
                     border: '1px solid rgba(168, 85, 247, 0.25)',
                     lineHeight: '1.6'
                   }}>
                     💡 <strong>Hindi Guide:</strong> {step.hindiDesc}
                   </div>
 
-                  <p style={{ fontSize: '15px', color: 'rgba(255, 255, 255, 0.75)', lineHeight: '1.6' }}>
+                  <p style={{ fontSize: '14px', color: 'rgba(255, 255, 255, 0.75)', lineHeight: '1.6' }}>
                     {step.description}
                   </p>
 
-                  <div style={{ background: '#121218', padding: '20px', borderRadius: '18px', border: '1px solid rgba(255,255,255,0.08)' }}>
-                    <div style={{ fontSize: '12px', fontWeight: '700', color: 'rgba(255,255,255,0.8)', paddingBottom: '10px', borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ background: '#121218', padding: '16px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <div style={{ fontSize: '12px', fontWeight: '700', color: 'rgba(255,255,255,0.8)', paddingBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span>Key Demonstration Points</span>
-                      <Sparkles style={{ width: '14px', height: '14px', color: '#F5A623' }} />
+                      <Sparkles style={{ width: '13px', height: '13px', color: '#F5A623' }} />
                     </div>
-                    <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px', color: 'rgba(255,255,255,0.65)' }}>
+                    <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px', color: 'rgba(255,255,255,0.65)' }}>
                       {step.details.map((detail, dIdx) => (
-                        <li key={dIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                          <CheckCircle style={{ width: '16px', height: '16px', color: '#34D399', flexShrink: 0, marginTop: '2px' }} />
+                        <li key={dIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                          <CheckCircle style={{ width: '15px', height: '15px', color: '#34D399', flexShrink: 0, marginTop: '2px' }} />
                           <span>{detail}</span>
                         </li>
                       ))}
@@ -205,8 +200,8 @@ export default function HowItWorks({ onOpenSimulator }) {
                 </div>
 
                 {/* App Photo Demonstration Column */}
-                <div style={{ display: 'flex', justifyContent: 'center', position: 'relative' }}>
-                  <div style={{
+                <div style={{ display: 'flex', justifyContent: 'center', position: 'relative', width: '100%' }}>
+                  <div className="mobile-phone-frame" style={{
                     width: '100%',
                     maxWidth: '340px',
                     borderRadius: '24px',
@@ -262,24 +257,24 @@ export default function HowItWorks({ onOpenSimulator }) {
 
         {/* CTA Box */}
         <div className="glass-card-static" style={{
-          marginTop: '60px',
-          padding: '40px',
+          marginTop: '50px',
+          padding: 'clamp(24px, 5vw, 40px)',
           textAlign: 'center',
           background: 'linear-gradient(135deg, #14141C 0%, #1A1025 50%, #14141C 100%)',
           border: '1px solid rgba(236, 72, 153, 0.3)'
         }}>
-          <div style={{ maxWidth: '650px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
+          <div style={{ maxWidth: '650px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '14px', alignItems: 'center' }}>
             <span className="badge-pink">Live Chat & Lock Engine</span>
-            <h3 style={{ fontSize: '28px', fontWeight: '800', color: '#FFFFFF' }}>
+            <h3 style={{ fontSize: 'clamp(20px, 4vw, 28px)', fontWeight: '800', color: '#FFFFFF', lineHeight: '1.25' }}>
               Want to see how Brand & Influencer text and lock deals live?
             </h3>
-            <p style={{ fontSize: '14px', color: 'rgba(255, 255, 255, 0.7)' }}>
+            <p style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.7)' }}>
               Try our embedded deal locking visualizer right here in your browser to experience the real-time chat and contract confirmation.
             </p>
             <button 
               onClick={onOpenSimulator}
               className="btn-glow-pink"
-              style={{ marginTop: '8px' }}
+              style={{ marginTop: '6px', fontSize: 'clamp(12px, 2vw, 14px)' }}
             >
               <Lock style={{ width: '16px', height: '16px' }} />
               <span>Launch Live Deal Lock Engine</span>
@@ -301,33 +296,35 @@ export default function HowItWorks({ onOpenSimulator }) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '24px'
+          padding: '16px'
         }}>
-          <div style={{ position: 'relative', maxWidth: '540px', width: '100%' }}>
+          <div style={{ position: 'relative', maxWidth: '500px', width: '100%' }}>
             <button
               onClick={() => setModalImage(null)}
               style={{
                 position: 'absolute',
-                top: '-48px',
+                top: '-44px',
                 right: '0',
                 background: 'rgba(255,255,255,0.15)',
                 border: 'none',
                 color: '#FFFFFF',
                 padding: '8px',
                 borderRadius: '50%',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
             >
-              <Maximize2 style={{ width: '20px', height: '20px' }} />
+              <Maximize2 style={{ width: '18px', height: '18px' }} />
             </button>
             <img 
               src={modalImage} 
               alt="Full Preview"
-              style={{ width: '100%', borderRadius: '20px', border: '2px solid rgba(168, 85, 247, 0.5)', boxShadow: '0 25px 60px rgba(0,0,0,0.9)' }}
+              style={{ width: '100%', borderRadius: '18px', border: '2px solid rgba(168, 85, 247, 0.5)', boxShadow: '0 25px 60px rgba(0,0,0,0.9)' }}
             />
           </div>
         </div>
       )}
-    </section>
-  );
+    </section>;
 }
