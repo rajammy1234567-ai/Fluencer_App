@@ -153,13 +153,13 @@ export default function App() {
           )}
 
           {activeTab === 'photo-demo' && (
-            <div style={{ paddingTop: '80px' }}>
+            <div className="tab-view-container">
               <PhotoDemonstration />
             </div>
           )}
 
           {activeTab === 'how-it-works' && (
-            <div style={{ paddingTop: '80px' }}>
+            <div className="tab-view-container">
               <HowItWorks 
                 onOpenSimulator={() => {
                   handleTabChange('deal-lock');
@@ -171,7 +171,7 @@ export default function App() {
           )}
 
           {activeTab === 'brand-flow' && (
-            <div style={{ paddingTop: '80px' }}>
+            <div className="tab-view-container">
               <BrandWorkflow 
                 onOpenSimulator={() => {
                   handleTabChange('deal-lock');
@@ -183,7 +183,7 @@ export default function App() {
           )}
 
           {activeTab === 'influencer-flow' && (
-            <div style={{ paddingTop: '80px' }}>
+            <div className="tab-view-container">
               <InfluencerWorkflow 
                 onOpenSimulator={() => {
                   handleTabChange('deal-lock');
@@ -195,13 +195,13 @@ export default function App() {
           )}
 
           {activeTab === 'deal-lock' && (
-            <div style={{ paddingTop: '80px' }}>
+            <div className="tab-view-container">
               <DealSimulator />
             </div>
           )}
 
           {activeTab === 'privacy' && (
-            <div style={{ paddingTop: '80px' }}>
+            <div className="tab-view-container">
               <LegalPolicy />
             </div>
           )}
