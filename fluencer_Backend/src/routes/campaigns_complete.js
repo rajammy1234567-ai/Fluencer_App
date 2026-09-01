@@ -621,7 +621,12 @@ router.get('/active/all', optionalAuth, async (req, res) => {
 
     let isProMember = true;
     if (userRole === 'influencer' && userId) {
-      const infProfile = await InfluencerProfile.findOne({ user_id: userId }).lean();
+      const infProfile = await InfluencerProfile.findOne({
+        $or: [
+          { user_id: userId },
+          ...(mongoose.Types.ObjectId.isValid(userId) ? [{ user_id: new mongoose.Types.ObjectId(userId) }] : [])
+        ]
+      }).lean();
       isProMember = !!(infProfile && infProfile.is_pro_member);
     }
 
@@ -673,7 +678,12 @@ router.post('/:id/apply', authMiddleware, async (req, res) => {
     }
 
     // Check Pro Membership status of influencer
-    const influencerProfile = await InfluencerProfile.findOne({ user_id: influencerId });
+    const influencerProfile = await InfluencerProfile.findOne({
+      $or: [
+        { user_id: influencerId },
+        ...(mongoose.Types.ObjectId.isValid(influencerId) ? [{ user_id: new mongoose.Types.ObjectId(influencerId) }] : [])
+      ]
+    });
     if (!influencerProfile || !influencerProfile.is_pro_member) {
       return res.status(403).json({
         success: false,

@@ -119,27 +119,58 @@ export default function InfluencerCampaigns() {
     initiatePayment({
       amount: 499,
       description: '₹499 Pro Membership Pass - Unlimited Brand Campaign Access',
-      onSuccess: async () => {
+      onSuccess: async (payRes) => {
         try {
           const headers = await getAuthHeader();
           await fetch(getApiUrl('/api/influencers/unlock-pass'), {
             method: 'POST',
             headers: { ...headers, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paymentId: payRes?.paymentId })
           });
         } catch (err) {
           console.warn('Unlock pass API warning:', err);
         }
         setIsProMember(true);
+        setShowProModal(false);
         setUnlockingPro(false);
-        fetchCampaigns();
+        await fetchCampaigns();
+        Alert.alert(
+          '🎉 Pro Membership Unlocked!',
+          'Your ₹499 payment is confirmed! You now have unlimited access to explore and apply to all brand campaigns.'
+        );
       },
       onFailure: (err) => {
         setUnlockingPro(false);
         console.log('Payment cancelled/failed:', err);
       }
     });
-    // Immediately stop button spinner so Razorpay Alert is active
-    setTimeout(() => setUnlockingPro(false), 300);
+    setTimeout(() => setUnlockingPro(false), 500);
+  };
+
+  const handleDirectProUnlock = async () => {
+    setUnlockingPro(true);
+    try {
+      const headers = await getAuthHeader();
+      const res = await fetch(getApiUrl('/api/influencers/unlock-pass'), {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setIsProMember(true);
+        setShowProModal(false);
+        await fetchCampaigns();
+        Alert.alert('✅ Pro Pass Activated', 'Your campaigns are now fully unlocked!');
+      } else {
+        await checkProStatus();
+        await fetchCampaigns();
+      }
+    } catch (err) {
+      console.warn('Direct unlock error:', err);
+      await fetchCampaigns();
+    } finally {
+      setUnlockingPro(false);
+    }
   };
 
 
@@ -940,6 +971,7 @@ export default function InfluencerCampaigns() {
                 style={styles.proUnlockButton}
                 onPress={handleUnlockProPass}
                 disabled={unlockingPro}
+                activeOpacity={0.85}
               >
                 <LinearGradient colors={['#10B981', '#059669']} style={styles.proUnlockGradient}>
                   {unlockingPro ? (
@@ -951,6 +983,30 @@ export default function InfluencerCampaigns() {
                     </>
                   )}
                 </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{
+                  marginTop: 12,
+                  paddingVertical: 12,
+                  paddingHorizontal: 16,
+                  borderRadius: 14,
+                  borderWidth: 1,
+                  borderColor: 'rgba(255, 255, 255, 0.16)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                }}
+                onPress={handleDirectProUnlock}
+                disabled={unlockingPro}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons name="refresh" size={18} color="#A855F7" />
+                <Text style={{ color: '#E2E8F0', fontSize: 13.5, fontWeight: '700' }}>
+                  Already Paid? Confirm & Unlock
+                </Text>
               </TouchableOpacity>
             </View>
           </View>

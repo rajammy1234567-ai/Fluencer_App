@@ -29,10 +29,10 @@ async function setupVerificationAccounts() {
       await User.updateOne({ _id: creator._id }, { $set: { password: hashedPassword, is_verified: true } });
     }
 
-    let cProfile = await InfluencerProfile.findOne({ user_id: creator._id.toString() });
+    let cProfile = await InfluencerProfile.findOne({ $or: [{ user_id: creator._id }, { user_id: creator._id.toString() }] });
     if (!cProfile) {
       await InfluencerProfile.insertOne({
-        user_id: creator._id.toString(),
+        user_id: creator._id,
         name: 'Ananya Sharma',
         niche: 'Fashion & Lifestyle',
         location: 'Mumbai, Maharashtra',
@@ -40,8 +40,15 @@ async function setupVerificationAccounts() {
         wallet_balance: 0,
         escrow_balance: 0,
         followers_count: 125000,
+        is_pro_member: true,
+        pro_unlocked_at: new Date(),
         created_at: new Date()
       });
+    } else {
+      await InfluencerProfile.updateOne(
+        { _id: cProfile._id },
+        { $set: { user_id: creator._id, is_pro_member: true, pro_unlocked_at: new Date() } }
+      );
     }
 
     // 2. Setup Brand Account
@@ -59,10 +66,10 @@ async function setupVerificationAccounts() {
       await User.updateOne({ _id: brand._id }, { $set: { password: hashedPassword, is_verified: true } });
     }
 
-    let bProfile = await BrandProfile.findOne({ user_id: brand._id.toString() });
+    let bProfile = await BrandProfile.findOne({ $or: [{ user_id: brand._id }, { user_id: brand._id.toString() }] });
     if (!bProfile) {
       await BrandProfile.insertOne({
-        user_id: brand._id.toString(),
+        user_id: brand._id,
         company_name: 'Krishna Private Limited',
         category: 'Fashion & Luxury Apparel',
         address: 'Bandra West, Mumbai',
@@ -70,6 +77,11 @@ async function setupVerificationAccounts() {
         escrow_balance: 0,
         created_at: new Date()
       });
+    } else {
+      await BrandProfile.updateOne(
+        { _id: bProfile._id },
+        { $set: { user_id: brand._id } }
+      );
     }
 
     console.log('\n=============================================================');

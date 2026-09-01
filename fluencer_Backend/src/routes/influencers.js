@@ -1,4 +1,5 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import InfluencerProfile from '../models/InfluencerProfile.js';
 import User from '../models/User.js';
 import authMiddleware from '../middleware/auth.js';
@@ -180,15 +181,35 @@ router.put('/profile', authMiddleware, async (req, res) => {
 // Get influencer profile details
 router.get('/profile', authMiddleware, async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.userId || req.user.id;
+    const userObjectId = mongoose.Types.ObjectId.isValid(userId) ? new mongoose.Types.ObjectId(userId) : userId;
 
-    const profile = await InfluencerProfile.findOne({ user_id: userId }).lean();
+    let profile = await InfluencerProfile.findOne({
+      $or: [
+        { user_id: userId },
+        { user_id: userObjectId }
+      ]
+    }).lean();
 
     if (!profile) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Profile not found'
-      });
+      // Auto create basic profile for registered user so they are never stranded
+      const user = await User.findById(userObjectId);
+      if (user) {
+        const created = await InfluencerProfile.create({
+          user_id: userObjectId,
+          name: user.email ? user.email.split('@')[0] : 'Creator',
+          categories: ['Fashion', 'Lifestyle'],
+          followers: '10K',
+          followers_count: 10000,
+          is_pro_member: false
+        });
+        profile = created.toObject();
+      } else {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Profile not found'
+        });
+      }
     }
 
     // Convert id field for client compatibility
@@ -355,23 +376,35 @@ router.post('/update-followers', authMiddleware, async (req, res) => {
 router.post('/unlock-pass', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.userId || req.user.id;
+    const userObjectId = mongoose.Types.ObjectId.isValid(userId) ? new mongoose.Types.ObjectId(userId) : userId;
 
-    const profile = await InfluencerProfile.findOneAndUpdate(
-      { user_id: userId },
-      { 
-        $set: {
-          is_pro_member: true,
-          pro_unlocked_at: new Date()
-        },
-        $setOnInsert: {
-          name: req.user.name || 'Fluencer Creator',
-          categories: ['Fashion', 'Beauty', 'Lifestyle'],
-          followers: '10K',
-          followers_count: 10000
-        }
-      },
-      { new: true, upsert: true }
-    );
+    let profile = await InfluencerProfile.findOne({
+      $or: [
+        { user_id: userId },
+        { user_id: userObjectId }
+      ]
+    });
+
+    if (profile) {
+      profile.is_pro_member = true;
+      profile.pro_unlocked_at = new Date();
+      if (typeof profile.user_id === 'string' && mongoose.Types.ObjectId.isValid(profile.user_id)) {
+        profile.user_id = new mongoose.Types.ObjectId(profile.user_id);
+      }
+      await profile.save();
+    } else {
+      profile = await InfluencerProfile.create({
+        user_id: userObjectId,
+        name: req.user.name || 'Fluencer Creator',
+        categories: ['Fashion', 'Beauty', 'Lifestyle'],
+        followers: '10K',
+        followers_count: 10000,
+        is_pro_member: true,
+        pro_unlocked_at: new Date()
+      });
+    }
+
+    console.log(`🎉 Pro Membership Pass (₹499) unlocked for user: ${userId}`);
 
     res.json({
       success: true,
@@ -453,27 +486,6 @@ router.delete('/portfolio/:id', authMiddleware, async (req, res) => {
   } catch (error) {
     console.error('Portfolio delete error:', error);
     res.status(500).json({ success: false, message: 'Failed to delete portfolio item', error: error.message });
-  }
-});
-
-// Unlock Pro Pass for Influencer
-router.post('/unlock-pass', authMiddleware, async (req, res) => {
-  try {
-    const userId = req.user.userId || req.user.id;
-    const profile = await InfluencerProfile.findOneAndUpdate(
-      { user_id: userId },
-      { $set: { is_pro_member: true, pro_unlocked_at: new Date() } },
-      { new: true, upsert: true }
-    );
-
-    res.json({
-      success: true,
-      message: 'Pro Membership Pass unlocked successfully!',
-      profile
-    });
-  } catch (error) {
-    console.error('Unlock pass error:', error);
-    res.status(500).json({ success: false, message: 'Failed to unlock pass', error: error.message });
   }
 });
 

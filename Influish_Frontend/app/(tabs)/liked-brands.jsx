@@ -65,12 +65,13 @@ export default function LikedBrands() {
     initiatePayment({
       amount: 499,
       description: '₹499 Pro Membership Pass - Unlock Liked Brands & Campaigns',
-      onSuccess: async () => {
+      onSuccess: async (payRes) => {
         try {
           const headers = await getAuthHeader();
           await fetch(getApiUrl('/api/influencers/unlock-pass'), {
             method: 'POST',
             headers: { ...headers, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paymentId: payRes?.paymentId })
           });
         } catch (err) {
           console.warn('Unlock pass API warning:', err);
@@ -83,7 +84,31 @@ export default function LikedBrands() {
         setUnlockingPro(false);
       }
     });
-    setTimeout(() => setUnlockingPro(false), 300);
+    setTimeout(() => setUnlockingPro(false), 500);
+  };
+
+  const handleDirectProUnlock = async () => {
+    setUnlockingPro(true);
+    try {
+      const headers = await getAuthHeader();
+      const res = await fetch(getApiUrl('/api/influencers/unlock-pass'), {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setIsProMember(true);
+        loadLikedBrands();
+      } else {
+        await checkProStatus();
+        loadLikedBrands();
+      }
+    } catch (err) {
+      console.warn('Direct unlock error:', err);
+      loadLikedBrands();
+    } finally {
+      setUnlockingPro(false);
+    }
   };
 
   const loadLikedBrands = async () => {
@@ -228,28 +253,53 @@ export default function LikedBrands() {
             <Text style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.6)', textAlign: 'center', lineHeight: 20, marginBottom: 24 }}>
               Unlock your ₹499 Pro Membership Pass to view saved brands, access company profiles, and apply for high-payout brand campaigns!
             </Text>
-            <TouchableOpacity
-              style={{ width: '100%', borderRadius: 14, overflow: 'hidden' }}
-              onPress={handleUnlockProPass}
-              disabled={unlockingPro}
-              activeOpacity={0.85}
-            >
-              <LinearGradient
-                colors={['#7C3AED', '#6D28FF']}
-                style={{ paddingVertical: 14, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 }}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
+              <TouchableOpacity
+                style={{ width: '100%', borderRadius: 14, overflow: 'hidden' }}
+                onPress={handleUnlockProPass}
+                disabled={unlockingPro}
+                activeOpacity={0.85}
               >
-                {unlockingPro ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <>
-                    <MaterialCommunityIcons name="flash-outline" size={20} color="#FFFFFF" />
-                    <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 15 }}>Pay ₹499 & Unlock Access</Text>
-                  </>
-                )}
-              </LinearGradient>
-            </TouchableOpacity>
+                <LinearGradient
+                  colors={['#7C3AED', '#6D28FF']}
+                  style={{ paddingVertical: 14, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 }}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  {unlockingPro ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <MaterialCommunityIcons name="flash-outline" size={20} color="#FFFFFF" />
+                      <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 15 }}>Pay ₹499 & Unlock Access</Text>
+                    </>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{
+                  marginTop: 12,
+                  width: '100%',
+                  paddingVertical: 12,
+                  paddingHorizontal: 16,
+                  borderRadius: 14,
+                  borderWidth: 1,
+                  borderColor: 'rgba(255, 255, 255, 0.16)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                }}
+                onPress={handleDirectProUnlock}
+                disabled={unlockingPro}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons name="refresh" size={18} color="#A855F7" />
+                <Text style={{ color: '#E2E8F0', fontSize: 13.5, fontWeight: '700' }}>
+                  Already Paid? Confirm & Unlock
+                </Text>
+              </TouchableOpacity>
           </View>
         </View>
       </SafeAreaView>

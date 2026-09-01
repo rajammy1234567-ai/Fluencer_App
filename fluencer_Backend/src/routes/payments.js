@@ -1,9 +1,11 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import { authenticateToken } from '../middleware/auth.js';
 import { createOrder, verifyPaymentSignature } from '../config/razorpay.js';
 import Payment from '../models/Payment.js';
 import Campaign from '../models/Campaign.js';
 import BrandProfile from '../models/BrandProfile.js';
+import InfluencerProfile from '../models/InfluencerProfile.js';
 
 const router = express.Router();
 
@@ -51,8 +53,9 @@ router.post('/create-order', authenticateToken, async (req, res) => {
 // Verify payment
 router.post('/verify-payment', authenticateToken, async (req, res) => {
   try {
-    const { orderId, paymentId, signature } = req.body;
+    const { orderId, paymentId, signature, amount, description } = req.body;
     const userId = req.user.userId || req.user.id || 'guest_user';
+    const userRole = req.user.role;
 
     if (!orderId || !paymentId || !signature) {
       return res.status(400).json({ message: 'Missing payment details' });
@@ -68,24 +71,92 @@ router.post('/verify-payment', authenticateToken, async (req, res) => {
       });
     }
 
-    // Update payment status in database
-    const payment = await Payment.findOneAndUpdate(
-      { order_id: orderId, user_id: userId },
-      { payment_id: paymentId, status: 'completed', completed_at: new Date() },
-      { new: true }
-    );
+    // Update or create payment record in database
+    let payment = await Payment.findOne({
+      $or: [
+        { order_id: orderId },
+        { payment_id: paymentId }
+      ]
+    });
 
-    // Credit Brand Wallet Balance upon successful Razorpay Payment
-    const brandProfile = await BrandProfile.findOne({ user_id: userId });
-    if (brandProfile && payment && payment.amount) {
-      brandProfile.wallet_balance = (brandProfile.wallet_balance || 0) + payment.amount;
+    const parsedAmount = Number(amount) || (payment ? payment.amount : 499);
+
+    if (payment) {
+      payment.payment_id = paymentId;
+      payment.status = 'completed';
+      payment.completed_at = new Date();
+      if (!payment.user_id || payment.user_id === 'guest_user') {
+        payment.user_id = userId;
+      }
+      await payment.save();
+    } else {
+      payment = await Payment.create({
+        order_id: orderId,
+        payment_id: paymentId,
+        user_id: userId,
+        amount: parsedAmount,
+        currency: 'INR',
+        status: 'completed',
+        completed_at: new Date(),
+        description: description || '₹499 Pro Membership Pass'
+      });
+    }
+
+    const userObjectId = mongoose.Types.ObjectId.isValid(userId) ? new mongoose.Types.ObjectId(userId) : userId;
+    const isProPayment = parsedAmount === 499 || userRole === 'influencer' || (description && String(description).toLowerCase().includes('pro'));
+
+    let isProMemberUnlocked = false;
+
+    // 1. Check and unlock Influencer Pro Membership
+    let infProfile = await InfluencerProfile.findOne({
+      $or: [
+        { user_id: userId },
+        { user_id: userObjectId }
+      ]
+    });
+
+    if (isProPayment || userRole === 'influencer' || infProfile) {
+      if (infProfile) {
+        infProfile.is_pro_member = true;
+        infProfile.pro_unlocked_at = new Date();
+        if (typeof infProfile.user_id === 'string' && mongoose.Types.ObjectId.isValid(infProfile.user_id)) {
+          infProfile.user_id = new mongoose.Types.ObjectId(infProfile.user_id);
+        }
+        await infProfile.save();
+        isProMemberUnlocked = true;
+      } else if (userId && userId !== 'guest_user') {
+        infProfile = await InfluencerProfile.create({
+          user_id: userObjectId,
+          name: req.user.name || 'Fluencer Creator',
+          is_pro_member: true,
+          pro_unlocked_at: new Date(),
+          categories: ['Fashion', 'Beauty', 'Lifestyle'],
+          followers: '10K',
+          followers_count: 10000
+        });
+        isProMemberUnlocked = true;
+      }
+      console.log(`🎉 Pro Membership unlocked via /verify-payment for user: ${userId}, payment: ${paymentId}`);
+    }
+
+    // 2. Credit Brand Wallet Balance upon successful deposit
+    const brandProfile = await BrandProfile.findOne({
+      $or: [
+        { user_id: userId },
+        { user_id: userObjectId }
+      ]
+    });
+
+    if (brandProfile && !isProPayment && userRole !== 'influencer') {
+      brandProfile.wallet_balance = (brandProfile.wallet_balance || 0) + parsedAmount;
       await brandProfile.save();
     }
 
     res.json({
       success: true,
-      message: 'Payment verified and wallet credited successfully',
+      message: isProMemberUnlocked ? 'Payment verified and Pro Membership Pass unlocked!' : 'Payment verified and wallet credited successfully',
       paymentId,
+      is_pro_member: isProMemberUnlocked || (infProfile ? !!infProfile.is_pro_member : false),
       newWalletBalance: brandProfile ? brandProfile.wallet_balance : null
     });
   } catch (error) {

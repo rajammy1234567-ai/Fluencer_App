@@ -85,6 +85,8 @@ export const initiatePayment = async ({
                   orderId: response.razorpay_order_id || orderIdToUse,
                   paymentId: response.razorpay_payment_id,
                   signature: response.razorpay_signature || 'sig_verified_live',
+                  amount: amount,
+                  description: description || 'Pro Membership Pass'
                 }),
               });
 
