@@ -1,6 +1,7 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import InfluencerProfile from '../models/InfluencerProfile.js';
+import Payment from '../models/Payment.js';
 import User from '../models/User.js';
 import authMiddleware from '../middleware/auth.js';
 import { uploadProfileImage } from '../middleware/upload.js';
@@ -377,7 +378,9 @@ router.post('/unlock-pass', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.userId || req.user.id;
     const userObjectId = mongoose.Types.ObjectId.isValid(userId) ? new mongoose.Types.ObjectId(userId) : userId;
+    const { paymentId } = req.body || {};
 
+    // 1. Check if user already has an active Pro membership
     let profile = await InfluencerProfile.findOne({
       $or: [
         { user_id: userId },
@@ -385,6 +388,46 @@ router.post('/unlock-pass', authMiddleware, async (req, res) => {
       ]
     });
 
+    if (profile && profile.is_pro_member) {
+      return res.json({
+        success: true,
+        message: 'Pro Membership is already active!',
+        is_pro_member: true,
+        profile
+      });
+    }
+
+    // 2. Strict verification: Check if a COMPLETED payment of ₹499 exists in Payment collection
+    const queryConditions = [
+      {
+        user_id: { $in: [userId, userObjectId, String(userId)] },
+        status: 'completed',
+        $or: [
+          { amount: { $gte: 499 } },
+          { description: { $regex: /pro/i } }
+        ]
+      }
+    ];
+
+    if (paymentId && paymentId.trim()) {
+      queryConditions.push({
+        payment_id: paymentId.trim(),
+        status: 'completed'
+      });
+    }
+
+    const verifiedPayment = await Payment.findOne({ $or: queryConditions });
+
+    if (!verifiedPayment) {
+      console.warn(`⛔ Unauthorized unlock-pass attempt by user: ${userId} (No completed ₹499 payment found)`);
+      return res.status(402).json({
+        success: false,
+        message: 'Payment required. No completed ₹499 payment found for this account. Please complete the payment to unlock Pro Membership.',
+        is_pro_member: false
+      });
+    }
+
+    // 3. Payment confirmed! Unlock Pro membership
     if (profile) {
       profile.is_pro_member = true;
       profile.pro_unlocked_at = new Date();
@@ -404,7 +447,7 @@ router.post('/unlock-pass', authMiddleware, async (req, res) => {
       });
     }
 
-    console.log(`🎉 Pro Membership Pass (₹499) unlocked for user: ${userId}`);
+    console.log(`🎉 Pro Membership Pass (₹499) unlocked for verified user: ${userId}, payment: ${verifiedPayment.payment_id}`);
 
     res.json({
       success: true,

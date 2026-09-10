@@ -165,11 +165,46 @@ router.post('/verify-payment', authenticateToken, async (req, res) => {
   }
 });
 
+// Check Order Payment Status (used by mobile app after WebBrowser closes)
+router.get('/order-status/:orderId', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    if (!orderId) {
+      return res.status(400).json({ success: false, message: 'Order ID is required' });
+    }
+
+    const payment = await Payment.findOne({
+      $or: [
+        { order_id: orderId },
+        { payment_id: orderId }
+      ]
+    }).lean();
+
+    if (!payment) {
+      return res.json({ success: true, status: 'not_found', isCompleted: false });
+    }
+
+    return res.json({
+      success: true,
+      status: payment.status, // 'completed', 'created', 'failed'
+      isCompleted: payment.status === 'completed',
+      paymentId: payment.payment_id || null,
+      amount: payment.amount,
+      currency: payment.currency || 'INR'
+    });
+  } catch (error) {
+    console.error('Order status error:', error);
+    res.status(500).json({ success: false, message: 'Failed to check order status', error: error.message });
+  }
+});
+
 // HTML Checkout Page for Native Mobile Apps (Expo / Android APK)
 router.get('/checkout-page', async (req, res) => {
   try {
-    const { orderId, amount, userId } = req.query;
+    const { orderId, amount, userId, description } = req.query;
     const razorpayKey = (process.env.RAZORPAY_KEY_ID || 'rzp_live_T4iwnAIVpqcNUl').trim().replace(/[\s"']/g, '');
+    const cleanOrderId = (orderId && orderId.startsWith('order_') && !orderId.includes('order_rzp_')) ? orderId : '';
+    const paymentDesc = description ? decodeURIComponent(description) : 'Fluencer Payment';
 
     const html = `
 <!DOCTYPE html>
@@ -203,12 +238,12 @@ router.get('/checkout-page', async (req, res) => {
         amount: Math.round(${parseFloat(amount || 0) * 100}),
         currency: "INR",
         name: "Fluencer Platform",
-        description: "Wallet Deposit",
-        order_id: "${orderId || ''}",
+        description: "${paymentDesc}",
+        ${cleanOrderId ? `order_id: "${cleanOrderId}",` : ''}
         handler: function (response) {
           document.getElementById('loader').style.display = 'block';
           document.getElementById('title').innerText = 'Verifying Payment...';
-          document.getElementById('sub').innerText = 'Updating your wallet balance...';
+          document.getElementById('sub').innerText = 'Confirming transaction...';
 
           fetch('/api/payments/verify-payment-html', {
             method: 'POST',
@@ -217,25 +252,34 @@ router.get('/checkout-page', async (req, res) => {
               orderId: response.razorpay_order_id || "${orderId || ''}",
               paymentId: response.razorpay_payment_id,
               signature: response.razorpay_signature,
-              userId: "${userId || ''}"
+              userId: "${userId || ''}",
+              amount: ${parseFloat(amount || 0)},
+              description: "${paymentDesc}"
             })
           }).then(r => r.json()).then(data => {
             document.getElementById('loader').style.display = 'none';
-            document.getElementById('title').innerHTML = '✅ Payment Successful!';
-            document.getElementById('title').style.color = '#10B981';
-            document.getElementById('sub').innerText = '₹${amount} credited to wallet! Payment ID: ' + response.razorpay_payment_id;
+            if (data.success) {
+              document.getElementById('title').innerHTML = '✅ Payment Successful!';
+              document.getElementById('title').style.color = '#10B981';
+              document.getElementById('sub').innerText = 'Payment confirmed! You can now return to the Fluencer app.';
+            } else {
+              document.getElementById('title').innerText = 'Payment Verification Failed';
+              document.getElementById('sub').innerText = data.message || 'Please contact support';
+            }
           }).catch(err => {
             document.getElementById('loader').style.display = 'none';
             document.getElementById('title').innerText = '✅ Payment Received';
-            document.getElementById('sub').innerText = 'Payment processed successfully.';
+            document.getElementById('sub').innerText = 'Payment processed. You may return to the app.';
           });
         },
         modal: {
           ondismiss: function() {
             document.getElementById('loader').style.display = 'none';
-            document.getElementById('title').innerText = 'Payment Pending';
-            document.getElementById('sub').innerText = 'Click below if payment checkout closed.';
+            document.getElementById('title').innerText = 'Payment Cancelled';
+            document.getElementById('title').style.color = '#EF4444';
+            document.getElementById('sub').innerText = 'Payment was not completed. Return to the app.';
             document.getElementById('pay-btn').style.display = 'block';
+            document.getElementById('pay-btn').innerText = 'Retry Payment';
           }
         },
         theme: { color: "#7C3AED" }
@@ -259,29 +303,97 @@ router.get('/checkout-page', async (req, res) => {
 // HTML Verification Route (used by checkout-page)
 router.post('/verify-payment-html', async (req, res) => {
   try {
-    const { orderId, paymentId, signature, userId } = req.body;
-    if (!orderId || !paymentId || !userId) {
-      return res.status(400).json({ success: false, message: 'Missing details' });
+    const { orderId, paymentId, signature, userId, amount, description } = req.body;
+    if (!orderId || !paymentId) {
+      return res.status(400).json({ success: false, message: 'Missing orderId or paymentId' });
     }
 
     const isValid = verifyPaymentSignature(orderId, paymentId, signature);
     if (!isValid) {
-      return res.status(400).json({ success: false, message: 'Invalid signature' });
+      return res.status(400).json({ success: false, message: 'Invalid payment signature' });
     }
 
-    const payment = await Payment.findOneAndUpdate(
-      { order_id: orderId },
-      { payment_id: paymentId, status: 'completed', completed_at: new Date(), user_id: userId },
-      { new: true, upsert: true }
-    );
+    // Find existing payment record if created by /create-order
+    let payment = await Payment.findOne({
+      $or: [
+        { order_id: orderId },
+        { payment_id: paymentId }
+      ]
+    });
 
-    const brandProfile = await BrandProfile.findOne({ user_id: userId });
-    if (brandProfile && payment && payment.amount) {
-      brandProfile.wallet_balance = (brandProfile.wallet_balance || 0) + payment.amount;
-      await brandProfile.save();
+    const parsedAmount = Number(amount) || (payment ? payment.amount : 499);
+    const targetUserId = userId || (payment ? payment.user_id : null);
+    const safeUserId = (targetUserId && mongoose.Types.ObjectId.isValid(targetUserId))
+      ? new mongoose.Types.ObjectId(targetUserId)
+      : (payment && payment.user_id ? payment.user_id : new mongoose.Types.ObjectId());
+
+    if (payment) {
+      payment.payment_id = paymentId;
+      payment.status = 'completed';
+      payment.completed_at = new Date();
+      if (targetUserId && mongoose.Types.ObjectId.isValid(targetUserId) && !payment.user_id) {
+        payment.user_id = safeUserId;
+      }
+      await payment.save();
+    } else {
+      payment = await Payment.create({
+        order_id: orderId,
+        payment_id: paymentId,
+        user_id: safeUserId,
+        amount: parsedAmount,
+        currency: 'INR',
+        status: 'completed',
+        completed_at: new Date(),
+        description: description || 'Fluencer Payment'
+      });
     }
 
-    res.json({ success: true, message: 'Wallet credited successfully' });
+    if (targetUserId && targetUserId !== 'guest_user') {
+      const userObjectId = mongoose.Types.ObjectId.isValid(targetUserId) ? new mongoose.Types.ObjectId(targetUserId) : targetUserId;
+      const isProPayment = parsedAmount === 499 || (description && String(description).toLowerCase().includes('pro'));
+
+      if (isProPayment) {
+        // Unlock Influencer Pro Membership
+        let infProfile = await InfluencerProfile.findOne({
+          $or: [
+            { user_id: targetUserId },
+            { user_id: userObjectId }
+          ]
+        });
+
+        if (infProfile) {
+          infProfile.is_pro_member = true;
+          infProfile.pro_unlocked_at = new Date();
+          await infProfile.save();
+        } else {
+          await InfluencerProfile.create({
+            user_id: userObjectId,
+            name: 'Fluencer Creator',
+            is_pro_member: true,
+            pro_unlocked_at: new Date(),
+            categories: ['Fashion', 'Beauty', 'Lifestyle'],
+            followers: '10K',
+            followers_count: 10000
+          });
+        }
+        console.log(`🎉 Pro Membership unlocked via HTML checkout for user: ${targetUserId}`);
+      } else {
+        // Credit Brand Wallet
+        const brandProfile = await BrandProfile.findOne({
+          $or: [
+            { user_id: targetUserId },
+            { user_id: userObjectId }
+          ]
+        });
+        if (brandProfile) {
+          brandProfile.wallet_balance = (brandProfile.wallet_balance || 0) + parsedAmount;
+          await brandProfile.save();
+          console.log(`💰 Brand wallet credited with ₹${parsedAmount} for user: ${targetUserId}`);
+        }
+      }
+    }
+
+    res.json({ success: true, message: 'Payment verified and credited successfully' });
   } catch (error) {
     console.error('HTML verify error:', error);
     res.status(500).json({ success: false, message: 'Verification error' });

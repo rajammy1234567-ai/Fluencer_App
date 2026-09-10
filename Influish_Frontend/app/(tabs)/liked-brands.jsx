@@ -99,13 +99,17 @@ export default function LikedBrands() {
       if (res.ok && data.success) {
         setIsProMember(true);
         loadLikedBrands();
+        Alert.alert('🎉 Pro Pass Activated', 'Your ₹499 payment is confirmed! Liked brands unlocked.');
       } else {
-        await checkProStatus();
-        loadLikedBrands();
+        setIsProMember(false);
+        Alert.alert(
+          '❌ Payment Not Verified',
+          data.message || 'No completed ₹499 payment was found for your account. Please complete payment via Razorpay to unlock.'
+        );
       }
     } catch (err) {
       console.warn('Direct unlock error:', err);
-      loadLikedBrands();
+      Alert.alert('Error', 'Could not verify payment status. Please try again.');
     } finally {
       setUnlockingPro(false);
     }

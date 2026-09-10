@@ -1,5 +1,5 @@
 import { Alert, Platform } from 'react-native';
-import { getAuthHeader } from './storage';
+import { getAuthHeader, getUserId } from './storage';
 import { getApiUrl } from '../constants/api';
 
 const DEFAULT_RAZORPAY_KEY = process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || 'rzp_live_T4iwnAIVpqcNUl';
@@ -33,6 +33,7 @@ export const initiatePayment = async ({
   try {
     let orderInfo = null;
     let authHeaders = {};
+    const currentUserId = await getUserId();
 
     try {
       authHeaders = await getAuthHeader();
@@ -84,7 +85,7 @@ export const initiatePayment = async ({
                 body: JSON.stringify({
                   orderId: response.razorpay_order_id || orderIdToUse,
                   paymentId: response.razorpay_payment_id,
-                  signature: response.razorpay_signature || 'sig_verified_live',
+                  signature: response.razorpay_signature,
                   amount: amount,
                   description: description || 'Pro Membership Pass'
                 }),
@@ -95,13 +96,13 @@ export const initiatePayment = async ({
                 Alert.alert('✅ Payment Successful', `₹${amount} paid via Razorpay!\nPayment ID: ${response.razorpay_payment_id}`);
                 if (onSuccess) onSuccess({ paymentId: response.razorpay_payment_id, newBalance: verifyData.newWalletBalance });
               } else {
-                Alert.alert('✅ Payment Received', `₹${amount} deposited successfully! Payment ID: ${response.razorpay_payment_id}`);
-                if (onSuccess) onSuccess({ paymentId: response.razorpay_payment_id });
+                Alert.alert('❌ Verification Failed', verifyData.message || 'Payment signature could not be verified.');
+                if (onFailure) onFailure({ message: 'Payment verification failed' });
               }
             } catch (err) {
               console.error('Verify error:', err);
-              Alert.alert('✅ Payment Received', `₹${amount} processed via Razorpay!`);
-              if (onSuccess) onSuccess({ paymentId: response.razorpay_payment_id });
+              Alert.alert('❌ Error', 'Unable to reach verification server.');
+              if (onFailure) onFailure({ message: 'Verification network error' });
             }
           },
           prefill: {
@@ -114,6 +115,7 @@ export const initiatePayment = async ({
           },
           modal: {
             ondismiss: function () {
+              Alert.alert('Payment Cancelled', 'You cancelled the payment. Features remain locked.');
               if (onFailure) onFailure({ message: 'Payment cancelled by user' });
             }
           }
@@ -136,68 +138,57 @@ export const initiatePayment = async ({
     // Native Mobile Apps (iOS / Android APK): Open Live Razorpay Payment Gateway in WebBrowser
     try {
       const WebBrowser = require('expo-web-browser');
-      const checkoutUrl = getApiUrl(`/api/payments/checkout-page?orderId=${orderIdToUse}&amount=${amount}`);
-      await WebBrowser.openBrowserAsync(checkoutUrl);
-      if (onSuccess) onSuccess({ paymentId: 'pay_live_mobile' });
-      return;
-    } catch (wbErr) {
-      console.warn('WebBrowser fallback warning:', wbErr);
-    }
+      const userParam = currentUserId ? `&userId=${encodeURIComponent(currentUserId)}` : '';
+      const descParam = description ? `&description=${encodeURIComponent(description)}` : '';
+      const checkoutUrl = getApiUrl(`/api/payments/checkout-page?orderId=${orderIdToUse}&amount=${amount}${userParam}${descParam}`);
 
-    // Fallback Alert Modal if WebBrowser is unavailable
-    Alert.alert(
-      '💳 Live Razorpay Checkout',
-      `Order ID: ${orderIdToUse}\nTotal Amount: ₹${amount}\n\n${description}\n\nSelect payment action:`,
-      [
-        {
-          text: 'Cancel Payment',
-          style: 'cancel',
-          onPress: () => {
-            if (onFailure) onFailure({ message: 'Payment cancelled' });
-          },
-        },
-        {
-          text: 'Pay via Razorpay / UPI',
-          onPress: async () => {
-            const mockPaymentId = 'pay_' + Date.now().toString().slice(-10);
-            try {
-              const verifyRes = await fetch(getApiUrl('/api/payments/verify-payment'), {
-                method: 'POST',
-                headers: {
-                  ...authHeaders,
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  orderId: orderIdToUse,
-                  paymentId: mockPaymentId,
-                  signature: 'sig_verified_live',
-                }),
+      await WebBrowser.openBrowserAsync(checkoutUrl);
+
+      // STRICT VERIFICATION: Do NOT assume success when browser closes!
+      // Check backend to see if Razorpay actually verified and completed the order
+      try {
+        const statusRes = await fetch(getApiUrl(`/api/payments/order-status/${orderIdToUse}`));
+        if (statusRes.ok) {
+          const statusData = await statusRes.json();
+          if (statusData && statusData.isCompleted) {
+            Alert.alert(
+              '🎉 Payment Successful',
+              `₹${amount} confirmed via Razorpay!\nYour features have been unlocked.`
+            );
+            if (onSuccess) {
+              onSuccess({
+                paymentId: statusData.paymentId || 'pay_live_verified',
+                orderId: orderIdToUse,
               });
-              const verifyData = await verifyRes.json();
-              Alert.alert('✅ Payment Successful', `₹${amount} paid via Razorpay! Wallet updated.`, [
-                {
-                  text: 'OK',
-                  onPress: () => {
-                    if (onSuccess) onSuccess({ paymentId: mockPaymentId, newBalance: verifyData?.newWalletBalance });
-                  },
-                },
-              ]);
-            } catch (err) {
-              Alert.alert('✅ Payment Successful', `₹${amount} paid via Razorpay! Access unlocked.`, [
-                {
-                  text: 'OK',
-                  onPress: () => {
-                    if (onSuccess) onSuccess({ paymentId: mockPaymentId });
-                  },
-                },
-              ]);
             }
-          },
-        },
-      ]
-    );
+            return;
+          }
+        }
+
+        // If not completed, payment was cancelled, cut, or failed
+        Alert.alert(
+          '❌ Payment Incomplete',
+          'Payment was cancelled or closed before completing. Features remain locked.'
+        );
+        if (onFailure) onFailure({ message: 'Payment cancelled or not completed' });
+        return;
+      } catch (checkErr) {
+        console.warn('Payment check error:', checkErr);
+        Alert.alert(
+          'Payment Pending',
+          'Could not verify transaction. If money was deducted, click "Already Paid? Confirm & Unlock".'
+        );
+        if (onFailure) onFailure({ message: 'Could not verify payment' });
+        return;
+      }
+    } catch (wbErr) {
+      console.warn('WebBrowser open warning:', wbErr);
+      Alert.alert('Error', 'Unable to launch payment gateway. Please try again.');
+      if (onFailure) onFailure(wbErr);
+    }
   } catch (globalErr) {
     console.error('Payment error:', globalErr);
     if (onFailure) onFailure(globalErr);
   }
 };
+

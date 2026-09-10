@@ -160,14 +160,18 @@ export default function InfluencerCampaigns() {
         setIsProMember(true);
         setShowProModal(false);
         await fetchCampaigns();
-        Alert.alert('✅ Pro Pass Activated', 'Your campaigns are now fully unlocked!');
+        Alert.alert('🎉 Pro Pass Activated', 'Your ₹499 payment is confirmed! Campaigns are now fully unlocked.');
       } else {
-        await checkProStatus();
-        await fetchCampaigns();
+        setIsProMember(false);
+        setShowProModal(true);
+        Alert.alert(
+          '❌ Payment Not Verified',
+          data.message || 'No completed ₹499 payment was found for your account. Please complete payment via Razorpay to unlock campaigns.'
+        );
       }
     } catch (err) {
       console.warn('Direct unlock error:', err);
-      await fetchCampaigns();
+      Alert.alert('Error', 'Could not verify payment status. Please try again.');
     } finally {
       setUnlockingPro(false);
     }
