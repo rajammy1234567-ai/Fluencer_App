@@ -317,7 +317,29 @@ A comprehensive automated browser test suite was executed across all web interfa
 | **Escrow Release Manager** | `http://localhost:3000/admin#escrow` | 18% Platform commission breakdown, escrow release controls for brand deals | ✅ **PASS** |
 | **Active Campaigns & Users** | `http://localhost:3000/admin#campaigns` | Campaign listing table, Creator Management tab, Brand Management tab | ✅ **PASS** |
 | **Razorpay Payment Checkout** | `http://localhost:3000/api/payments/...` | Live Razorpay modal triggers, UPI/Card options load, strict completion check verified | ✅ **PASS** |
-| **Expo Mobile App (Web View)** | `http://localhost:8081` | Metro bundler compiled React Native components with zero runtime exceptions | ✅ **PASS** |
+| **Mobile Role Selection** | `http://localhost:8081/role-selection` | Creator vs Brand cards with responsive routing | ✅ **PASS** |
+| **Mobile Creator Login** | `http://localhost:8081/login` | Email/Password login (`testinfluencer@fluncer.com`) & Skip option | ✅ **PASS** |
+| **Mobile Creator Home Dashboard** | `http://localhost:8081/home` | Collab OS header, search bar, Collab Deck banner, quick action grid | ✅ **PASS** |
+| **Mobile Campaigns Feed & Pro Pass** | `http://localhost:8081/campaigns` | Category filter chips & ₹499 Lifetime Pro Pass modal overlay | ✅ **PASS** |
+| **Anti-Bypass Security Check** | Click *"Already Paid? Confirm & Unlock"* | Prevents unauthorized unlock, checks backend payment status | ✅ **PASS** |
+| **Mobile Liked Brands Screen** | `http://localhost:8081/liked-brands` | Enforces ₹499 Pro Pass access gate for saved high-payout deals | ✅ **PASS** |
+| **Mobile Real-Time Chat** | `http://localhost:8081/chat` | Socket.IO messaging hub with active conversation state | ✅ **PASS** |
+| **Mobile Wallet & Escrow Funds** | `http://localhost:8081/wallet` | Available balance + Escrow locked breakdown & UPI withdraw modal | ✅ **PASS** |
+
+### 📱 Real Fluencer Mobile App Workflow Details (`http://localhost:8081`)
+
+1. **Role Onboarding (`/role-selection`)**:
+   - Allows users to self-identify as either a **Creator** (*"Apply to brand campaigns, showcase work, get paid"*) or a **Brand** (*"Launch campaigns, pick talent, measure ROI"*).
+2. **Creator Dashboard (`/home`)**:
+   - Displays real-time creator greeting, live search bar, Collab Deck quick-apply banner, and step-by-step collaboration guide.
+3. **Campaigns & Pro Membership (`/campaigns`)**:
+   - Displays active brand campaigns filtered by niche (Cosmetics, Fashion, Tech).
+   - Features a ₹499 Pro Membership modal gate that enforces payment before full access is granted.
+   - Verified that the *"Already Paid? Confirm & Unlock"* button queries backend verification and will not unlock access without a valid Razorpay transaction.
+4. **Creator Wallet (`/wallet`)**:
+   - Provides live visibility into total balance, pending escrow funds, and instant UPI withdrawal.
+5. **Real-time Chat (`/chat`)**:
+   - Enables direct messaging between approved creators and brands.
 
 ---
 
