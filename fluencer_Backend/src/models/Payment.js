@@ -10,10 +10,15 @@ const paymentSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  payment_link_id: {
+    type: String,
+    default: null
+  },
   user_id: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: mongoose.Schema.Types.Mixed,
     ref: 'User',
-    required: true
+    default: null,
+    required: false
   },
   campaign_id: {
     type: mongoose.Schema.Types.ObjectId,
