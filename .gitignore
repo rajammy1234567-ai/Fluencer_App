@@ -21,3 +21,7 @@ yarn-error.log*
 
 # System files
 .DS_Store
+
+# Large Binaries (Avoid GitHub 100MB rejection)
+*.apk
+**/*.apk

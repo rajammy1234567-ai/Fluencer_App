@@ -48,6 +48,23 @@ if (effectiveWebDist) {
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use(express.static(path.join(__dirname, '../public')));
 
+// EAS APK Direct Download Artifact URL
+const EAS_APK_URL = 'https://expo.dev/artifacts/eas/-3pQQTmIcKR2VEOFRI0G2VV6iqsxz6b2J5FXNSASdpM.apk';
+
+// Direct APK Download endpoints (local file if present, fallback redirect to EAS Cloud CDN)
+app.get(['/download-apk', '/fluencer.apk', '/apk', '/download'], (req, res) => {
+  const localApkPath = path.join(__dirname, '../public/fluencer.apk');
+  const webApkPath = path.join(__dirname, '../public/web/fluencer.apk');
+
+  if (fs.existsSync(localApkPath)) {
+    return res.download(localApkPath, 'fluencer.apk');
+  } else if (fs.existsSync(webApkPath)) {
+    return res.download(webApkPath, 'fluencer.apk');
+  } else {
+    return res.redirect(302, EAS_APK_URL);
+  }
+});
+
 // Serve Web Admin Dashboard HTML
 app.get(['/admin', '/admin/'], (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=UTF-8');

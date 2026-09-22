@@ -7,10 +7,11 @@ import {
   ShieldCheck, 
   CheckCircle2, 
   Briefcase,
-  Flame
+  Flame,
+  Download
 } from 'lucide-react';
 
-export default function Hero({ onExplore, onOpenSimulator, onOpenPrivacy }) {
+export default function Hero({ onExplore, onOpenSimulator, onOpenPrivacy, onOpenDownload }) {
   return (
     <section style={{
       paddingTop: 'clamp(100px, 14vw, 140px)',
@@ -51,12 +52,31 @@ export default function Hero({ onExplore, onOpenSimulator, onOpenPrivacy }) {
           {/* Action CTAs */}
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '12px' }}>
             <button 
-              onClick={onOpenSimulator}
+              onClick={onOpenDownload}
               className="btn-glow-pink"
+              style={{ 
+                fontSize: 'clamp(13px, 2vw, 15px)',
+                padding: '12px 22px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                boxShadow: '0 8px 25px rgba(16, 185, 129, 0.45)',
+                border: '1px solid rgba(255, 255, 255, 0.25)',
+                cursor: 'pointer'
+              }}
+            >
+              <Download style={{ width: '18px', height: '18px', color: '#FFFFFF' }} />
+              <span style={{ fontWeight: '700' }}>Download Android App (.APK)</span>
+            </button>
+
+            <button 
+              onClick={onOpenSimulator}
+              className="btn-secondary"
               style={{ fontSize: 'clamp(12px, 2vw, 14px)' }}
             >
-              <Lock style={{ width: '16px', height: '16px' }} />
-              <span>Try Live Deal Lock Engine</span>
+              <Lock style={{ width: '16px', height: '16px', color: '#A855F7' }} />
+              <span>Try Deal Lock Engine</span>
               <ArrowRight style={{ width: '16px', height: '16px' }} />
             </button>
 
