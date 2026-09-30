@@ -7,12 +7,13 @@ export const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-export const generateToken = (userId, role = 'influencer') => {
+export const generateToken = (userId, role = 'influencer', tokenVersion = 0) => {
   return jwt.sign(
     { 
-      id: userId,      // CRITICAL: Use 'id' to match req.user.id
-      userId: userId,  // Keep userId for backward compatibility
-      role: role 
+      id: userId,          // CRITICAL: Use 'id' to match req.user.id
+      userId: userId,      // Keep userId for backward compatibility
+      role: role,
+      tokenVersion: tokenVersion
     },
     process.env.JWT_SECRET,
     { expiresIn: '7d' }

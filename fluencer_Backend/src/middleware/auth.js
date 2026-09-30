@@ -45,12 +45,36 @@ export const authMiddleware = async (req, res, next) => {
     // Check if user still exists in database (rejects deleted users and revoked sessions)
     const userId = decoded.userId || decoded.id;
     if (decoded.role !== 'admin' && userId && userId !== 'guest_user') {
-      const activeUser = await User.findById(userId).select('_id is_deleted');
+      const activeUser = await User.findById(userId).select('_id is_deleted token_version sessions_invalidated_at');
       if (!activeUser || activeUser.is_deleted) {
         return res.status(401).json({
           success: false,
-          message: 'Account no longer exists or session has been revoked. Please login or register again.'
+          code: 'USER_DELETED',
+          message: 'Account no longer exists. Please register or login again.'
         });
+      }
+
+      // Check explicit session revocation via token_version
+      if (decoded.tokenVersion !== undefined && activeUser.token_version !== undefined) {
+        if (decoded.tokenVersion < activeUser.token_version) {
+          return res.status(401).json({
+            success: false,
+            code: 'SESSION_REVOKED',
+            message: 'Session has been revoked. Please login again.'
+          });
+        }
+      }
+
+      // Check session invalidation timestamp
+      if (activeUser.sessions_invalidated_at && decoded.iat) {
+        const invalidatedAtSeconds = Math.floor(new Date(activeUser.sessions_invalidated_at).getTime() / 1000);
+        if (decoded.iat < invalidatedAtSeconds) {
+          return res.status(401).json({
+            success: false,
+            code: 'SESSION_REVOKED',
+            message: 'Session has been revoked. Please login again.'
+          });
+        }
       }
     }
 

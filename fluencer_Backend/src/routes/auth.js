@@ -15,6 +15,7 @@ import {
 } from '../utils/auth.js';
 import { sendOTPEmail } from '../config/mailer.js';
 import authMiddleware from '../middleware/auth.js';
+import { executeCompleteAccountDeletion } from '../services/accountDeletionService.js';
 
 const router = express.Router();
 
@@ -630,54 +631,12 @@ router.delete('/delete-account', authMiddleware, async (req, res) => {
     const userId = req.user.userId || req.user.id;
     console.log('🗑️ Processing in-app account deletion request for user ID:', userId);
 
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User account not found'
-      });
+    const result = await executeCompleteAccountDeletion(userId, 'In-app user settings request');
+    if (!result.success) {
+      return res.status(result.message.includes('not found') ? 404 : 500).json(result);
     }
 
-    // 1. Delete associated profile
-    if (user.role === 'influencer') {
-      await InfluencerProfile.deleteMany({
-        $or: [{ user_id: user._id }, { user_id: user._id.toString() }]
-      });
-      console.log('✅ Influencer profile removed');
-    } else if (user.role === 'brand') {
-      await BrandProfile.deleteMany({
-        $or: [{ user_id: user._id }, { user_id: user._id.toString() }]
-      });
-      console.log('✅ Brand profile removed');
-    }
-
-    // 2. Cascade cleanup of personal collaboration applications
-    await Application.deleteMany({ influencer_id: user._id, status: { $in: ['pending', 'draft'] } });
-    await Application.updateMany(
-      { influencer_id: user._id },
-      { $set: { influencer_name: '[Deleted Account]', email: '', submission_notes: '[Redacted upon account deletion]' } }
-    );
-
-    // 3. Purge personal notifications
-    await Notification.deleteMany({ $or: [{ user_id: user._id }, { user_id: user._id.toString() }] });
-
-    // 4. Anonymize personal references in statutory tax payment records (preserve transactional audit trails)
-    await Payment.updateMany(
-      { $or: [{ userId: user._id }, { userId: user._id.toString() }] },
-      { $set: { user_email: '[Deleted]', customer_contact: '[Deleted]' } }
-    );
-
-    // 5. Clean up temporary OTPs
-    await OTP.deleteMany({ email: user.email });
-
-    // 6. Permanently remove primary user credential
-    await User.findByIdAndDelete(userId);
-    console.log('✅ User account permanently deleted:', user.email);
-
-    res.status(200).json({
-      success: true,
-      message: 'Account and associated personal data deleted successfully.'
-    });
+    res.status(200).json(result);
   } catch (error) {
     console.error('❌ Delete account error:', error);
     res.status(500).json({
@@ -711,16 +670,32 @@ router.post('/request-data-deletion', async (req, res) => {
     });
 
     if (user) {
+      // Rate limiting: check if an active OTP was created less than 60 seconds ago
+      const existingOtp = await OTP.findOne({ email: user.email, purpose: 'account_deletion' });
+      if (existingOtp && existingOtp.created_at) {
+        const secondsSinceCreation = (Date.now() - new Date(existingOtp.created_at).getTime()) / 1000;
+        if (secondsSinceCreation < 60) {
+          return res.status(429).json({
+            success: false,
+            message: `Please wait ${Math.ceil(60 - secondsSinceCreation)} seconds before requesting another verification code.`
+          });
+        }
+      }
+
       // Generate secure 6-digit OTP for identity verification
       const otp = generateOTP();
       const otpExpiry = generateOTPExpiry();
 
       await OTP.findOneAndUpdate(
-        { email: user.email },
+        { email: user.email, purpose: 'account_deletion' },
         { 
           email: user.email, 
           otp, 
-          expires_at: otpExpiry 
+          otp_expiry: otpExpiry,
+          purpose: 'account_deletion',
+          attempts: 0,
+          max_attempts: 5,
+          created_at: new Date()
         },
         { upsert: true, new: true }
       );
@@ -752,7 +727,7 @@ router.post('/request-data-deletion', async (req, res) => {
   }
 });
 
-// Step 2: Confirm Public Data Deletion with OTP Verification
+// Step 2: Confirm Public Data Deletion with OTP Verification & Cascade Cleanup
 router.post('/confirm-data-deletion', async (req, res) => {
   try {
     const { email, phone, otp } = req.body;
@@ -780,15 +755,16 @@ router.post('/confirm-data-deletion', async (req, res) => {
       });
     }
 
-    const otpRecord = await OTP.findOne({ email: user.email, otp: cleanOtp });
+    const otpRecord = await OTP.findOne({ email: user.email, purpose: 'account_deletion' });
     if (!otpRecord) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid verification code. Please check and try again.'
+        message: 'No pending verification request found. Please request a new code.'
       });
     }
 
-    if (isOTPExpired(otpRecord.expires_at)) {
+    // Check expiry
+    if (isOTPExpired(otpRecord.otp_expiry)) {
       await OTP.deleteOne({ _id: otpRecord._id });
       return res.status(400).json({
         success: false,
@@ -796,35 +772,38 @@ router.post('/confirm-data-deletion', async (req, res) => {
       });
     }
 
-    // Verified ownership: execute full cascade deletion
-    if (user.role === 'influencer') {
-      await InfluencerProfile.deleteMany({
-        $or: [{ user_id: user._id }, { user_id: user._id.toString() }]
-      });
-    } else if (user.role === 'brand') {
-      await BrandProfile.deleteMany({
-        $or: [{ user_id: user._id }, { user_id: user._id.toString() }]
+    // Check rate-limited attempts
+    if (otpRecord.attempts >= (otpRecord.max_attempts || 5)) {
+      await OTP.deleteOne({ _id: otpRecord._id });
+      return res.status(429).json({
+        success: false,
+        message: 'Too many incorrect attempts. This code has been invalidated for security. Please request a new code.'
       });
     }
 
-    await Application.deleteMany({ influencer_id: user._id, status: { $in: ['pending', 'draft'] } });
-    await Application.updateMany(
-      { influencer_id: user._id },
-      { $set: { influencer_name: '[Deleted Account]', email: '', submission_notes: '[Redacted upon account deletion]' } }
-    );
-    await Notification.deleteMany({ $or: [{ user_id: user._id }, { user_id: user._id.toString() }] });
-    await Payment.updateMany(
-      { $or: [{ userId: user._id }, { userId: user._id.toString() }] },
-      { $set: { user_email: '[Deleted]', customer_contact: '[Deleted]' } }
-    );
-    await OTP.deleteMany({ email: user.email });
-    await User.findByIdAndDelete(user._id);
+    // Validate code
+    if (otpRecord.otp !== cleanOtp) {
+      otpRecord.attempts = (otpRecord.attempts || 0) + 1;
+      await otpRecord.save();
+      const remaining = (otpRecord.max_attempts || 5) - otpRecord.attempts;
+      return res.status(400).json({
+        success: false,
+        message: `Invalid verification code. ${remaining} attempt(s) remaining.`
+      });
+    }
 
-    console.log('✅ External verified deletion completed for:', user.email);
+    // OTP matched: execute unified cascade deletion
+    const deletionResult = await executeCompleteAccountDeletion(user._id, 'Public web verified deletion request');
+    if (!deletionResult.success) {
+      return res.status(500).json(deletionResult);
+    }
+
+    // Remove the OTP record upon successful deletion
+    await OTP.deleteOne({ _id: otpRecord._id });
 
     res.status(200).json({
       success: true,
-      message: 'Your account and associated personal data have been permanently removed.'
+      message: 'Your account and all associated personal data have been permanently deleted.'
     });
   } catch (error) {
     console.error('❌ External deletion confirmation error:', error);
