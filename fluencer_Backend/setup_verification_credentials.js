@@ -1,20 +1,34 @@
+import dotenv from 'dotenv';
+dotenv.config();
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
 
-const MONGODB_URI = 'mongodb+srv://vizdigitalofficial_db_user:ZNe3TyS3aKexS17u@fluencer01.vfpqbe9.mongodb.net/fluencer01?retryWrites=true&w=majority&appName=fluencer01';
+const MONGODB_URI = process.env.MONGODB_URI;
 
 async function setupVerificationAccounts() {
   try {
+    if (!MONGODB_URI) {
+      console.error('❌ Error: MONGODB_URI environment variable is not defined.');
+      process.exit(1);
+    }
+
+    const reviewerPassword = process.env.REVIEWER_PASSWORD;
+    if (!reviewerPassword || reviewerPassword.length < 12) {
+      console.error('❌ Error: REVIEWER_PASSWORD environment variable must be set with at least 12 characters.');
+      console.error('   Usage: REVIEWER_PASSWORD="YourStrongPassword123!" node setup_verification_credentials.js');
+      process.exit(1);
+    }
+
     await mongoose.connect(MONGODB_URI);
-    console.log('Connected to MongoDB Atlas...');
+    console.log('📡 Connected to MongoDB Atlas...');
 
     const User = mongoose.connection.collection('users');
     const InfluencerProfile = mongoose.connection.collection('influencerprofiles');
     const BrandProfile = mongoose.connection.collection('brandprofiles');
 
-    const hashedPassword = await bcrypt.hash('Test@123', 10);
+    const hashedPassword = await bcrypt.hash(reviewerPassword, 12);
 
-    // 1. Setup Influencer Account
+    // 1. Setup Influencer Reviewer Account
     let creator = await User.findOne({ email: 'creator@fluencer.app' });
     if (!creator) {
       const res = await User.insertOne({
@@ -33,7 +47,7 @@ async function setupVerificationAccounts() {
     if (!cProfile) {
       await InfluencerProfile.insertOne({
         user_id: creator._id,
-        name: 'Ananya Sharma',
+        name: 'Ananya Sharma (Demo Creator)',
         niche: 'Fashion & Lifestyle',
         location: 'Mumbai, Maharashtra',
         phone: '+91 9876543210',
@@ -51,7 +65,7 @@ async function setupVerificationAccounts() {
       );
     }
 
-    // 2. Setup Brand Account
+    // 2. Setup Brand Reviewer Account
     let brand = await User.findOne({ email: 'krishna@fluencer.app' });
     if (!brand) {
       const res = await User.insertOne({
@@ -70,21 +84,23 @@ async function setupVerificationAccounts() {
     if (!bProfile) {
       await BrandProfile.insertOne({
         user_id: brand._id,
-        company_name: 'Krishna Private Limited',
-        category: 'Fashion & Luxury Apparel',
-        address: 'Bandra West, Mumbai',
+        brand_name: 'UrbanStyle Co.',
+        category: 'Fashion & Apparel',
+        location: 'Bengaluru, India',
+        phone: '+91 9123456780',
         wallet_balance: 50000,
-        escrow_balance: 0,
+        escrow_balance: 15000,
+        campaigns_count: 4,
         created_at: new Date()
       });
     } else {
       await BrandProfile.updateOne(
         { _id: bProfile._id },
-        { $set: { user_id: brand._id } }
+        { $set: { user_id: brand._id, wallet_balance: 50000 } }
       );
     }
 
-    // 3. Setup Influencer Account (testinfluencer@fluncer.com)
+    // 3. Setup Secondary Reviewer Creator
     let testInfluencer = await User.findOne({ email: 'testinfluencer@fluncer.com' });
     if (!testInfluencer) {
       const res = await User.insertOne({
@@ -103,10 +119,10 @@ async function setupVerificationAccounts() {
     if (!tiProfile) {
       await InfluencerProfile.insertOne({
         user_id: testInfluencer._id,
-        name: 'Demo Influencer',
-        niche: 'Fashion & Lifestyle',
-        location: 'Mumbai, Maharashtra',
-        phone: '+91 9876543211',
+        name: 'Rohan Verma (Demo Influencer)',
+        niche: 'Fitness & Health',
+        location: 'Delhi, India',
+        phone: '+91 9988776655',
         wallet_balance: 0,
         escrow_balance: 0,
         followers_count: 15000,
@@ -121,7 +137,7 @@ async function setupVerificationAccounts() {
       );
     }
 
-    // 4. Setup Brand Account (testbrand@fluncer.com)
+    // 4. Setup Secondary Reviewer Brand
     let testBrand = await User.findOne({ email: 'testbrand@fluncer.com' });
     if (!testBrand) {
       const res = await User.insertOne({
@@ -140,11 +156,13 @@ async function setupVerificationAccounts() {
     if (!tbProfile) {
       await BrandProfile.insertOne({
         user_id: testBrand._id,
-        company_name: 'Demo Brand Company',
-        category: 'Fashion & Apparel',
-        address: 'Mumbai, Maharashtra',
+        brand_name: 'PureGlow Organics',
+        category: 'Beauty & Skincare',
+        location: 'Mumbai, India',
+        phone: '+91 9876501234',
         wallet_balance: 50000,
         escrow_balance: 0,
+        campaigns_count: 2,
         created_at: new Date()
       });
     } else {
@@ -155,21 +173,17 @@ async function setupVerificationAccounts() {
     }
 
     console.log('\n=============================================================');
-    console.log('🎉 VERIFICATION ACCOUNTS SETUP COMPLETE!');
-    console.log('   1. CREATOR ACCOUNT:');
+    console.log('🎉 REVIEWER DEMO ACCOUNTS UPDATED SUCCESSFULLY!');
+    console.log('   1. CREATOR ACCOUNT (Pro Pass Pre-Unlocked):');
     console.log('      - Email: creator@fluencer.app');
-    console.log('      - Password: Test@123');
-    console.log('   2. BRAND ACCOUNT:');
+    console.log('      - Password: [CONFIGURED VIA REVIEWER_PASSWORD]');
+    console.log('   2. BRAND ACCOUNT (Active Wallet Balance):');
     console.log('      - Email: krishna@fluencer.app');
-    console.log('      - Password: Test@123');
-    console.log('   3. MASTER ADMIN CONTROL PANEL:');
-    console.log('      - Link: https://fluencer-app.onrender.com/admin');
-    console.log('      - Email: admin@fluencer.app');
-    console.log('      - Password: Admin@123');
+    console.log('      - Password: [CONFIGURED VIA REVIEWER_PASSWORD]');
     console.log('=============================================================\n');
 
   } catch (err) {
-    console.error('Error setting up verification accounts:', err);
+    console.error('❌ Error setting up verification accounts:', err);
   } finally {
     await mongoose.disconnect();
   }

@@ -20,7 +20,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS } from '../../constants/colors';
 import { getAuthHeader, storage } from '../../utils/storage';
 import { getApiUrl } from '../../constants/api';
-import { initiatePayment } from '../../utils/payment';
+import { purchaseProPass, restorePurchases } from '../../utils/nativeBilling';
 import WaveHeader from '../../components/WaveHeader';
 import { StaggerItem, SlideUp, PressScale } from '../../components/motion';
 
@@ -61,58 +61,39 @@ export default function LikedBrands() {
   };
 
   const handleUnlockProPass = () => {
+    if (unlockingPro) return;
     setUnlockingPro(true);
-    initiatePayment({
-      amount: 499,
-      description: '₹499 Pro Membership Pass - Unlock Liked Brands & Campaigns',
-      onSuccess: async (payRes) => {
-        try {
-          const headers = await getAuthHeader();
-          await fetch(getApiUrl('/api/influencers/unlock-pass'), {
-            method: 'POST',
-            headers: { ...headers, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ paymentId: payRes?.paymentId })
-          });
-        } catch (err) {
-          console.warn('Unlock pass API warning:', err);
-        }
+    purchaseProPass({
+      onStart: () => setUnlockingPro(true),
+      onSuccess: async (res) => {
         setIsProMember(true);
         setUnlockingPro(false);
         loadLikedBrands();
       },
-      onFailure: (err) => {
+      onError: (err) => {
         setUnlockingPro(false);
-      }
+        console.warn('Purchase error/blocked:', err);
+      },
     });
-    setTimeout(() => setUnlockingPro(false), 500);
   };
 
-  const handleDirectProUnlock = async () => {
+  const handleRestorePurchases = async () => {
+    if (unlockingPro) return;
     setUnlockingPro(true);
-    try {
-      const headers = await getAuthHeader();
-      const res = await fetch(getApiUrl('/api/influencers/unlock-pass'), {
-        method: 'POST',
-        headers: { ...headers, 'Content-Type': 'application/json' },
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setIsProMember(true);
-        loadLikedBrands();
-        Alert.alert('🎉 Pro Pass Activated', 'Your ₹499 payment is confirmed! Liked brands unlocked.');
-      } else {
-        setIsProMember(false);
-        Alert.alert(
-          '❌ Payment Not Verified',
-          data.message || 'No completed ₹499 payment was found for your account. Please complete payment via Razorpay to unlock.'
-        );
-      }
-    } catch (err) {
-      console.warn('Direct unlock error:', err);
-      Alert.alert('Error', 'Could not verify payment status. Please try again.');
-    } finally {
-      setUnlockingPro(false);
-    }
+    await restorePurchases({
+      onStart: () => setUnlockingPro(true),
+      onSuccess: async (res) => {
+        setUnlockingPro(false);
+        if (res.isProMember) {
+          setIsProMember(true);
+          loadLikedBrands();
+        }
+      },
+      onError: (err) => {
+        setUnlockingPro(false);
+        console.warn('Restore error:', err);
+      },
+    });
   };
 
   const loadLikedBrands = async () => {
@@ -295,13 +276,13 @@ export default function LikedBrands() {
                   justifyContent: 'center',
                   gap: 8,
                 }}
-                onPress={handleDirectProUnlock}
+                onPress={handleRestorePurchases}
                 disabled={unlockingPro}
                 activeOpacity={0.7}
               >
-                <MaterialCommunityIcons name="refresh" size={18} color="#A855F7" />
+                <MaterialCommunityIcons name="history" size={18} color="#A855F7" />
                 <Text style={{ color: '#E2E8F0', fontSize: 13.5, fontWeight: '700' }}>
-                  Already Paid? Confirm & Unlock
+                  Restore Purchases
                 </Text>
               </TouchableOpacity>
           </View>

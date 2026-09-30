@@ -30,7 +30,6 @@ import { API, getApiUrl } from '../../constants/api';
 import WaveHeader from '../../components/WaveHeader';
 import { SlideInCard, SlideUp } from '../../components/motion';
 import { FALLBACK_INDIAN } from '../../constants/sampleImages';
-import { initiatePayment } from '../../utils/payment';
 import { purchaseProPass, restorePurchases } from '../../utils/nativeBilling';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
