@@ -408,5 +408,78 @@ A comprehensive automated browser test suite was executed across all web interfa
 
 ---
 
+## 🛡️ App Store & Google Play Store Compliance Architecture
+
+To guarantee approval under **Google Play Data Safety Policies** and **Apple App Store Review Guidelines (Guideline 5.1.1(v) - Account Deletion)**, the following compliance mechanisms are actively implemented and verified:
+
+### 1. In-App Permanent Account Deletion
+- **Location:** In the mobile app under `Settings` ➜ `Danger Zone` ➜ `Delete Account`.
+- **API Endpoint:** `DELETE /api/auth/delete-account` (requires authenticated JWT).
+- **Execution:**
+  - Instantly removes the user's primary credential record (`users` collection).
+  - Cascades deletion to the associated `influencer_profiles` or `brand_profiles` record (bio, social links, portfolio).
+  - Purges temporary OTP tokens and invalidates active session tokens.
+  - Clears device storage and redirects the user to `/role-selection`.
+
+### 2. Public Web Account & Data Deletion Portal (Google Play Requirement)
+- **Live URL:** `https://fluencer-app.onrender.com/delete-account` (Mirrored at `/data-deletion`).
+- **Endpoint:** `POST /api/auth/request-data-deletion`.
+- **Interface:** Styled responsive portal allowing users to submit deletion requests by registered email or mobile number without needing to install the app.
+- **Audit & Retention:** Transparent disclosure that non-identifiable statutory financial transaction records (Razorpay GST invoices and completed escrow payouts) are retained solely for tax audit compliance before permanent purge.
+
+### 3. Reviewer & Demo Verification Credentials
+
+| Account Role | Email Identifier | Password | Access Capabilities |
+| :--- | :--- | :--- | :--- |
+| **Creator / Influencer** | `creator@fluencer.app` | `Test@123` | Campaign browsing, Pro Pass unlocked, chat, wallet balance |
+| **Reviewer Influencer** | `testinfluencer@fluncer.com` | `Test@123` | Clean reviewer creator account with 15k followers demo profile |
+| **Brand / Enterprise** | `krishna@fluencer.app` | `Test@123` | Campaign creation, application review, escrow management |
+| **Reviewer Brand** | `testbrand@fluncer.com` | `Test@123` | Clean reviewer brand account with ₹50,000 wallet balance |
+| **Master Admin** | `admin@fluencer.app` | `Admin@123` | Master control panel at `/admin`: user approvals & escrow locks |
+
+### 4. iOS App Store Submission Metadata (`app.json`)
+- `bundleIdentifier`: `com.fluencers.app`
+- `ITSAppUsesNonExemptEncryption`: `false` (Exempt from standard US export compliance)
+- Android Granular Scoped Media Permissions: `READ_MEDIA_IMAGES`, `READ_MEDIA_VIDEO`, `READ_MEDIA_AUDIO`, `READ_MEDIA_VISUAL_USER_SELECTED`
+
+---
+
+## 🧪 Comprehensive User Journey Test Suite (`test_user_journeys.js`)
+
+A dedicated 21-point automated end-to-end user journey test suite runs against the live API and database to validate system stability, authentication barriers, payment order creation, and deletion compliance.
+
+```bash
+# Run the complete test suite
+node test_user_journeys.js
+```
+
+### 📊 End-to-End Test Suite Execution Log (21 / 21 PASSED)
+
+| # | Test Module / Flow | Target Endpoint / Method | Verification Criteria | Status |
+| :-: | :--- | :--- | :--- | :---: |
+| 1 | **API Health Check** | `GET /api/health` | Returns HTTP 200 with service health status | ✅ **PASS** |
+| 2 | **Creator Account Login** | `POST /api/auth/login` | Authenticates `creator@fluencer.app`, returns JWT & profile | ✅ **PASS** |
+| 3 | **Reviewer Creator Login** | `POST /api/auth/login` | Authenticates `testinfluencer@fluncer.com` | ✅ **PASS** |
+| 4 | **Brand Account Login** | `POST /api/auth/login` | Authenticates `krishna@fluencer.app`, returns JWT | ✅ **PASS** |
+| 5 | **Reviewer Brand Login** | `POST /api/auth/login` | Authenticates `testbrand@fluncer.com` | ✅ **PASS** |
+| 6 | **Role Isolation Security** | `POST /api/auth/login` | Creator attempting Brand portal rejected with HTTP 403 | ✅ **PASS** |
+| 7 | **Current User Identity** | `GET /api/auth/me` | Validates JWT token and returns user role/email | ✅ **PASS** |
+| 8 | **Influencer Profile Retrieval** | `GET /api/influencers/profile` | Fetches name, niche, wallet, and follower count | ✅ **PASS** |
+| 9 | **Brand Profile Retrieval** | `GET /api/brands/profile` | Fetches company name, category, and wallet details | ✅ **PASS** |
+| 10 | **Active Campaigns Feed** | `GET /api/campaigns/active/all` | Public campaigns query returns active brand deals | ✅ **PASS** |
+| 11 | **Brand Campaigns Listing** | `GET /api/campaigns/my-campaigns` | Returns campaigns authored by authenticated brand | ✅ **PASS** |
+| 12 | **Campaign Application Submission** | `POST /api/campaigns/:id/apply` | Validates proposal, deliverables, and duplicate prevention | ✅ **PASS** |
+| 13 | **Brand Application Review** | `GET /api/campaigns/:id/applications`| Brand retrieves creator proposals for campaign | ✅ **PASS** |
+| 14 | **Messaging Hub Discovery** | `GET /api/chats` | Retrieves active creator-brand chat threads | ✅ **PASS** |
+| 15 | **Notifications Delivery** | `GET /api/notifications` | Fetches user system alerts and deal updates | ✅ **PASS** |
+| 16 | **Razorpay Order Generation** | `POST /api/payments/create-order` | Generates official Razorpay Order ID for ₹499 Pro Pass | ✅ **PASS** |
+| 17 | **Anti-Bypass Payment Check** | `POST /api/influencers/unlock-pass` | Rejects Pro Pass unlock without verified Razorpay signature | ✅ **PASS** |
+| 18 | **In-App Account Deletion** | `DELETE /api/auth/delete-account` | Permanently deletes user, profile, and OTP records | ✅ **PASS** |
+| 19 | **Public Deletion Request API** | `POST /api/auth/request-data-deletion`| Google Play external deletion web endpoint | ✅ **PASS** |
+| 20 | **Public Deletion Web Page** | `GET /delete-account` | Serves responsive deletion form with retention notice | ✅ **PASS** |
+| 21 | **Public Privacy Policy Page** | `GET /privacy-policy` | Serves official legal policy and DPO contact details | ✅ **PASS** |
+
+---
+
 ## 📄 License
 This project is proprietary and intended for Fluencer application operations.

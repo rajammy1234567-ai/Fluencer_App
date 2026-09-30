@@ -615,4 +615,104 @@ router.post('/reset-password', async (req, res) => {
   }
 });
 
+// Delete Account (In-App Account Deletion - Apple Guideline 5.1.1(v) & Google Play Compliance)
+router.delete('/delete-account', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.userId || req.user.id;
+    console.log('🗑️ Processing account deletion request for user ID:', userId);
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User account not found'
+      });
+    }
+
+    // Delete associated profile
+    if (user.role === 'influencer') {
+      await InfluencerProfile.deleteMany({
+        $or: [{ user_id: user._id }, { user_id: user._id.toString() }]
+      });
+      console.log('✅ Influencer profile removed');
+    } else if (user.role === 'brand') {
+      await BrandProfile.deleteMany({
+        $or: [{ user_id: user._id }, { user_id: user._id.toString() }]
+      });
+      console.log('✅ Brand profile removed');
+    }
+
+    // Clean up temporary OTPs
+    await OTP.deleteMany({ email: user.email });
+
+    // Permanently remove user credential
+    await User.findByIdAndDelete(userId);
+    console.log('✅ User account permanently deleted:', user.email);
+
+    res.status(200).json({
+      success: true,
+      message: 'Account and associated personal data deleted successfully.'
+    });
+  } catch (error) {
+    console.error('❌ Delete account error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete account',
+      error: error.message
+    });
+  }
+});
+
+// Public Account & Data Deletion Request (Google Play External URL requirement)
+router.post('/request-data-deletion', async (req, res) => {
+  try {
+    const { email, phone, reason } = req.body;
+    const identifier = (email || phone || '').trim().toLowerCase();
+
+    if (!identifier) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email address or phone number is required.'
+      });
+    }
+
+    console.log('📝 External data deletion request received for:', identifier, 'Reason:', reason);
+
+    // Find and delete account if verified or queue for audit processing
+    const user = await User.findOne({
+      $or: [
+        { email: identifier },
+        { phone: identifier }
+      ]
+    });
+
+    if (user) {
+      if (user.role === 'influencer') {
+        await InfluencerProfile.deleteMany({
+          $or: [{ user_id: user._id }, { user_id: user._id.toString() }]
+        });
+      } else if (user.role === 'brand') {
+        await BrandProfile.deleteMany({
+          $or: [{ user_id: user._id }, { user_id: user._id.toString() }]
+        });
+      }
+      await OTP.deleteMany({ email: user.email });
+      await User.findByIdAndDelete(user._id);
+      console.log('✅ External deletion processed for:', identifier);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Your deletion request has been processed. Account and associated personal data have been removed.'
+    });
+  } catch (error) {
+    console.error('❌ External deletion request error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to process deletion request',
+      error: error.message
+    });
+  }
+});
+
 export default router;

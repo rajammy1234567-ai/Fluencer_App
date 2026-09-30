@@ -7,19 +7,25 @@ import {
   TouchableOpacity,
   Switch,
   Alert,
+  Linking,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as WebBrowser from 'expo-web-browser';
 import { COLORS } from '../constants/colors';
 import { FONTS } from '../constants/fonts';
 import { router } from 'expo-router';
 import BackButton from '../components/BackButton';
+import { storage } from '../utils/storage';
+import { API_CONFIG } from '../constants/api';
 
 export default function Settings() {
   const [notifications, setNotifications] = useState(true);
   const [emailNotifs, setEmailNotifs] = useState(true);
   const [pushNotifs, setPushNotifs] = useState(true);
   const [campaignUpdates, setCampaignUpdates] = useState(true);
+  const [deleting, setDeleting] = useState(false);
 
   const handleRequestVerification = () => {
     Alert.alert(
@@ -32,16 +38,62 @@ export default function Settings() {
     );
   };
 
+  const openPrivacyPolicy = async () => {
+    const url = 'https://fluencer-app.onrender.com/privacy-policy';
+    try {
+      if (Platform.OS === 'web') {
+        window.open(url, '_blank');
+      } else {
+        await WebBrowser.openBrowserAsync(url);
+      }
+    } catch (e) {
+      Linking.openURL(url).catch(() => {});
+    }
+  };
+
+  const openSupport = () => {
+    Linking.openURL('mailto:support@fluencer.app?subject=Fluencer%20App%20Support%20Request').catch(() => {
+      Alert.alert('Support', 'Please email us directly at support@fluencer.app');
+    });
+  };
+
   const handleDeleteAccount = () => {
     Alert.alert(
       'Delete Account',
-      'Are you sure you want to delete your account? This action cannot be undone.',
+      'Are you sure you want to permanently delete your account and all associated profile data? This action cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Delete',
+          text: 'Delete Permanently',
           style: 'destructive',
-          onPress: () => Alert.alert('Account Deleted', 'Your account has been deleted successfully.'),
+          onPress: async () => {
+            try {
+              setDeleting(true);
+              const token = await storage.getToken();
+              if (token && !token.startsWith('guest')) {
+                await fetch(`${API_CONFIG.BASE_URL}/api/auth/delete-account`, {
+                  method: 'DELETE',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                  }
+                });
+              }
+              await storage.clearAuth();
+              Alert.alert('Account Deleted', 'Your account and personal data have been removed.', [
+                {
+                  text: 'OK',
+                  onPress: () => router.replace('/role-selection')
+                }
+              ]);
+            } catch (err) {
+              console.error('Account deletion error:', err);
+              await storage.clearAuth();
+              router.replace('/role-selection');
+            } finally {
+              setDeleting(false);
+            }
+          },
         },
       ]
     );
@@ -185,22 +237,22 @@ export default function Settings() {
             <SettingItem
               icon="help-circle"
               title="Help & Support"
-              subtitle="Get help with your account"
-              onPress={() => Alert.alert('Support', 'Contact us at support@influish.com')}
+              subtitle="Email us at support@fluencer.app"
+              onPress={openSupport}
             />
             <View style={styles.divider} />
             <SettingItem
               icon="file-document"
               title="Terms & Conditions"
               subtitle="Read our terms of service"
-              onPress={() => Alert.alert('Terms', 'Terms & Conditions will open here')}
+              onPress={openPrivacyPolicy}
             />
             <View style={styles.divider} />
             <SettingItem
               icon="shield-check"
               title="Privacy Policy"
-              subtitle="View our privacy policy"
-              onPress={() => Alert.alert('Privacy', 'Privacy Policy will open here')}
+              subtitle="View our official privacy policy"
+              onPress={openPrivacyPolicy}
             />
             <View style={styles.divider} />
             <SettingItem

@@ -84,6 +84,76 @@ async function setupVerificationAccounts() {
       );
     }
 
+    // 3. Setup Influencer Account (testinfluencer@fluncer.com)
+    let testInfluencer = await User.findOne({ email: 'testinfluencer@fluncer.com' });
+    if (!testInfluencer) {
+      const res = await User.insertOne({
+        email: 'testinfluencer@fluncer.com',
+        password: hashedPassword,
+        role: 'influencer',
+        is_verified: true,
+        created_at: new Date()
+      });
+      testInfluencer = { _id: res.insertedId };
+    } else {
+      await User.updateOne({ _id: testInfluencer._id }, { $set: { password: hashedPassword, is_verified: true } });
+    }
+
+    let tiProfile = await InfluencerProfile.findOne({ $or: [{ user_id: testInfluencer._id }, { user_id: testInfluencer._id.toString() }] });
+    if (!tiProfile) {
+      await InfluencerProfile.insertOne({
+        user_id: testInfluencer._id,
+        name: 'Demo Influencer',
+        niche: 'Fashion & Lifestyle',
+        location: 'Mumbai, Maharashtra',
+        phone: '+91 9876543211',
+        wallet_balance: 0,
+        escrow_balance: 0,
+        followers_count: 15000,
+        is_pro_member: true,
+        pro_unlocked_at: new Date(),
+        created_at: new Date()
+      });
+    } else {
+      await InfluencerProfile.updateOne(
+        { _id: tiProfile._id },
+        { $set: { user_id: testInfluencer._id, is_pro_member: true, pro_unlocked_at: new Date() } }
+      );
+    }
+
+    // 4. Setup Brand Account (testbrand@fluncer.com)
+    let testBrand = await User.findOne({ email: 'testbrand@fluncer.com' });
+    if (!testBrand) {
+      const res = await User.insertOne({
+        email: 'testbrand@fluncer.com',
+        password: hashedPassword,
+        role: 'brand',
+        is_verified: true,
+        created_at: new Date()
+      });
+      testBrand = { _id: res.insertedId };
+    } else {
+      await User.updateOne({ _id: testBrand._id }, { $set: { password: hashedPassword, is_verified: true } });
+    }
+
+    let tbProfile = await BrandProfile.findOne({ $or: [{ user_id: testBrand._id }, { user_id: testBrand._id.toString() }] });
+    if (!tbProfile) {
+      await BrandProfile.insertOne({
+        user_id: testBrand._id,
+        company_name: 'Demo Brand Company',
+        category: 'Fashion & Apparel',
+        address: 'Mumbai, Maharashtra',
+        wallet_balance: 50000,
+        escrow_balance: 0,
+        created_at: new Date()
+      });
+    } else {
+      await BrandProfile.updateOne(
+        { _id: tbProfile._id },
+        { $set: { user_id: testBrand._id } }
+      );
+    }
+
     console.log('\n=============================================================');
     console.log('🎉 VERIFICATION ACCOUNTS SETUP COMPLETE!');
     console.log('   1. CREATOR ACCOUNT:');

@@ -36,6 +36,7 @@ app.use(express.urlencoded({ extended: true }));
 
 import { getAdminPageContent } from './adminHtml.js';
 import { getPrivacyPageContent } from './privacyHtml.js';
+import { getDeletionPageContent } from './deletionHtml.js';
 
 // Static files (Web App and Uploads)
 const webDistPath = path.join(__dirname, '../public/web');
@@ -69,6 +70,12 @@ app.get(['/download-apk', '/fluencer.apk', '/apk', '/download'], (req, res) => {
 app.get(['/admin', '/admin/'], (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=UTF-8');
   return res.status(200).send(getAdminPageContent());
+});
+
+// Serve Public Data & Account Deletion Page (Google Play Store & Apple Compliance)
+app.get(['/delete-account', '/delete-account/', '/data-deletion', '/data-deletion/'], (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=UTF-8');
+  return res.status(200).send(getDeletionPageContent());
 });
 
 // CRITICAL: Ensure API responses are JSON by default

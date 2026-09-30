@@ -215,7 +215,14 @@ router.get('/profile', authMiddleware, async (req, res) => {
     const totalCollabs = await Application.countDocuments({ brand_id: userId, status: { $in: ['accepted', 'completed', 'escrow_locked'] } });
 
     res.status(200).json({
+      success: true,
       ...profile,
+      profile: {
+        ...profile,
+        id: profile._id.toString(),
+        companyName: profile.company_name,
+        email: user ? user.email : ''
+      },
       id: profile._id.toString(),
       email: user ? user.email : '',
       total_campaigns: totalCampaigns,
