@@ -4,6 +4,9 @@ import User from '../models/User.js';
 import OTP from '../models/OTP.js';
 import InfluencerProfile from '../models/InfluencerProfile.js';
 import BrandProfile from '../models/BrandProfile.js';
+import Application from '../models/Application.js';
+import Notification from '../models/Notification.js';
+import Payment from '../models/Payment.js';
 import { 
   generateOTP, 
   generateToken, 
@@ -406,25 +409,31 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Admin Login (temporary hardcoded credentials for MVP)
+// Admin Login (Authenticated via secure environment variables)
 router.post('/admin/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     console.log('🔐 Admin login attempt for email:', email);
 
     if (!email || !password) {
-      console.log('❌ Missing email or password');
       return res.status(400).json({ 
         success: false, 
         message: 'Email and password are required' 
       });
     }
 
-    // Temporary admin credentials for MVP
-    const ADMIN_EMAIL = 'admin@fluencer.app';
-    const ADMIN_PASSWORD = 'Admin@123';
+    const ADMIN_EMAIL = process.env.ADMIN_EMAIL ? process.env.ADMIN_EMAIL.trim().toLowerCase() : null;
+    const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ? process.env.ADMIN_PASSWORD.trim() : null;
 
-    if (email.trim() === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+    if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
+      console.error('❌ Admin login rejected: ADMIN_EMAIL and ADMIN_PASSWORD environment variables are not configured');
+      return res.status(503).json({
+        success: false,
+        message: 'Admin authentication is currently disabled. Server administrator must configure credentials in environment variables.'
+      });
+    }
+
+    if (email.trim().toLowerCase() === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
       // Generate JWT token for admin with role 'admin'
       const token = generateToken('admin_user_id_1', 'admin');
       console.log('✅ Admin login successful, token generated');
@@ -619,7 +628,7 @@ router.post('/reset-password', async (req, res) => {
 router.delete('/delete-account', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.userId || req.user.id;
-    console.log('🗑️ Processing account deletion request for user ID:', userId);
+    console.log('🗑️ Processing in-app account deletion request for user ID:', userId);
 
     const user = await User.findById(userId);
     if (!user) {
@@ -629,7 +638,7 @@ router.delete('/delete-account', authMiddleware, async (req, res) => {
       });
     }
 
-    // Delete associated profile
+    // 1. Delete associated profile
     if (user.role === 'influencer') {
       await InfluencerProfile.deleteMany({
         $or: [{ user_id: user._id }, { user_id: user._id.toString() }]
@@ -642,10 +651,26 @@ router.delete('/delete-account', authMiddleware, async (req, res) => {
       console.log('✅ Brand profile removed');
     }
 
-    // Clean up temporary OTPs
+    // 2. Cascade cleanup of personal collaboration applications
+    await Application.deleteMany({ influencer_id: user._id, status: { $in: ['pending', 'draft'] } });
+    await Application.updateMany(
+      { influencer_id: user._id },
+      { $set: { influencer_name: '[Deleted Account]', email: '', submission_notes: '[Redacted upon account deletion]' } }
+    );
+
+    // 3. Purge personal notifications
+    await Notification.deleteMany({ $or: [{ user_id: user._id }, { user_id: user._id.toString() }] });
+
+    // 4. Anonymize personal references in statutory tax payment records (preserve transactional audit trails)
+    await Payment.updateMany(
+      { $or: [{ userId: user._id }, { userId: user._id.toString() }] },
+      { $set: { user_email: '[Deleted]', customer_contact: '[Deleted]' } }
+    );
+
+    // 5. Clean up temporary OTPs
     await OTP.deleteMany({ email: user.email });
 
-    // Permanently remove user credential
+    // 6. Permanently remove primary user credential
     await User.findByIdAndDelete(userId);
     console.log('✅ User account permanently deleted:', user.email);
 
@@ -663,7 +688,7 @@ router.delete('/delete-account', authMiddleware, async (req, res) => {
   }
 });
 
-// Public Account & Data Deletion Request (Google Play External URL requirement)
+// Step 1: Public Account & Data Deletion Request (Requires Identity Verification - Prevents Unauthorized Deletion)
 router.post('/request-data-deletion', async (req, res) => {
   try {
     const { email, phone, reason } = req.body;
@@ -672,13 +697,12 @@ router.post('/request-data-deletion', async (req, res) => {
     if (!identifier) {
       return res.status(400).json({
         success: false,
-        message: 'Email address or phone number is required.'
+        message: 'A valid email address or registered mobile number is required.'
       });
     }
 
     console.log('📝 External data deletion request received for:', identifier, 'Reason:', reason);
 
-    // Find and delete account if verified or queue for audit processing
     const user = await User.findOne({
       $or: [
         { email: identifier },
@@ -687,29 +711,126 @@ router.post('/request-data-deletion', async (req, res) => {
     });
 
     if (user) {
-      if (user.role === 'influencer') {
-        await InfluencerProfile.deleteMany({
-          $or: [{ user_id: user._id }, { user_id: user._id.toString() }]
-        });
-      } else if (user.role === 'brand') {
-        await BrandProfile.deleteMany({
-          $or: [{ user_id: user._id }, { user_id: user._id.toString() }]
-        });
-      }
-      await OTP.deleteMany({ email: user.email });
-      await User.findByIdAndDelete(user._id);
-      console.log('✅ External deletion processed for:', identifier);
+      // Generate secure 6-digit OTP for identity verification
+      const otp = generateOTP();
+      const otpExpiry = generateOTPExpiry();
+
+      await OTP.findOneAndUpdate(
+        { email: user.email },
+        { 
+          email: user.email, 
+          otp, 
+          expires_at: otpExpiry 
+        },
+        { upsert: true, new: true }
+      );
+
+      // Dispatch verification code to registered email address
+      await sendOTPEmail(user.email, otp);
+      console.log('✉️ Deletion verification OTP dispatched to:', user.email);
+
+      return res.status(200).json({
+        success: true,
+        requiresVerification: true,
+        message: 'A 6-digit verification code has been dispatched to your registered email address. Please enter the code to confirm deletion.'
+      });
     }
 
+    // Generic privacy-preserving message to prevent account enumeration
     res.status(200).json({
       success: true,
-      message: 'Your deletion request has been processed. Account and associated personal data have been removed.'
+      requiresVerification: false,
+      message: 'If an active account is associated with this contact, a verification code has been dispatched to confirm deletion.'
     });
   } catch (error) {
     console.error('❌ External deletion request error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to process deletion request',
+      error: error.message
+    });
+  }
+});
+
+// Step 2: Confirm Public Data Deletion with OTP Verification
+router.post('/confirm-data-deletion', async (req, res) => {
+  try {
+    const { email, phone, otp } = req.body;
+    const identifier = (email || phone || '').trim().toLowerCase();
+    const cleanOtp = (otp || '').trim();
+
+    if (!identifier || !cleanOtp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Identifier and 6-digit verification code are required.'
+      });
+    }
+
+    const user = await User.findOne({
+      $or: [
+        { email: identifier },
+        { phone: identifier }
+      ]
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User account not found.'
+      });
+    }
+
+    const otpRecord = await OTP.findOne({ email: user.email, otp: cleanOtp });
+    if (!otpRecord) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid verification code. Please check and try again.'
+      });
+    }
+
+    if (isOTPExpired(otpRecord.expires_at)) {
+      await OTP.deleteOne({ _id: otpRecord._id });
+      return res.status(400).json({
+        success: false,
+        message: 'Verification code has expired. Please request a new one.'
+      });
+    }
+
+    // Verified ownership: execute full cascade deletion
+    if (user.role === 'influencer') {
+      await InfluencerProfile.deleteMany({
+        $or: [{ user_id: user._id }, { user_id: user._id.toString() }]
+      });
+    } else if (user.role === 'brand') {
+      await BrandProfile.deleteMany({
+        $or: [{ user_id: user._id }, { user_id: user._id.toString() }]
+      });
+    }
+
+    await Application.deleteMany({ influencer_id: user._id, status: { $in: ['pending', 'draft'] } });
+    await Application.updateMany(
+      { influencer_id: user._id },
+      { $set: { influencer_name: '[Deleted Account]', email: '', submission_notes: '[Redacted upon account deletion]' } }
+    );
+    await Notification.deleteMany({ $or: [{ user_id: user._id }, { user_id: user._id.toString() }] });
+    await Payment.updateMany(
+      { $or: [{ userId: user._id }, { userId: user._id.toString() }] },
+      { $set: { user_email: '[Deleted]', customer_contact: '[Deleted]' } }
+    );
+    await OTP.deleteMany({ email: user.email });
+    await User.findByIdAndDelete(user._id);
+
+    console.log('✅ External verified deletion completed for:', user.email);
+
+    res.status(200).json({
+      success: true,
+      message: 'Your account and associated personal data have been permanently removed.'
+    });
+  } catch (error) {
+    console.error('❌ External deletion confirmation error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to complete deletion confirmation',
       error: error.message
     });
   }

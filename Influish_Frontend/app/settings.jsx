@@ -71,13 +71,21 @@ export default function Settings() {
               setDeleting(true);
               const token = await storage.getToken();
               if (token && !token.startsWith('guest')) {
-                await fetch(`${API_CONFIG.BASE_URL}/api/auth/delete-account`, {
+                const res = await fetch(`${API_CONFIG.BASE_URL}/api/auth/delete-account`, {
                   method: 'DELETE',
                   headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                   }
                 });
+                const json = await res.json().catch(() => ({}));
+                if (!res.ok || !json.success) {
+                  Alert.alert(
+                    'Deletion Failed',
+                    json.message || 'Unable to delete account at this time. Please contact support@fluencer.app'
+                  );
+                  return;
+                }
               }
               await storage.clearAuth();
               Alert.alert('Account Deleted', 'Your account and personal data have been removed.', [
@@ -88,8 +96,10 @@ export default function Settings() {
               ]);
             } catch (err) {
               console.error('Account deletion error:', err);
-              await storage.clearAuth();
-              router.replace('/role-selection');
+              Alert.alert(
+                'Network Error',
+                'Unable to reach server to complete account deletion. Please verify your internet connection and try again.'
+              );
             } finally {
               setDeleting(false);
             }

@@ -4,8 +4,19 @@
 // - For Android Emulator: Use 'http://10.0.2.2:3000'
 // - For iOS Simulator: Use 'http://localhost:3000'
 // - Current IP might be outdated - check console logs if APIs fail
+const getBaseUrl = () => {
+  const envUrl = process.env.EXPO_PUBLIC_API_URL;
+  if (typeof __DEV__ !== 'undefined' && !__DEV__) {
+    // In production/release builds, NEVER allow localhost or loopback IP
+    if (!envUrl || envUrl.includes('localhost') || envUrl.includes('127.0.0.1')) {
+      return 'https://fluencer-app.onrender.com';
+    }
+  }
+  return envUrl || 'https://fluencer-app.onrender.com';
+};
+
 export const API_CONFIG = {
-  BASE_URL: process.env.EXPO_PUBLIC_API_URL || 'https://fluencer-app.onrender.com', // Live Render production backend or local EXPO_PUBLIC_API_URL
+  BASE_URL: getBaseUrl(),
 
   // Endpoints for utils/api.js
   endpoints: {

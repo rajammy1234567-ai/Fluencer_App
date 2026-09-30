@@ -56,27 +56,40 @@ export function getDeletionPageContent() {
     </div>
 
     <form id="deletionForm">
-      <div class="form-group">
-        <label for="identifier">Registered Email Address or Mobile Number *</label>
-        <input type="text" id="identifier" name="identifier" required placeholder="e.g. creator@example.com or 9876543210">
+      <div id="step1">
+        <div class="form-group">
+          <label for="identifier">Registered Email Address or Mobile Number *</label>
+          <input type="text" id="identifier" name="identifier" required placeholder="e.g. creator@example.com or 9876543210">
+        </div>
+
+        <div class="form-group">
+          <label for="reason">Reason for Deletion (Optional)</label>
+          <select id="reason" name="reason">
+            <option value="No longer using the app">No longer using the app</option>
+            <option value="Privacy concerns">Privacy concerns</option>
+            <option value="Created alternative account">Created alternative account</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn" id="submitBtn">Send Verification Code</button>
       </div>
 
-      <div class="form-group">
-        <label for="reason">Reason for Deletion (Optional)</label>
-        <select id="reason" name="reason">
-          <option value="No longer using the app">No longer using the app</option>
-          <option value="Privacy concerns">Privacy concerns</option>
-          <option value="Created alternative account">Created alternative account</option>
-          <option value="Other">Other</option>
-        </select>
+      <div id="step2" style="display: none;">
+        <div class="form-group">
+          <label for="otp">6-Digit Verification Code *</label>
+          <input type="text" id="otp" name="otp" maxlength="6" placeholder="Enter 6-digit code sent to your email">
+          <p style="font-size: 0.8rem; color: #9ca3af; margin-top: 0.35rem;">To verify account ownership, please enter the one-time code dispatched to your registered address.</p>
+        </div>
+
+        <button type="button" class="btn" id="confirmBtn" style="background: linear-gradient(135deg, #dc2626, #ef4444);">Confirm Permanent Deletion</button>
       </div>
 
-      <button type="submit" class="btn" id="submitBtn">Submit Deletion Request</button>
       <div id="statusMessage" class="message"></div>
     </form>
 
     <div class="footer">
-      <p>Have questions? Contact our Data Protection Officer at <a href="mailto:support@fluencer.app">support@fluencer.app</a></p>
+      <p>Have questions? Contact our team at <a href="mailto:support@fluencer.app">support@fluencer.app</a></p>
       <p style="margin-top: 0.5rem;"><a href="/privacy-policy">View Privacy Policy</a> | <a href="/">Return to Home</a></p>
     </div>
   </div>
@@ -85,14 +98,18 @@ export function getDeletionPageContent() {
     const form = document.getElementById('deletionForm');
     const msg = document.getElementById('statusMessage');
     const btn = document.getElementById('submitBtn');
+    const confirmBtn = document.getElementById('confirmBtn');
+    const step1 = document.getElementById('step1');
+    const step2 = document.getElementById('step2');
+    let currentIdentifier = '';
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const identifier = document.getElementById('identifier').value.trim();
+      currentIdentifier = document.getElementById('identifier').value.trim();
       const reason = document.getElementById('reason').value;
 
       btn.disabled = true;
-      btn.textContent = 'Processing request...';
+      btn.textContent = 'Sending verification code...';
       msg.className = 'message';
       msg.textContent = '';
 
@@ -100,24 +117,65 @@ export function getDeletionPageContent() {
         const res = await fetch('/api/auth/request-data-deletion', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: identifier, phone: identifier, reason })
+          body: JSON.stringify({ email: currentIdentifier, phone: currentIdentifier, reason })
         });
         const data = await res.json();
 
         if (res.ok && data.success) {
           msg.className = 'message success';
-          msg.textContent = '✅ Your deletion request has been processed successfully. Your account and personal data have been removed.';
-          form.reset();
+          msg.textContent = '✉️ ' + (data.message || 'Verification code dispatched.');
+          if (data.requiresVerification) {
+            step1.style.display = 'none';
+            step2.style.display = 'block';
+          }
         } else {
           msg.className = 'message error';
           msg.textContent = '⚠️ ' + (data.message || 'Failed to submit deletion request.');
         }
       } catch (err) {
         msg.className = 'message error';
-        msg.textContent = '⚠️ Network error. Please try again or email support@fluencer.app directly.';
+        msg.textContent = '⚠️ Network error. Please try again or contact support.';
       } finally {
         btn.disabled = false;
-        btn.textContent = 'Submit Deletion Request';
+        btn.textContent = 'Send Verification Code';
+      }
+    });
+
+    confirmBtn.addEventListener('click', async () => {
+      const otp = document.getElementById('otp').value.trim();
+      if (!otp) {
+        msg.className = 'message error';
+        msg.textContent = '⚠️ Please enter the 6-digit verification code.';
+        return;
+      }
+
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'Verifying and deleting account...';
+      msg.className = 'message';
+      msg.textContent = '';
+
+      try {
+        const res = await fetch('/api/auth/confirm-data-deletion', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: currentIdentifier, phone: currentIdentifier, otp })
+        });
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          msg.className = 'message success';
+          msg.textContent = '✅ ' + (data.message || 'Account and personal data deleted successfully.');
+          step2.style.display = 'none';
+        } else {
+          msg.className = 'message error';
+          msg.textContent = '⚠️ ' + (data.message || 'Verification failed.');
+        }
+      } catch (err) {
+        msg.className = 'message error';
+        msg.textContent = '⚠️ Network error during confirmation. Please try again.';
+      } finally {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Confirm Permanent Deletion';
       }
     });
   </script>

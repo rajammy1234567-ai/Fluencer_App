@@ -1,7 +1,8 @@
 import { verifyToken } from '../utils/auth.js';
+import User from '../models/User.js';
 
 // CRITICAL: JWT Auth Middleware - ALWAYS returns JSON
-export const authMiddleware = (req, res, next) => {
+export const authMiddleware = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     
@@ -31,7 +32,7 @@ export const authMiddleware = (req, res, next) => {
       });
     }
 
-    // Verify token
+    // Verify token signature
     const decoded = verifyToken(token);
 
     if (!decoded) {
@@ -39,6 +40,18 @@ export const authMiddleware = (req, res, next) => {
         success: false, 
         message: 'Invalid or expired token. Please login again.' 
       });
+    }
+
+    // Check if user still exists in database (rejects deleted users and revoked sessions)
+    const userId = decoded.userId || decoded.id;
+    if (decoded.role !== 'admin' && userId && userId !== 'guest_user') {
+      const activeUser = await User.findById(userId).select('_id is_deleted');
+      if (!activeUser || activeUser.is_deleted) {
+        return res.status(401).json({
+          success: false,
+          message: 'Account no longer exists or session has been revoked. Please login or register again.'
+        });
+      }
     }
 
     // Attach user to request
