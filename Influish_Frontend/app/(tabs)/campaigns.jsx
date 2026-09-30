@@ -31,6 +31,7 @@ import WaveHeader from '../../components/WaveHeader';
 import { SlideInCard, SlideUp } from '../../components/motion';
 import { FALLBACK_INDIAN } from '../../constants/sampleImages';
 import { initiatePayment } from '../../utils/payment';
+import { purchaseProPass, restorePurchases } from '../../utils/nativeBilling';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -116,65 +117,39 @@ export default function InfluencerCampaigns() {
   const handleUnlockProPass = () => {
     if (unlockingPro) return;
     setUnlockingPro(true);
-    initiatePayment({
-      amount: 499,
-      description: '₹499 Pro Membership Pass - Unlimited Brand Campaign Access',
-      onSuccess: async (payRes) => {
-        try {
-          const headers = await getAuthHeader();
-          await fetch(getApiUrl('/api/influencers/unlock-pass'), {
-            method: 'POST',
-            headers: { ...headers, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ paymentId: payRes?.paymentId })
-          });
-        } catch (err) {
-          console.warn('Unlock pass API warning:', err);
-        }
+    purchaseProPass({
+      onStart: () => setUnlockingPro(true),
+      onSuccess: async (res) => {
         setIsProMember(true);
         setShowProModal(false);
         setUnlockingPro(false);
         await fetchCampaigns();
-        Alert.alert(
-          '🎉 Pro Membership Unlocked!',
-          'Your ₹499 payment is confirmed! You now have unlimited access to explore and apply to all brand campaigns.'
-        );
       },
-      onFailure: (err) => {
+      onError: (err) => {
         setUnlockingPro(false);
-        console.log('Payment cancelled/failed:', err);
-      }
+        console.warn('Purchase error/blocked:', err);
+      },
     });
-    setTimeout(() => setUnlockingPro(false), 500);
   };
 
-  const handleDirectProUnlock = async () => {
+  const handleRestorePurchases = async () => {
+    if (unlockingPro) return;
     setUnlockingPro(true);
-    try {
-      const headers = await getAuthHeader();
-      const res = await fetch(getApiUrl('/api/influencers/unlock-pass'), {
-        method: 'POST',
-        headers: { ...headers, 'Content-Type': 'application/json' },
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setIsProMember(true);
-        setShowProModal(false);
-        await fetchCampaigns();
-        Alert.alert('🎉 Pro Pass Activated', 'Your ₹499 payment is confirmed! Campaigns are now fully unlocked.');
-      } else {
-        setIsProMember(false);
-        setShowProModal(true);
-        Alert.alert(
-          '❌ Payment Not Verified',
-          data.message || 'No completed ₹499 payment was found for your account. Please complete payment via Razorpay to unlock campaigns.'
-        );
-      }
-    } catch (err) {
-      console.warn('Direct unlock error:', err);
-      Alert.alert('Error', 'Could not verify payment status. Please try again.');
-    } finally {
-      setUnlockingPro(false);
-    }
+    await restorePurchases({
+      onStart: () => setUnlockingPro(true),
+      onSuccess: async (res) => {
+        setUnlockingPro(false);
+        if (res.isProMember) {
+          setIsProMember(true);
+          setShowProModal(false);
+          await fetchCampaigns();
+        }
+      },
+      onError: (err) => {
+        setUnlockingPro(false);
+        console.warn('Restore error:', err);
+      },
+    });
   };
 
 
@@ -1003,13 +978,13 @@ export default function InfluencerCampaigns() {
                   justifyContent: 'center',
                   gap: 8,
                 }}
-                onPress={handleDirectProUnlock}
+                onPress={handleRestorePurchases}
                 disabled={unlockingPro}
                 activeOpacity={0.7}
               >
-                <MaterialCommunityIcons name="refresh" size={18} color="#A855F7" />
+                <MaterialCommunityIcons name="history" size={18} color="#A855F7" />
                 <Text style={{ color: '#E2E8F0', fontSize: 13.5, fontWeight: '700' }}>
-                  Already Paid? Confirm & Unlock
+                  Restore Purchases
                 </Text>
               </TouchableOpacity>
             </View>

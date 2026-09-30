@@ -6,6 +6,7 @@ import Notification from '../models/Notification.js';
 import Payment from '../models/Payment.js';
 import OTP from '../models/OTP.js';
 import ChatMessage from '../models/ChatMessage.js';
+import Message from '../models/Message.js';
 
 /**
  * Unified Account Deletion & Data Cascade Service
@@ -47,8 +48,15 @@ export async function executeCompleteAccountDeletion(userId, reason = 'User requ
     );
     console.log(`  ✅ Applications cleaned (Purged: ${delApps.deletedCount}, Anonymized: ${anonApps.modifiedCount})`);
 
-    // 3. Purge personal notifications directed to this user
-    const delNotifs = await Notification.deleteMany({ $or: [{ user_id: user._id }, { user_id: user._id.toString() }] });
+    // 3. Purge personal notifications directed to or created by this user
+    const delNotifs = await Notification.deleteMany({
+      $or: [
+        { target_id: user._id },
+        { target_id: user._id.toString() },
+        { user_id: user._id },
+        { created_by: user._id }
+      ]
+    });
     console.log(`  ✅ Notifications purged: ${delNotifs.deletedCount}`);
 
     // 4. Anonymize chat messages sent by this user
@@ -56,7 +64,11 @@ export async function executeCompleteAccountDeletion(userId, reason = 'User requ
       { sender_id: user._id },
       { $set: { message: '[Message redacted upon account deletion]' } }
     );
-    console.log('  ✅ Chat messages anonymized');
+    await Message.updateMany(
+      { sender_id: user._id },
+      { $set: { message: '[Message redacted upon account deletion]' } }
+    );
+    console.log('  ✅ Chat and direct messages anonymized');
 
     // 5. Statutory financial record anonymization
     // Transactions (order_id, payment_id, amount) are retained for Indian statutory tax audits (Section 44AA),

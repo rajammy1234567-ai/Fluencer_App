@@ -677,6 +677,7 @@ router.post('/request-data-deletion', async (req, res) => {
         if (secondsSinceCreation < 60) {
           return res.status(429).json({
             success: false,
+            code: 'RATE_LIMITED',
             message: `Please wait ${Math.ceil(60 - secondsSinceCreation)} seconds before requesting another verification code.`
           });
         }
@@ -768,6 +769,7 @@ router.post('/confirm-data-deletion', async (req, res) => {
       await OTP.deleteOne({ _id: otpRecord._id });
       return res.status(400).json({
         success: false,
+        code: 'OTP_EXPIRED',
         message: 'Verification code has expired. Please request a new one.'
       });
     }
@@ -777,6 +779,7 @@ router.post('/confirm-data-deletion', async (req, res) => {
       await OTP.deleteOne({ _id: otpRecord._id });
       return res.status(429).json({
         success: false,
+        code: 'MAX_ATTEMPTS_EXCEEDED',
         message: 'Too many incorrect attempts. This code has been invalidated for security. Please request a new code.'
       });
     }
