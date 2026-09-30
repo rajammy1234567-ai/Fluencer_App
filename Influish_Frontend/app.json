@@ -13,7 +13,10 @@
       "bundleIdentifier": "com.fluencers.app",
       "buildNumber": "1",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Fluencer requires camera access to take profile photos, campaign media, and proof of work.",
+        "NSPhotoLibraryUsageDescription": "Fluencer requires access to your photo library to select profile pictures and campaign deliverables.",
+        "NSPhotoLibraryAddUsageDescription": "Fluencer needs permission to save campaign creative assets to your photo library."
       }
     },
     "android": {
