@@ -1,0 +1,4 @@
+# Ignore backend and web folders from EAS Build upload
+fluencer_Backend/
+fluencer_web/
+*.log
