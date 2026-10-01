@@ -20,6 +20,7 @@ import { fetchWithTimeoutAndRetry } from './apiClient';
 
 export const PRO_PASS_PRODUCT_ID = 'fluencer_pro_lifetime';
 export const EXPECTED_BUNDLE_ID = 'com.fluencers.app';
+export const EXPECTED_ANDROID_PACKAGE = 'com.fluencer.official';
 export const NATIVE_BILLING_SDK = 'react-native-iap';
 
 // Helper to safely load react-native-iap native module in compiled or dev client
@@ -127,7 +128,7 @@ export const purchaseProPass = async ({ onStart, onSuccess, onError }) => {
     const verifyPayload = {
       platform,
       productId: PRO_PASS_PRODUCT_ID,
-      bundleId: EXPECTED_BUNDLE_ID,
+      bundleId: platform === 'android' ? EXPECTED_ANDROID_PACKAGE : EXPECTED_BUNDLE_ID,
       transactionId: transactionId || `tx_${platform}_sandbox_${Date.now()}`,
       purchaseToken: purchaseToken || `token_${platform}_sandbox_${Date.now()}`,
       receiptData: receiptData || null,

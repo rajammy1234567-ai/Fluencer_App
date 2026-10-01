@@ -4,6 +4,8 @@ import InfluencerProfile from '../models/InfluencerProfile.js';
 import IAPTransaction from '../models/IAPTransaction.js';
 import {
   EXPECTED_BUNDLE_ID,
+  EXPECTED_ANDROID_PACKAGE,
+  ALLOWED_APP_IDENTIFIERS,
   EXPECTED_PRODUCT_ID,
   getStoreConfigurationStatus,
   verifyApplePurchase,
@@ -67,9 +69,10 @@ router.post('/verify-purchase', authMiddleware, async (req, res) => {
       });
     }
 
-    // 2. App Identity Verification
-    const incomingBundleId = bundleId || EXPECTED_BUNDLE_ID;
-    if (incomingBundleId !== EXPECTED_BUNDLE_ID) {
+    // 2. App Identity Verification (Supports iOS com.fluencers.app & Android com.fluencer.official)
+    const defaultPlatformId = platform === 'android' ? EXPECTED_ANDROID_PACKAGE : EXPECTED_BUNDLE_ID;
+    const incomingBundleId = bundleId || defaultPlatformId;
+    if (!ALLOWED_APP_IDENTIFIERS.includes(incomingBundleId)) {
       return res.status(403).json({
         success: false,
         code: 'APP_IDENTITY_MISMATCH',

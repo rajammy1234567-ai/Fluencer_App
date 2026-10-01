@@ -20,7 +20,7 @@
       }
     },
     "android": {
-      "package": "com.fluencers.app",
+      "package": "com.fluencer.official",
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/android-icon-foreground.png",

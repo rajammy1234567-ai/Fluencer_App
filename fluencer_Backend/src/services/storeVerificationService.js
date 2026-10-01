@@ -2,6 +2,8 @@ import InfluencerProfile from '../models/InfluencerProfile.js';
 import IAPTransaction from '../models/IAPTransaction.js';
 
 export const EXPECTED_BUNDLE_ID = 'com.fluencers.app';
+export const EXPECTED_ANDROID_PACKAGE = 'com.fluencer.official';
+export const ALLOWED_APP_IDENTIFIERS = [EXPECTED_BUNDLE_ID, EXPECTED_ANDROID_PACKAGE];
 export const EXPECTED_PRODUCT_ID = 'fluencer_pro_lifetime';
 
 /**
