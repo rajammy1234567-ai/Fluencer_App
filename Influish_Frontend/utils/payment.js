@@ -112,7 +112,7 @@ export const initiatePayment = async ({
           name: 'Fluencer Platform',
           description: description || 'Pro Membership Pass',
           order_id: (orderInfo && orderInfo.id && orderInfo.id.startsWith('order_')) ? orderInfo.id : undefined,
-          image: 'https://images.unsplash.com/photo-1511556532299-8f662fc26c06?w=200',
+          image: 'https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?auto=format&fit=crop&w=200&h=200&q=80',
           handler: async function (response) {
             try {
               const verifyRes = await fetch(getApiUrl('/api/payments/verify-payment'), {

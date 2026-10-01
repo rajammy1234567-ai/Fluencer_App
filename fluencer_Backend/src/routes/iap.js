@@ -2,11 +2,17 @@ import express from 'express';
 import authMiddleware from '../middleware/auth.js';
 import InfluencerProfile from '../models/InfluencerProfile.js';
 import IAPTransaction from '../models/IAPTransaction.js';
+import {
+  EXPECTED_BUNDLE_ID,
+  EXPECTED_PRODUCT_ID,
+  getStoreConfigurationStatus,
+  verifyApplePurchase,
+  verifyGooglePlayPurchase,
+  processAppleServerNotification,
+  processGooglePlayNotification,
+} from '../services/storeVerificationService.js';
 
 const router = express.Router();
-
-const EXPECTED_BUNDLE_ID = 'com.fluencers.app';
-const EXPECTED_PRODUCT_ID = 'fluencer_pro_lifetime';
 
 /**
  * In-App Purchase (IAP) Server-Side Verification Controller
@@ -21,6 +27,15 @@ const EXPECTED_PRODUCT_ID = 'fluencer_pro_lifetime';
  * 7. Store API Keys Check: If Apple/Google developer credentials are not configured,
  *    returns 503 IAP_SERVER_NOT_CONFIGURED (Sandbox/production verification is blocked).
  */
+
+// Store Configuration Status Endpoint (for diagnostic checks)
+router.get('/config-status', (req, res) => {
+  const status = getStoreConfigurationStatus();
+  return res.json({
+    success: true,
+    stores: status,
+  });
+});
 
 // Verify Purchase Endpoint
 router.post('/verify-purchase', authMiddleware, async (req, res) => {
@@ -96,35 +111,65 @@ router.post('/verify-purchase', authMiddleware, async (req, res) => {
           message: `This purchase was previously ${existingTx.status} by the store.`
         });
       }
+
+      // Idempotent retry by the same user who already owns it
+      if (existingTx.status === 'purchased' || existingTx.status === 'restored') {
+        return res.status(200).json({
+          success: true,
+          message: 'Pro membership already verified for this transaction.',
+          isProMember: true,
+          transactionId: existingTx.transaction_id,
+        });
+      }
     }
 
     // 5. Store API Credentials Check
-    const hasAppleKey = !!process.env.APPLE_IAP_SHARED_SECRET || !!process.env.APPLE_APP_STORE_KEY;
-    const hasGoogleKey = !!process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
+    const storeStatus = getStoreConfigurationStatus();
 
-    if (platform === 'ios' && !hasAppleKey) {
-      console.warn('⚠️ Apple StoreKit verification blocked: APPLE_APP_STORE_KEY or APPLE_IAP_SHARED_SECRET not configured.');
+    if (platform === 'ios' && !storeStatus.apple.configured) {
+      console.warn('⚠️ Apple StoreKit verification blocked: credentials not configured in environment.');
       return res.status(503).json({
         success: false,
         code: 'IAP_SERVER_NOT_CONFIGURED',
         message: 'Apple In-App Purchase server verification is awaiting App Store Connect credentials.',
         isBlocked: true,
-        requiredInputs: ['APPLE_APP_STORE_KEY', 'APPLE_IAP_SHARED_SECRET']
+        requiredInputs: storeStatus.apple.missingKeys,
       });
     }
 
-    if (platform === 'android' && !hasGoogleKey) {
-      console.warn('⚠️ Google Play Billing verification blocked: GOOGLE_SERVICE_ACCOUNT_KEY not configured.');
+    if (platform === 'android' && !storeStatus.google.configured) {
+      console.warn('⚠️ Google Play Billing verification blocked: credentials not configured in environment.');
       return res.status(503).json({
         success: false,
         code: 'IAP_SERVER_NOT_CONFIGURED',
         message: 'Google Play Billing server verification is awaiting Google Play Console service account credentials.',
         isBlocked: true,
-        requiredInputs: ['GOOGLE_SERVICE_ACCOUNT_KEY']
+        requiredInputs: storeStatus.google.missingKeys,
       });
     }
 
-    // 6. Record or Update Verified Transaction
+    // 6. Execute Live Store Verification Call
+    if (platform === 'ios') {
+      const appleResult = await verifyApplePurchase({ receiptData, transactionId, productId, bundleId });
+      if (!appleResult.verified) {
+        return res.status(400).json({
+          success: false,
+          code: 'RECEIPT_VERIFICATION_FAILED',
+          message: appleResult.message || 'Apple StoreKit receipt could not be verified.',
+        });
+      }
+    } else if (platform === 'android') {
+      const googleResult = await verifyGooglePlayPurchase({ purchaseToken, productId, packageName: incomingBundleId });
+      if (!googleResult.verified) {
+        return res.status(400).json({
+          success: false,
+          code: 'TOKEN_VERIFICATION_FAILED',
+          message: googleResult.message || 'Google Play purchase token could not be verified.',
+        });
+      }
+    }
+
+    // 7. Record or Update Verified Transaction
     const tx = await IAPTransaction.findOneAndUpdate(
       { transaction_id: transactionId },
       {
@@ -142,7 +187,7 @@ router.post('/verify-purchase', authMiddleware, async (req, res) => {
       { upsert: true, new: true }
     );
 
-    // 7. Update User Profile to Pro Member
+    // 8. Update User Profile to Pro Member
     await InfluencerProfile.findOneAndUpdate(
       { $or: [{ user_id: userId }, { user_id: userId.toString() }] },
       {
@@ -171,6 +216,25 @@ router.post('/verify-purchase', authMiddleware, async (req, res) => {
       code: 'SERVER_ERROR',
       message: 'Failed to verify in-app purchase: ' + error.message
     });
+  }
+});
+
+// Check Pro Membership Status Endpoint
+router.get('/status', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.userId || req.user.id;
+    const activeTx = await IAPTransaction.findOne({
+      user_id: userId,
+      product_id: EXPECTED_PRODUCT_ID,
+      status: { $in: ['purchased', 'restored'] }
+    });
+    return res.status(200).json({
+      success: true,
+      isProMember: !!activeTx,
+      activeTransaction: activeTx || null
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
   }
 });
 
@@ -222,6 +286,30 @@ router.post('/restore-purchases', authMiddleware, async (req, res) => {
       code: 'SERVER_ERROR',
       message: 'Failed to restore purchases: ' + error.message
     });
+  }
+});
+
+// Apple App Store Server Notifications V2 Webhook
+router.post('/webhook/apple', async (req, res) => {
+  try {
+    const payload = req.body;
+    await processAppleServerNotification(payload);
+    return res.status(200).json({ success: true, message: 'Apple notification processed.' });
+  } catch (err) {
+    console.error('Apple webhook error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Google Play Real-Time Developer Notifications (RTDN) Webhook
+router.post('/webhook/google', async (req, res) => {
+  try {
+    const payload = req.body;
+    await processGooglePlayNotification(payload?.message || payload);
+    return res.status(200).json({ success: true, message: 'Google Play notification processed.' });
+  } catch (err) {
+    console.error('Google Play webhook error:', err);
+    return res.status(500).json({ success: false, error: err.message });
   }
 });
 

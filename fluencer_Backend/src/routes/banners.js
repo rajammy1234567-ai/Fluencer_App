@@ -4,13 +4,13 @@ import authMiddleware from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Real Default Banners Fallback
+// Real Default Banners Fallback with Indian Creators & Ethnic Fashion
 const DEFAULT_BANNERS = [
   {
     id: 'default_1',
     title: 'Monetize Your Influence',
-    subtitle: 'Connect with Top Fashion & Lifestyle Brands',
-    image_url: 'https://images.unsplash.com/photo-1511556532299-8f662fc26c06?w=800&auto=format&fit=crop&q=80',
+    subtitle: 'Connect with Top Fashion & Lifestyle Brands across India',
+    image_url: 'https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?w=800&auto=format&fit=crop&q=80',
     action_type: 'category',
     target_id: 'Fashion'
   },
@@ -18,7 +18,7 @@ const DEFAULT_BANNERS = [
     id: 'default_2',
     title: 'Summer Campaign Drop 2026',
     subtitle: 'Paid Reel Deals starting at ₹5,000 / Creator',
-    image_url: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&auto=format&fit=crop&q=80',
+    image_url: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=800&auto=format&fit=crop&q=80',
     action_type: 'campaign',
     target_id: ''
   },
@@ -26,7 +26,7 @@ const DEFAULT_BANNERS = [
     id: 'default_3',
     title: 'Zero Commission Deduction on First Deal',
     subtitle: 'Grow, Learn & Earn with Fluencer',
-    image_url: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&auto=format&fit=crop&q=80',
+    image_url: 'https://images.unsplash.com/photo-1615109398623-88346a601842?w=800&auto=format&fit=crop&q=80',
     action_type: 'url',
     target_id: ''
   }

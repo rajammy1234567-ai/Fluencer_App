@@ -76,6 +76,49 @@ export default function InfluencerCampaigns() {
   const [selectedCampaign, setSelectedCampaign] = useState(null);
   const [activeModalImgIndex, setActiveModalImgIndex] = useState(0);
 
+  // Report Campaign State
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState('inappropriate_content');
+  const [reportDetails, setReportDetails] = useState('');
+  const [submittingReport, setSubmittingReport] = useState(false);
+
+  const handleSubmitCampaignReport = async () => {
+    if (!selectedCampaign) return;
+    const campaignId = selectedCampaign.id || selectedCampaign._id;
+    const targetUserId = selectedCampaign.brand_id || selectedCampaign.brandId || selectedCampaign.user_id;
+
+    setSubmittingReport(true);
+    try {
+      const headers = await getAuthHeader();
+      const res = await fetch(getApiUrl('/api/moderation/report'), {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reportedUserId: targetUserId,
+          contentType: 'campaign',
+          contentId: campaignId,
+          reason: reportReason,
+          details: reportDetails,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setShowReportModal(false);
+        setReportDetails('');
+        Alert.alert(
+          '🛡️ Campaign Reported',
+          'Thank you. Our safety team reviews all reported campaigns within 24 hours under our zero-tolerance policy.'
+        );
+      } else {
+        Alert.alert('Error', data.message || 'Failed to submit report');
+      }
+    } catch (e) {
+      Alert.alert('Error', e.message || 'Network error while submitting report');
+    } finally {
+      setSubmittingReport(false);
+    }
+  };
+
   useFocusEffect(
     React.useCallback(() => {
       checkProStatus();
@@ -712,6 +755,14 @@ export default function InfluencerCampaigns() {
           <View style={styles.newDesignModalCard}>
             {/* Close Icon Button */}
             <TouchableOpacity 
+              style={[styles.modalCloseIconBtn, { right: 54 }]} 
+              onPress={() => setShowReportModal(true)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="flag-outline" size={18} color="#F59E0B" />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
               style={styles.modalCloseIconBtn} 
               onPress={() => {
                 setDetailModalVisible(false);
@@ -985,6 +1036,92 @@ export default function InfluencerCampaigns() {
                 <Text style={{ color: '#E2E8F0', fontSize: 13.5, fontWeight: '700' }}>
                   Restore Purchases
                 </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* UGC REPORT CAMPAIGN MODAL */}
+      <Modal
+        visible={showReportModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowReportModal(false)}
+      >
+        <View style={styles.reportModalOverlay}>
+          <View style={styles.reportModalCard}>
+            <View style={styles.reportModalHeader}>
+              <Ionicons name="flag" size={22} color="#F59E0B" />
+              <Text style={styles.reportModalTitle}>Report Campaign</Text>
+              <TouchableOpacity onPress={() => setShowReportModal(false)}>
+                <Ionicons name="close" size={22} color="rgba(255,255,255,0.7)" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.reportModalSubtitle}>
+              Please select the reason for reporting this campaign. Our safety team reviews all reports within 24 hours under our zero-tolerance policy.
+            </Text>
+
+            <View style={styles.reasonsContainer}>
+              {[
+                { id: 'inappropriate_content', label: 'Inappropriate or Explicit Content' },
+                { id: 'scam_fraud', label: 'Scam, Fake Brand, or Deception' },
+                { id: 'spam', label: 'Spam or Misleading Requirements' },
+                { id: 'harassment', label: 'Harassment or Threatening Terms' },
+                { id: 'hate_speech', label: 'Hate Speech or Discrimination' },
+                { id: 'other', label: 'Other Policy Concern' },
+              ].map((reason) => (
+                <TouchableOpacity
+                  key={reason.id}
+                  style={[
+                    styles.reasonChip,
+                    reportReason === reason.id && styles.reasonChipActive
+                  ]}
+                  onPress={() => setReportReason(reason.id)}
+                >
+                  <MaterialCommunityIcons
+                    name={reportReason === reason.id ? "radiobox-marked" : "radiobox-blank"}
+                    size={18}
+                    color={reportReason === reason.id ? "#C084FC" : "rgba(255,255,255,0.5)"}
+                  />
+                  <Text style={[
+                    styles.reasonChipText,
+                    reportReason === reason.id && styles.reasonChipTextActive
+                  ]}>
+                    {reason.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TextInput
+              style={styles.reportDetailsInput}
+              value={reportDetails}
+              onChangeText={setReportDetails}
+              placeholder="Additional details (optional, max 500 chars)..."
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              multiline
+              maxLength={500}
+            />
+
+            <View style={styles.reportBtnRow}>
+              <TouchableOpacity
+                style={styles.reportCancelBtn}
+                onPress={() => setShowReportModal(false)}
+              >
+                <Text style={styles.reportCancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.reportSubmitBtn, submittingReport && { opacity: 0.6 }]}
+                onPress={handleSubmitCampaignReport}
+                disabled={submittingReport}
+              >
+                {submittingReport ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.reportSubmitBtnText}>Submit Report</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -1527,5 +1664,110 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14.5,
     fontWeight: '800',
+  },
+
+  // Report Modal Styles
+  reportModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  reportModalCard: {
+    width: '100%',
+    maxWidth: 440,
+    backgroundColor: '#161522',
+    borderRadius: 22,
+    padding: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+  },
+  reportModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 10,
+  },
+  reportModalTitle: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '800',
+    flex: 1,
+  },
+  reportModalSubtitle: {
+    color: 'rgba(255,255,255,0.65)',
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 16,
+  },
+  reasonsContainer: {
+    marginBottom: 14,
+    gap: 8,
+  },
+  reasonChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  reasonChipActive: {
+    backgroundColor: 'rgba(192, 132, 252, 0.15)',
+    borderColor: '#C084FC',
+  },
+  reasonChipText: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 13.5,
+    fontWeight: '500',
+  },
+  reasonChipTextActive: {
+    color: '#FFF',
+    fontWeight: '700',
+  },
+  reportDetailsInput: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 14,
+    padding: 12,
+    color: '#FFF',
+    fontSize: 13.5,
+    height: 70,
+    textAlignVertical: 'top',
+    marginBottom: 16,
+  },
+  reportBtnRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  reportCancelBtn: {
+    flex: 1,
+    paddingVertical: 13,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center',
+  },
+  reportCancelBtnText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  reportSubmitBtn: {
+    flex: 1.5,
+    paddingVertical: 13,
+    borderRadius: 14,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reportSubmitBtnText: {
+    color: '#FFF',
+    fontWeight: '700',
+    fontSize: 14,
   },
 });

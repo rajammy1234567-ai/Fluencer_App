@@ -316,7 +316,7 @@ router.get('/:id/applications', authMiddleware, async (req, res) => {
         categories: ip ? ip.categories : ['Fashion'],
         followers: ip ? (ip.followers || (ip.followers_count ? (ip.followers_count >= 1000 ? (ip.followers_count / 1000).toFixed(1) + 'K' : String(ip.followers_count)) : '125K')) : '125K',
         followers_count: ip ? (ip.followers_count || 125000) : 125000,
-        profile_image: ip ? ip.profile_image : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500',
+        profile_image: ip ? ip.profile_image : 'https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?auto=format&fit=crop&w=500&q=80',
         influencer_email: user ? user.email : 'influencer@fluencer.app'
       };
     }));

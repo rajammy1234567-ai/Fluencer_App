@@ -67,6 +67,12 @@
           "videosPermission": "Fluencer needs access to your videos.",
           "cameraPermission": "Fluencer needs access to your camera."
         }
+      ],
+      [
+        "react-native-iap",
+        {
+          "paymentProvider": "Play Store"
+        }
       ]
     ],
     "experiments": {

@@ -42,9 +42,27 @@ export const initializeSocket = (server) => {
       console.log(`User ${socket.userId} joined room: ${roomId}`);
     });
 
-    // Send message
+    // Send message with real-time UGC block protection
     socket.on('send_message', async (data) => {
       const { receiverId, message, messageType } = data;
+      if (!receiverId) return;
+
+      // Socket-level UGC blocking enforcement
+      try {
+        const { isUserBlocked } = await import('../utils/moderation.js');
+        const blocked = await isUserBlocked(socket.userId, receiverId);
+        if (blocked) {
+          socket.emit('message_delivery_error', {
+            receiverId,
+            code: 'USER_BLOCKED',
+            message: 'Interaction between these accounts is restricted. Message was not delivered.'
+          });
+          return;
+        }
+      } catch (err) {
+        console.error('Socket block verification error:', err);
+      }
+
       const roomId = [socket.userId, receiverId].sort().join('_');
 
       // Broadcast to room
@@ -65,8 +83,15 @@ export const initializeSocket = (server) => {
     });
 
     // Typing indicator
-    socket.on('typing', (data) => {
+    socket.on('typing', async (data) => {
       const { receiverId } = data;
+      if (!receiverId) return;
+
+      try {
+        const { isUserBlocked } = await import('../utils/moderation.js');
+        if (await isUserBlocked(socket.userId, receiverId)) return;
+      } catch (e) {}
+
       io.to(`user_${receiverId}`).emit('user_typing', {
         userId: socket.userId
       });

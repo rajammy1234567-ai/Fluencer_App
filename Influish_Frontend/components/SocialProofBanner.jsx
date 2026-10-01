@@ -13,7 +13,7 @@ const SocialProofBanner = () => {
         style={styles.avatar} 
       />
       <Text style={styles.text}>
-        <Text style={styles.highlight}>Priyanka</Text> with <Text style={styles.highlight}>1.2M followers</Text>, connected their Instagram.
+        <Text style={styles.highlight}>Demo Creator Preview:</Text> Connect your social accounts to showcase verified reach and unlock brand deals.
       </Text>
     </View>
   );

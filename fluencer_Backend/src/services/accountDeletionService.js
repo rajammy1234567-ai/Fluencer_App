@@ -83,7 +83,18 @@ export async function executeCompleteAccountDeletion(userId, reason = 'User requ
     await OTP.deleteMany({ email: user.email });
     console.log('  ✅ OTP records purged');
 
-    // 7. Permanently purge primary user credential
+    // 7. Clean up moderation blocks and reports
+    try {
+      const UserBlock = (await import('../models/UserBlock.js')).default;
+      const ContentReport = (await import('../models/ContentReport.js')).default;
+      await UserBlock.deleteMany({ $or: [{ blocker_id: user._id }, { blocked_id: user._id }] });
+      await ContentReport.deleteMany({ reporter_id: user._id });
+      console.log('  ✅ Moderation blocks and reports purged');
+    } catch (modErr) {
+      console.warn('  ⚠️ Moderation cascade cleanup notice:', modErr.message);
+    }
+
+    // 8. Permanently purge primary user credential
     await User.findByIdAndDelete(userId);
     console.log(`  ✅ User credential purged permanently: ${email}`);
 

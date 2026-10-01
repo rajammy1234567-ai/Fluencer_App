@@ -8,7 +8,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { getAuthHeader } from '../../utils/storage';
 import { API, API_CONFIG, getApiUrl } from '../../constants/api';
 import { SlideUp } from '../../components/motion';
-import { INDIAN_LIFESTYLE, INDIAN_FASHION } from '../../constants/sampleImages';
+import { INDIAN_LIFESTYLE, INDIAN_FASHION, INDIAN_PEOPLE } from '../../constants/sampleImages';
 import {
   FluencerGreeting,
   CollabPath,
@@ -346,9 +346,9 @@ const BrandsSection = () => {
 
   const displayBrands = brands.length > 0 ? brands : [
     { id: 'b1', company_name: 'Krishna Silk', profile_image: INDIAN_FASHION.saree, companyName: 'Krishna Silk' },
-    { id: 'b2', company_name: 'GlowAura Beauty', profile_image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=500', companyName: 'GlowAura Beauty' },
-    { id: 'b3', company_name: 'UrbanThread Denim', profile_image: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=500', companyName: 'UrbanThread Denim' },
-    { id: 'b4', company_name: 'Apex Pro Fitness', profile_image: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=500', companyName: 'Apex Pro Fitness' },
+    { id: 'b2', company_name: 'GlowAura Beauty', profile_image: INDIAN_PEOPLE.woman2, companyName: 'GlowAura Beauty' },
+    { id: 'b3', company_name: 'UrbanThread Denim', profile_image: INDIAN_PEOPLE.man3, companyName: 'UrbanThread Denim' },
+    { id: 'b4', company_name: 'Apex Pro Fitness', profile_image: INDIAN_PEOPLE.man1, companyName: 'Apex Pro Fitness' },
   ];
 
   // Triple the brands for infinite scroll effect

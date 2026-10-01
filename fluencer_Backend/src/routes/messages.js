@@ -81,11 +81,16 @@ router.get('/conversations', authMiddleware, async (req, res) => {
   }
 });
 
+import { isUserBlocked, getBlockDetails } from '../utils/moderation.js';
+
 // Get messages between two users
 router.get('/:otherUserId', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.userId;
     const otherUserId = req.params.otherUserId;
+
+    // Check bidirectional block status
+    const blockDetails = await getBlockDetails(userId, otherUserId);
 
     const msgs = await Message.find({
       $or: [
@@ -108,7 +113,10 @@ router.get('/:otherUserId', authMiddleware, async (req, res) => {
 
     res.status(200).json({ 
       success: true, 
-      messages: messages
+      messages: messages,
+      isBlocked: blockDetails.isBlocked,
+      blockedByMe: blockDetails.blockedByMe,
+      blockedByOther: blockDetails.blockedByOther
     });
   } catch (error) {
     console.error('Messages fetch error:', error);
@@ -130,6 +138,16 @@ router.post('/send', authMiddleware, async (req, res) => {
       return res.status(400).json({ 
         success: false, 
         message: 'Receiver ID and message are required' 
+      });
+    }
+
+    // SERVER-SIDE UGC ENFORCEMENT: Reject message if either party has blocked the other
+    const blocked = await isUserBlocked(senderId, receiverId);
+    if (blocked) {
+      return res.status(403).json({
+        success: false,
+        code: 'USER_BLOCKED',
+        message: 'Message cannot be delivered. Interaction between these accounts has been blocked.'
       });
     }
 
