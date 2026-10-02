@@ -21,7 +21,7 @@
     },
     "android": {
       "package": "com.fluencer.official",
-      "versionCode": 3,
+      "versionCode": 4,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundColor": "#E6F4FE"
