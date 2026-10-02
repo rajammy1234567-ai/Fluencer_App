@@ -91,15 +91,71 @@ export const purchaseProPass = async ({ onStart, onSuccess, onError }) => {
         await RNIap.initConnection();
         console.log('🔌 Connected to native store billing service.');
 
-        // Fetch product information from App Store / Play Store
-        const products = await RNIap.getProducts({ skus: [PRO_PASS_PRODUCT_ID] });
+        // Fetch product information from App Store / Play Store (v14 fetchProducts & legacy getProducts)
+        let products = [];
+        if (typeof RNIap.fetchProducts === 'function') {
+          products = await RNIap.fetchProducts({ skus: [PRO_PASS_PRODUCT_ID], type: 'inapp' });
+        } else if (typeof RNIap.getProducts === 'function') {
+          products = await RNIap.getProducts({ skus: [PRO_PASS_PRODUCT_ID] });
+        }
         console.log('📦 Available store products:', products);
 
-        // Request native purchase sheet (Triggers Apple FaceID/TouchID or Google Play Sheet)
-        const purchase = await RNIap.requestPurchase({
-          sku: PRO_PASS_PRODUCT_ID,
-          andDangerouslyFinishTransactionAutomaticallyIOS: false,
-        });
+        // Request native purchase sheet (Supports Play Billing 8 / v14 requestPurchase & event listeners)
+        let purchase = null;
+        if (typeof RNIap.fetchProducts === 'function') {
+          purchase = await new Promise((resolve, reject) => {
+            let updateSub = null;
+            let errorSub = null;
+            const timer = setTimeout(() => {
+              if (updateSub?.remove) updateSub.remove();
+              if (errorSub?.remove) errorSub.remove();
+              resolve(null);
+            }, 60000);
+
+            if (typeof RNIap.purchaseUpdatedListener === 'function') {
+              updateSub = RNIap.purchaseUpdatedListener((p) => {
+                clearTimeout(timer);
+                if (updateSub?.remove) updateSub.remove();
+                if (errorSub?.remove) errorSub.remove();
+                resolve(p);
+              });
+            }
+
+            if (typeof RNIap.purchaseErrorListener === 'function') {
+              errorSub = RNIap.purchaseErrorListener((err) => {
+                clearTimeout(timer);
+                if (updateSub?.remove) updateSub.remove();
+                if (errorSub?.remove) errorSub.remove();
+                reject(err);
+              });
+            }
+
+            RNIap.requestPurchase({
+              request: {
+                android: { skus: [PRO_PASS_PRODUCT_ID] },
+                ios: { sku: PRO_PASS_PRODUCT_ID, andDangerouslyFinishTransactionAutomatically: false }
+              },
+              type: 'inapp'
+            }).then(directRes => {
+              if (directRes && (directRes.transactionId || directRes.purchaseToken)) {
+                clearTimeout(timer);
+                if (updateSub?.remove) updateSub.remove();
+                if (errorSub?.remove) errorSub.remove();
+                resolve(directRes);
+              }
+            }).catch(reqErr => {
+              clearTimeout(timer);
+              if (updateSub?.remove) updateSub.remove();
+              if (errorSub?.remove) errorSub.remove();
+              reject(reqErr);
+            });
+          });
+        } else {
+          purchase = await RNIap.requestPurchase({
+            sku: PRO_PASS_PRODUCT_ID,
+            andDangerouslyFinishTransactionAutomaticallyIOS: false,
+          });
+        }
 
         if (purchase) {
           transactionId = purchase.transactionId || purchase.id;
