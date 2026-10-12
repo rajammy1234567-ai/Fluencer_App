@@ -14,6 +14,7 @@ import {
   ScrollView,
   Animated,
   Platform,
+  Linking,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -30,7 +31,7 @@ import { API, getApiUrl } from '../../constants/api';
 import WaveHeader from '../../components/WaveHeader';
 import { SlideInCard, SlideUp } from '../../components/motion';
 import { FALLBACK_INDIAN } from '../../constants/sampleImages';
-import { purchaseProPass, restorePurchases } from '../../utils/nativeBilling';
+import { purchaseProPass, restorePurchases, fetchProPassProduct } from '../../utils/nativeBilling';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -41,6 +42,7 @@ export default function InfluencerCampaigns() {
   const [isProMember, setIsProMember] = useState(false);
   const [showProModal, setShowProModal] = useState(true);
   const [unlockingPro, setUnlockingPro] = useState(false);
+  const [proDisplayPrice, setProDisplayPrice] = useState('₹499');
   const [campaigns, setCampaigns] = useState([]);
 
   const handleBackToHome = () => {
@@ -118,6 +120,14 @@ export default function InfluencerCampaigns() {
       setSubmittingReport(false);
     }
   };
+
+  useEffect(() => {
+    fetchProPassProduct().then((prod) => {
+      if (prod?.displayPrice) {
+        setProDisplayPrice(prod.displayPrice);
+      }
+    }).catch(() => {});
+  }, []);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -348,7 +358,7 @@ export default function InfluencerCampaigns() {
         setShowProModal(true);
         Alert.alert(
           '🔒 Pro Membership Required',
-          'Application could not be saved because Pro Pass is required. Please pay ₹499 to unlock Pro Pass access!'
+          'Application could not be saved because Pro Pass is required. Please unlock Pro Pass access to continue!'
         );
         return;
       }
@@ -972,7 +982,7 @@ export default function InfluencerCampaigns() {
             </LinearGradient>
 
             <View style={styles.proBody}>
-              <Text style={styles.proPriceText}>₹499 <Text style={{ fontSize: 16, color: 'rgba(255,255,255,0.55)', fontWeight: '400' }}>/ Lifetime Pass</Text></Text>
+              <Text style={styles.proPriceText}>{proDisplayPrice} <Text style={{ fontSize: 16, color: 'rgba(255,255,255,0.55)', fontWeight: '400' }}>/ Lifetime Pass</Text></Text>
               
               <View style={styles.proFeatureList}>
                 <View style={styles.proFeatureItem}>
@@ -1008,7 +1018,7 @@ export default function InfluencerCampaigns() {
                   ) : (
                     <>
                       <MaterialCommunityIcons name="lock-open" size={22} color="#FFF" />
-                      <Text style={styles.proUnlockText}>Pay ₹499 & Unlock Campaigns</Text>
+                      <Text style={styles.proUnlockText}>Pay {proDisplayPrice} & Unlock Campaigns</Text>
                     </>
                   )}
                 </LinearGradient>
@@ -1037,6 +1047,19 @@ export default function InfluencerCampaigns() {
                   Restore Purchases
                 </Text>
               </TouchableOpacity>
+
+              <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 14, marginTop: 14 }}>
+                <TouchableOpacity onPress={() => Linking.openURL('https://fluencer-app.onrender.com/terms').catch(() => {})} activeOpacity={0.7}>
+                  <Text style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: 12, textDecorationLine: 'underline' }}>Terms of Use</Text>
+                </TouchableOpacity>
+                <Text style={{ color: 'rgba(255, 255, 255, 0.3)', fontSize: 12 }}>•</Text>
+                <TouchableOpacity onPress={() => Linking.openURL('https://fluencer-app.onrender.com/privacy-policy').catch(() => {})} activeOpacity={0.7}>
+                  <Text style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: 12, textDecorationLine: 'underline' }}>Privacy Policy</Text>
+                </TouchableOpacity>
+              </View>
+              <Text style={{ color: 'rgba(255, 255, 255, 0.35)', fontSize: 11, textAlign: 'center', marginTop: 8 }}>
+                One-time purchase · Non-consumable lifetime pass
+              </Text>
             </View>
           </View>
         </View>

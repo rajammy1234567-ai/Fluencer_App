@@ -19,9 +19,17 @@ import { fetchWithTimeoutAndRetry } from './apiClient';
  */
 
 export const PRO_PASS_PRODUCT_ID = 'fluencer_pro_lifetime';
+export const PRO_PASS_PRODUCT_ID_IOS = 'fluencer_pro_lifetime_ios';
 export const EXPECTED_BUNDLE_ID = 'com.fluencers.app';
 export const EXPECTED_ANDROID_PACKAGE = 'com.fluencer.official';
 export const NATIVE_BILLING_SDK = 'react-native-iap';
+
+/**
+ * Returns the store product ID for the active platform:
+ * - iOS: 'fluencer_pro_lifetime_ios'
+ * - Android: 'fluencer_pro_lifetime'
+ */
+export const getProProductId = () => (Platform.OS === 'ios' ? PRO_PASS_PRODUCT_ID_IOS : PRO_PASS_PRODUCT_ID);
 
 // Helper to safely load react-native-iap native module in compiled or dev client
 const getIapModule = () => {
@@ -30,6 +38,65 @@ const getIapModule = () => {
   } catch (err) {
     return null;
   }
+};
+
+let cachedProduct = null;
+
+/**
+ * Fetch Pro Pass Product Details dynamically from Apple StoreKit / Google Play
+ * Complies with Apple Guideline 3.1.1 requiring dynamic localized pricing display.
+ */
+export const fetchProPassProduct = async () => {
+  if (cachedProduct) return cachedProduct;
+
+  const platform = Platform.OS;
+  const targetProductId = getProProductId();
+  const defaultFallback = {
+    productId: targetProductId,
+    price: 499,
+    displayPrice: '₹499',
+    currency: 'INR',
+    title: 'Fluencer Pro Lifetime Pass',
+  };
+
+  if (platform === 'web') {
+    cachedProduct = defaultFallback;
+    return cachedProduct;
+  }
+
+  const RNIap = getIapModule();
+  if (!RNIap || typeof RNIap.initConnection !== 'function') {
+    return defaultFallback;
+  }
+
+  try {
+    await RNIap.initConnection();
+    let products = [];
+    if (typeof RNIap.fetchProducts === 'function') {
+      products = await RNIap.fetchProducts({ skus: [targetProductId], type: 'in-app' });
+    } else if (typeof RNIap.getProducts === 'function') {
+      products = await RNIap.getProducts({ skus: [targetProductId] });
+    }
+
+    if (products && products.length > 0) {
+      const prod = products[0];
+      const displayPrice = prod.displayPrice || prod.localizedPrice || (prod.currency ? `${prod.currency} ${prod.price}` : '₹499');
+      cachedProduct = {
+        productId: prod.id || prod.productId || targetProductId,
+        displayPrice,
+        price: prod.price || 499,
+        currency: prod.currency || (displayPrice.includes('$') ? 'USD' : 'INR'),
+        title: prod.displayName || prod.title || 'Fluencer Pro Lifetime Pass',
+        description: prod.description || 'Unlimited Brand Campaign Access',
+        raw: prod,
+      };
+      return cachedProduct;
+    }
+  } catch (err) {
+    console.warn('Dynamic store product price fetch note:', err?.message);
+  }
+
+  return defaultFallback;
 };
 
 /**
@@ -76,14 +143,23 @@ export const purchaseProPass = async ({ onStart, onSuccess, onError }) => {
       return;
     }
 
+    const targetProductId = getProProductId();
+    const isUserCancel = (err) => {
+      if (!err) return false;
+      const code = err.code;
+      const msg = (err.message || '').toLowerCase();
+      return code === 'E_USER_CANCELLED' || msg.includes('cancel') || msg.includes('user cancelled') || msg.includes('user canceled');
+    };
+
     // 2. Native Mobile Platforms (iOS / Android)
-    console.log(`📱 Native billing purchase initiated for [${PRO_PASS_PRODUCT_ID}] on [${platform}] using [${NATIVE_BILLING_SDK}]`);
+    console.log(`📱 Native billing purchase initiated for [${targetProductId}] on [${platform}] using [${NATIVE_BILLING_SDK}]`);
 
     const RNIap = getIapModule();
 
     let transactionId = null;
     let purchaseToken = null;
     let receiptData = null;
+    let purchase = null;
 
     if (RNIap && typeof RNIap.initConnection === 'function') {
       try {
@@ -93,83 +169,122 @@ export const purchaseProPass = async ({ onStart, onSuccess, onError }) => {
 
         // Fetch product information from App Store / Play Store (v14 fetchProducts & legacy getProducts)
         let products = [];
-        if (typeof RNIap.fetchProducts === 'function') {
-          products = await RNIap.fetchProducts({ skus: [PRO_PASS_PRODUCT_ID], type: 'inapp' });
-        } else if (typeof RNIap.getProducts === 'function') {
-          products = await RNIap.getProducts({ skus: [PRO_PASS_PRODUCT_ID] });
+        try {
+          if (typeof RNIap.fetchProducts === 'function') {
+            products = await RNIap.fetchProducts({ skus: [targetProductId], type: 'in-app' });
+          } else if (typeof RNIap.getProducts === 'function') {
+            products = await RNIap.getProducts({ skus: [targetProductId] });
+          }
+        } catch (fetchErr) {
+          console.warn('⚠️ Product fetch error from store:', fetchErr);
         }
         console.log('📦 Available store products:', products);
 
+        if (!products || products.length === 0) {
+          const notAvailableMsg = 'Purchase is temporarily unavailable. Please try again later.';
+          console.warn(notAvailableMsg);
+          Alert.alert('Store Notice', notAvailableMsg);
+          if (onError) onError(new Error(notAvailableMsg));
+          return;
+        }
+
+        // Helper to safely extract single purchase object from array or object
+        const unwrapPurchase = (res) => {
+          if (Array.isArray(res) && res.length > 0) return res[0];
+          return res;
+        };
+
         // Request native purchase sheet (Supports Play Billing 8 / v14 requestPurchase & event listeners)
-        let purchase = null;
         if (typeof RNIap.fetchProducts === 'function') {
           purchase = await new Promise((resolve, reject) => {
             let updateSub = null;
             let errorSub = null;
-            const timer = setTimeout(() => {
+            let isResolved = false;
+
+            const cleanup = () => {
               if (updateSub?.remove) updateSub.remove();
               if (errorSub?.remove) errorSub.remove();
-              resolve(null);
+            };
+
+            const timer = setTimeout(() => {
+              if (!isResolved) {
+                isResolved = true;
+                cleanup();
+                resolve(null);
+              }
             }, 60000);
 
             if (typeof RNIap.purchaseUpdatedListener === 'function') {
               updateSub = RNIap.purchaseUpdatedListener((p) => {
-                clearTimeout(timer);
-                if (updateSub?.remove) updateSub.remove();
-                if (errorSub?.remove) errorSub.remove();
-                resolve(p);
+                const item = unwrapPurchase(p);
+                if (item && !isResolved) {
+                  isResolved = true;
+                  clearTimeout(timer);
+                  cleanup();
+                  resolve(item);
+                }
               });
             }
 
             if (typeof RNIap.purchaseErrorListener === 'function') {
               errorSub = RNIap.purchaseErrorListener((err) => {
-                clearTimeout(timer);
-                if (updateSub?.remove) updateSub.remove();
-                if (errorSub?.remove) errorSub.remove();
-                reject(err);
+                if (!isResolved) {
+                  isResolved = true;
+                  clearTimeout(timer);
+                  cleanup();
+                  reject(err);
+                }
               });
             }
 
             RNIap.requestPurchase({
               request: {
-                android: { skus: [PRO_PASS_PRODUCT_ID] },
-                ios: { sku: PRO_PASS_PRODUCT_ID, andDangerouslyFinishTransactionAutomatically: false }
+                apple: { sku: targetProductId, andDangerouslyFinishTransactionAutomatically: false },
+                ios: { sku: targetProductId, andDangerouslyFinishTransactionAutomatically: false },
+                android: { skus: [targetProductId] },
+                google: { skus: [targetProductId] }
               },
-              type: 'inapp'
+              type: 'in-app'
             }).then(directRes => {
-              if (directRes && (directRes.transactionId || directRes.purchaseToken)) {
+              const item = unwrapPurchase(directRes);
+              if (item && (item.transactionId || item.id || item.purchaseToken || item.transactionReceipt) && !isResolved) {
+                isResolved = true;
                 clearTimeout(timer);
-                if (updateSub?.remove) updateSub.remove();
-                if (errorSub?.remove) errorSub.remove();
-                resolve(directRes);
+                cleanup();
+                resolve(item);
               }
             }).catch(reqErr => {
-              clearTimeout(timer);
-              if (updateSub?.remove) updateSub.remove();
-              if (errorSub?.remove) errorSub.remove();
-              reject(reqErr);
+              if (!isResolved) {
+                isResolved = true;
+                clearTimeout(timer);
+                cleanup();
+                reject(reqErr);
+              }
             });
           });
         } else {
           purchase = await RNIap.requestPurchase({
-            sku: PRO_PASS_PRODUCT_ID,
+            sku: targetProductId,
             andDangerouslyFinishTransactionAutomaticallyIOS: false,
           });
         }
 
         if (purchase) {
-          transactionId = purchase.transactionId || purchase.id;
-          purchaseToken = purchase.purchaseToken || purchase.transactionReceipt;
-          receiptData = purchase.transactionReceipt;
+          const actualPurchase = unwrapPurchase(purchase);
+          transactionId = actualPurchase.transactionId || actualPurchase.id;
+          purchaseToken = actualPurchase.purchaseToken || actualPurchase.transactionReceipt;
+          receiptData = actualPurchase.transactionReceipt || actualPurchase.jwsRepresentationIOS || actualPurchase.purchaseToken;
         }
       } catch (iapNativeErr) {
         console.warn('⚠️ Native store sheet returned error or cancelled:', iapNativeErr);
-        if (iapNativeErr.code === 'E_USER_CANCELLED') {
-          if (onError) onError(new Error('Purchase was cancelled by user.'));
+        if (isUserCancel(iapNativeErr)) {
+          console.log('Purchase was cancelled by user silently.');
+          if (onError) onError({ isCancelled: true, message: 'User cancelled' });
           return;
         }
-        // If native store products are not configured in sandbox yet
-        console.warn('Native IAP failed, checking backend store verification status...');
+        Alert.alert('Purchase Error', iapNativeErr?.message || 'Unable to complete in-app purchase with the store.');
+        if (onError) onError(iapNativeErr);
+        return;
       } finally {
         try {
           if (RNIap.endConnection) await RNIap.endConnection();
@@ -179,15 +294,23 @@ export const purchaseProPass = async ({ onStart, onSuccess, onError }) => {
       console.log('ℹ️ Running in non-prebuilt / Expo Go environment without linked StoreKit/Play binary.');
     }
 
+    // If native store purchase was not completed, do not proceed with verification
+    if (!purchase && (platform === 'ios' || platform === 'android')) {
+      const incompleteMsg = 'Purchase could not be completed. Please try again.';
+      Alert.alert('Notice', incompleteMsg);
+      if (onError) onError(new Error(incompleteMsg));
+      return;
+    }
+
     // 3. Fallback / Standard Verification Bridge: Transmit store receipt to server for verification
     const headers = await getAuthHeader();
     const verifyPayload = {
       platform,
-      productId: PRO_PASS_PRODUCT_ID,
+      productId: targetProductId,
       bundleId: platform === 'android' ? EXPECTED_ANDROID_PACKAGE : EXPECTED_BUNDLE_ID,
-      transactionId: transactionId || `tx_${platform}_sandbox_${Date.now()}`,
-      purchaseToken: purchaseToken || `token_${platform}_sandbox_${Date.now()}`,
-      receiptData: receiptData || null,
+      transactionId,
+      purchaseToken,
+      receiptData,
     };
 
     const verifyResponse = await fetchWithTimeoutAndRetry(
@@ -205,20 +328,9 @@ export const purchaseProPass = async ({ onStart, onSuccess, onError }) => {
 
     const verifyData = await verifyResponse.json();
 
-    if (verifyResponse.status === 503 && verifyData.isBlocked) {
-      // Store API credentials missing on backend
-      const blockerMsg = platform === 'ios'
-        ? 'Apple In-App Purchase sandbox verification is BLOCKED.\n\nAwaiting App Store Connect Private Key (.p8) and In-App Purchase product ("fluencer_pro_lifetime") configuration.'
-        : 'Google Play Billing sandbox verification is BLOCKED.\n\nAwaiting Google Play Console Service Account Key and In-App Product ("fluencer_pro_lifetime") configuration.';
-      
-      Alert.alert('🔒 Store Billing Blocked', blockerMsg);
-      if (onError) onError(new Error(blockerMsg));
-      return;
-    }
-
     if (!verifyResponse.ok || !verifyData.success || !verifyData.isProMember) {
-      const failMsg = verifyData.message || 'In-App Purchase verification failed.';
-      Alert.alert('❌ Purchase Error', failMsg);
+      const failMsg = verifyData.message || 'In-App Purchase verification could not be completed.';
+      Alert.alert('Verification Issue', failMsg);
       if (onError) onError(new Error(failMsg));
       return;
     }
@@ -226,13 +338,17 @@ export const purchaseProPass = async ({ onStart, onSuccess, onError }) => {
     // Acknowledge / Finish transaction in native StoreKit / Play Billing
     if (RNIap && typeof RNIap.finishTransaction === 'function' && transactionId) {
       try {
+        const purchaseObj = (purchase && (Array.isArray(purchase) ? purchase[0] : purchase)) || { id: transactionId, transactionId, purchaseToken };
         await RNIap.finishTransaction({
-          purchase: { transactionId, purchaseToken },
+          purchase: purchaseObj,
           isConsumable: false,
         });
         console.log('✅ Native transaction acknowledged with store.');
       } catch (finishErr) {
         console.warn('Transaction acknowledgement note:', finishErr);
+        try {
+          await RNIap.finishTransaction({ id: transactionId, transactionId }, false);
+        } catch (e2) {}
       }
     }
 
@@ -242,7 +358,9 @@ export const purchaseProPass = async ({ onStart, onSuccess, onError }) => {
 
   } catch (err) {
     console.error('Native billing error:', err);
-    Alert.alert('Error', err.message || 'Unable to process purchase.');
+    if (!isUserCancel(err)) {
+      Alert.alert('Error', err.message || 'Unable to process purchase.');
+    }
     if (onError) onError(err);
   }
 };
@@ -255,6 +373,8 @@ export const restorePurchases = async ({ onStart, onSuccess, onError }) => {
     if (onStart) onStart();
 
     const platform = Platform.OS;
+    const targetProductId = getProProductId();
+    const validProductIds = [PRO_PASS_PRODUCT_ID, PRO_PASS_PRODUCT_ID_IOS];
     const headers = await getAuthHeader();
     const RNIap = getIapModule();
 
@@ -263,13 +383,57 @@ export const restorePurchases = async ({ onStart, onSuccess, onError }) => {
       try {
         await RNIap.initConnection();
         localPurchases = await RNIap.getAvailablePurchases();
-        console.log('📦 Local store available purchases found:', localPurchases.length);
+        console.log('📦 Local store available purchases found:', localPurchases ? localPurchases.length : 0);
       } catch (e) {
         console.warn('Native getAvailablePurchases notice:', e.message);
       } finally {
         try {
           if (RNIap.endConnection) await RNIap.endConnection();
         } catch (e) {}
+      }
+    }
+
+    // If local purchases exist on device, attempt server verification sync first
+    let targetPurchase = null;
+    if (localPurchases && localPurchases.length > 0) {
+      targetPurchase = localPurchases.find(p => validProductIds.includes(p.productId || p.sku)) || localPurchases[0];
+      if (targetPurchase) {
+        try {
+          const syncPayload = {
+            platform,
+            productId: targetPurchase.productId || targetPurchase.sku || targetProductId,
+            bundleId: platform === 'android' ? EXPECTED_ANDROID_PACKAGE : EXPECTED_BUNDLE_ID,
+            transactionId: targetPurchase.transactionId || targetPurchase.id,
+            purchaseToken: targetPurchase.purchaseToken || targetPurchase.transactionReceipt,
+            receiptData: targetPurchase.transactionReceipt || targetPurchase.jwsRepresentationIOS || targetPurchase.purchaseToken,
+          };
+          const syncRes = await fetchWithTimeoutAndRetry(
+            getApiUrl('/api/iap/verify-purchase'),
+            {
+              method: 'POST',
+              headers: { ...headers, 'Content-Type': 'application/json' },
+              body: JSON.stringify(syncPayload),
+            },
+            { timeoutMs: 35000, retries: 1 }
+          );
+          const syncData = await syncRes.json();
+          if (syncRes.ok && syncData.success && syncData.isProMember) {
+            // Acknowledge restored transaction with store
+            if (RNIap && typeof RNIap.finishTransaction === 'function') {
+              try {
+                await RNIap.finishTransaction({
+                  purchase: targetPurchase,
+                  isConsumable: false,
+                });
+              } catch (fErr) {}
+            }
+            Alert.alert('✅ Restored', 'Your previous Pro Membership has been successfully restored.');
+            if (onSuccess) onSuccess({ isProMember: true });
+            return;
+          }
+        } catch (syncErr) {
+          console.warn('Local purchase sync note:', syncErr.message);
+        }
       }
     }
 
@@ -283,7 +447,11 @@ export const restorePurchases = async ({ onStart, onSuccess, onError }) => {
         },
         body: JSON.stringify({ 
           platform,
-          localReceiptsCount: localPurchases.length,
+          productId: targetPurchase ? (targetPurchase.productId || targetPurchase.sku || targetProductId) : targetProductId,
+          transactionId: targetPurchase ? (targetPurchase.transactionId || targetPurchase.id) : undefined,
+          purchaseToken: targetPurchase ? (targetPurchase.purchaseToken || targetPurchase.transactionReceipt) : undefined,
+          receiptData: targetPurchase ? (targetPurchase.transactionReceipt || targetPurchase.jwsRepresentationIOS || targetPurchase.purchaseToken) : undefined,
+          localReceiptsCount: localPurchases ? localPurchases.length : 0,
         }),
       },
       { timeoutMs: 35000, retries: 2 }
@@ -340,6 +508,7 @@ export const setupPurchaseListeners = ({ onPurchaseVerified, onPurchaseError } =
     }
 
     try {
+      const targetProductId = getProProductId();
       const headers = await getAuthHeader();
       const verifyResponse = await fetchWithTimeoutAndRetry(
         getApiUrl('/api/iap/verify-purchase'),
@@ -348,8 +517,8 @@ export const setupPurchaseListeners = ({ onPurchaseVerified, onPurchaseError } =
           headers: { ...headers, 'Content-Type': 'application/json' },
           body: JSON.stringify({
             platform: Platform.OS,
-            productId: purchase.productId || PRO_PASS_PRODUCT_ID,
-            bundleId: EXPECTED_BUNDLE_ID,
+            productId: purchase.productId || targetProductId,
+            bundleId: Platform.OS === 'android' ? EXPECTED_ANDROID_PACKAGE : EXPECTED_BUNDLE_ID,
             transactionId: purchase.transactionId,
             purchaseToken: purchase.purchaseToken || purchase.transactionReceipt,
             receiptData: purchase.transactionReceipt,
@@ -377,8 +546,10 @@ export const setupPurchaseListeners = ({ onPurchaseVerified, onPurchaseError } =
 
   const purchaseErrorSubscription = RNIap.purchaseErrorListener((error) => {
     console.warn('Purchase error listener event:', error);
-    if (error.code === 'E_USER_CANCELLED') {
-      console.log('User cancelled purchase.');
+    const msg = (error?.message || '').toLowerCase();
+    if (error.code === 'E_USER_CANCELLED' || msg.includes('cancel')) {
+      console.log('User cancelled purchase silently.');
+      return;
     }
     if (onPurchaseError) onPurchaseError(error);
   });

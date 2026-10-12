@@ -1,6 +1,6 @@
 // TAB 4: LIKED BRANDS - Saved Brands with soft slide animations
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -20,7 +21,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS } from '../../constants/colors';
 import { getAuthHeader, storage } from '../../utils/storage';
 import { getApiUrl } from '../../constants/api';
-import { purchaseProPass, restorePurchases } from '../../utils/nativeBilling';
+import { purchaseProPass, restorePurchases, fetchProPassProduct } from '../../utils/nativeBilling';
 import WaveHeader from '../../components/WaveHeader';
 import { StaggerItem, SlideUp, PressScale } from '../../components/motion';
 
@@ -32,6 +33,13 @@ export default function LikedBrands() {
   const [loading, setLoading] = useState(true);
   const [isProMember, setIsProMember] = useState(false);
   const [unlockingPro, setUnlockingPro] = useState(false);
+  const [proDisplayPrice, setProDisplayPrice] = useState('₹499');
+
+  useEffect(() => {
+    fetchProPassProduct().then((prod) => {
+      if (prod?.displayPrice) setProDisplayPrice(prod.displayPrice);
+    }).catch(() => {});
+  }, []);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -236,7 +244,7 @@ export default function LikedBrands() {
             </View>
             <Text style={{ fontSize: 20, fontWeight: '800', color: '#FFFFFF', textAlign: 'center', marginBottom: 8 }}>🔒 Pro Membership Pass Required</Text>
             <Text style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.6)', textAlign: 'center', lineHeight: 20, marginBottom: 24 }}>
-              Unlock your ₹499 Pro Membership Pass to view saved brands, access company profiles, and apply for high-payout brand campaigns!
+              Unlock your {proDisplayPrice} Pro Membership Pass to view saved brands, access company profiles, and apply for high-payout brand campaigns!
             </Text>
               <TouchableOpacity
                 style={{ width: '100%', borderRadius: 14, overflow: 'hidden' }}
@@ -255,7 +263,7 @@ export default function LikedBrands() {
                   ) : (
                     <>
                       <MaterialCommunityIcons name="flash-outline" size={20} color="#FFFFFF" />
-                      <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 15 }}>Pay ₹499 & Unlock Access</Text>
+                      <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 15 }}>Pay {proDisplayPrice} & Unlock Access</Text>
                     </>
                   )}
                 </LinearGradient>
@@ -285,6 +293,19 @@ export default function LikedBrands() {
                   Restore Purchases
                 </Text>
               </TouchableOpacity>
+
+              <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 14, marginTop: 14 }}>
+                <TouchableOpacity onPress={() => Linking.openURL('https://fluencer-app.onrender.com/terms').catch(() => {})} activeOpacity={0.7}>
+                  <Text style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: 12, textDecorationLine: 'underline' }}>Terms of Use</Text>
+                </TouchableOpacity>
+                <Text style={{ color: 'rgba(255, 255, 255, 0.3)', fontSize: 12 }}>•</Text>
+                <TouchableOpacity onPress={() => Linking.openURL('https://fluencer-app.onrender.com/privacy-policy').catch(() => {})} activeOpacity={0.7}>
+                  <Text style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: 12, textDecorationLine: 'underline' }}>Privacy Policy</Text>
+                </TouchableOpacity>
+              </View>
+              <Text style={{ color: 'rgba(255, 255, 255, 0.35)', fontSize: 11, textAlign: 'center', marginTop: 8 }}>
+                One-time purchase · Non-consumable lifetime pass
+              </Text>
           </View>
         </View>
       </SafeAreaView>

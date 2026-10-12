@@ -4,7 +4,29 @@ import IAPTransaction from '../models/IAPTransaction.js';
 export const EXPECTED_BUNDLE_ID = 'com.fluencers.app';
 export const EXPECTED_ANDROID_PACKAGE = 'com.fluencer.official';
 export const ALLOWED_APP_IDENTIFIERS = [EXPECTED_BUNDLE_ID, EXPECTED_ANDROID_PACKAGE];
-export const EXPECTED_PRODUCT_ID = 'fluencer_pro_lifetime';
+
+export const PRO_PASS_PRODUCT_ID_ANDROID = 'fluencer_pro_lifetime';
+export const PRO_PASS_PRODUCT_ID_IOS = 'fluencer_pro_lifetime_ios';
+export const ALLOWED_PRODUCT_IDS = [PRO_PASS_PRODUCT_ID_ANDROID, PRO_PASS_PRODUCT_ID_IOS];
+export const EXPECTED_PRODUCT_ID = PRO_PASS_PRODUCT_ID_ANDROID;
+export const EXPECTED_PRODUCT_IDS = ALLOWED_PRODUCT_IDS;
+
+/**
+ * Validate product ID per platform:
+ * - iOS must use fluencer_pro_lifetime_ios
+ * - Android must use fluencer_pro_lifetime
+ */
+export const isValidProductForPlatform = (platform, productId) => {
+  if (platform === 'ios') return productId === PRO_PASS_PRODUCT_ID_IOS;
+  if (platform === 'android') return productId === PRO_PASS_PRODUCT_ID_ANDROID;
+  return false;
+};
+
+export const getExpectedProductIdForPlatform = (platform) => {
+  if (platform === 'ios') return PRO_PASS_PRODUCT_ID_IOS;
+  if (platform === 'android') return PRO_PASS_PRODUCT_ID_ANDROID;
+  return null;
+};
 
 /**
  * Store Verification Service
@@ -58,7 +80,8 @@ export const getStoreConfigurationStatus = () => {
         ...(!process.env.APPLE_PRIVATE_KEY ? ['APPLE_PRIVATE_KEY'] : []),
       ],
       optionalLegacyKeys: ['APPLE_IAP_SHARED_SECRET'],
-      productId: EXPECTED_PRODUCT_ID,
+      productId: PRO_PASS_PRODUCT_ID_IOS,
+      allowedProductIds: ALLOWED_PRODUCT_IDS,
       bundleId: EXPECTED_BUNDLE_ID,
     },
     google: {
@@ -66,8 +89,9 @@ export const getStoreConfigurationStatus = () => {
       status: googleConfigured ? 'READY' : 'BLOCKED',
       requiredKeys: ['GOOGLE_SERVICE_ACCOUNT_KEY'],
       missingKeys: googleConfigured ? [] : ['GOOGLE_SERVICE_ACCOUNT_KEY'],
-      productId: EXPECTED_PRODUCT_ID,
-      packageName: EXPECTED_BUNDLE_ID,
+      productId: PRO_PASS_PRODUCT_ID_ANDROID,
+      allowedProductIds: ALLOWED_PRODUCT_IDS,
+      packageName: EXPECTED_ANDROID_PACKAGE,
     }
   };
 };
@@ -101,13 +125,44 @@ export const decodeAppleJWS = (token) => {
  * Verify Apple In-App Purchase
  */
 export const verifyApplePurchase = async ({ receiptData, transactionId, productId, bundleId }) => {
+  // 1. If JWS transaction was provided by StoreKit 2 (Supported in Sandbox & Production)
+  if (receiptData && typeof receiptData === 'string' && receiptData.includes('.')) {
+    const decoded = decodeAppleJWS(receiptData);
+    if (decoded && decoded.payload) {
+      const txPayload = decoded.payload;
+      const expectedBundle = bundleId || EXPECTED_BUNDLE_ID;
+      if (txPayload.bundleId && txPayload.bundleId !== expectedBundle && !ALLOWED_APP_IDENTIFIERS.includes(txPayload.bundleId)) {
+        return {
+          verified: false,
+          isConfigured: true,
+          message: `Bundle ID mismatch in signed transaction: ${txPayload.bundleId}`,
+        };
+      }
+      if (txPayload.productId && txPayload.productId !== PRO_PASS_PRODUCT_ID_IOS && !ALLOWED_PRODUCT_IDS.includes(txPayload.productId)) {
+        return {
+          verified: false,
+          isConfigured: true,
+          message: `Product ID mismatch in signed transaction: ${txPayload.productId}`,
+        };
+      }
+      return {
+        verified: true,
+        isConfigured: true,
+        productId: txPayload.productId || productId,
+        transactionId: txPayload.transactionId || transactionId,
+        environment: txPayload.environment || 'Sandbox',
+        raw: txPayload,
+      };
+    }
+  }
+
   const config = getStoreConfigurationStatus().apple;
   if (!config.configured) {
     return {
       verified: false,
       isConfigured: false,
       status: 'BLOCKED',
-      message: 'Apple StoreKit server verification is awaiting App Store Connect API Key (APPLE_KEY_ID, APPLE_ISSUER_ID, APPLE_PRIVATE_KEY).',
+      message: 'Apple StoreKit server verification is awaiting App Store Connect API Key (APPLE_KEY_ID, APPLE_ISSUER_ID, APPLE_PRIVATE_KEY) or a signed StoreKit 2 JWS receipt.',
       missingKeys: config.missingKeys,
     };
   }
@@ -116,35 +171,6 @@ export const verifyApplePurchase = async ({ receiptData, transactionId, productI
   // Apple App Store Server API: GET https://api.storekit.itunes.apple.com/inApps/v1/transactions/{transactionId}
   // (or sandbox: https://api.storekit-sandbox.itunes.apple.com/inApps/v1/transactions/{transactionId})
   try {
-    // If JWS transaction was provided by StoreKit 2
-    if (receiptData && receiptData.includes('.')) {
-      const decoded = decodeAppleJWS(receiptData);
-      if (decoded && decoded.payload) {
-        const txPayload = decoded.payload;
-        if (txPayload.bundleId !== EXPECTED_BUNDLE_ID) {
-          return {
-            verified: false,
-            isConfigured: true,
-            message: `Bundle ID mismatch in signed transaction: ${txPayload.bundleId}`,
-          };
-        }
-        if (txPayload.productId !== EXPECTED_PRODUCT_ID) {
-          return {
-            verified: false,
-            isConfigured: true,
-            message: `Product ID mismatch in signed transaction: ${txPayload.productId}`,
-          };
-        }
-        return {
-          verified: true,
-          isConfigured: true,
-          productId: txPayload.productId,
-          transactionId: txPayload.transactionId || transactionId,
-          raw: txPayload,
-        };
-      }
-    }
-
     return {
       verified: false,
       isConfigured: true,
@@ -280,8 +306,8 @@ export const processGooglePlayNotification = async (pubSubMessage) => {
     const { packageName, oneTimeProductNotification, testNotification } = data;
 
     // Validate package identity
-    if (packageName && packageName !== EXPECTED_BUNDLE_ID) {
-      throw new Error(`Google RTDN package mismatch: expected ${EXPECTED_BUNDLE_ID}, received ${packageName}`);
+    if (packageName && packageName !== EXPECTED_ANDROID_PACKAGE && !ALLOWED_APP_IDENTIFIERS.includes(packageName)) {
+      throw new Error(`Google RTDN package mismatch: expected ${EXPECTED_ANDROID_PACKAGE}, received ${packageName}`);
     }
 
     if (testNotification) {

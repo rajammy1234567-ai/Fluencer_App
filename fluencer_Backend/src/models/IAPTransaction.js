@@ -27,7 +27,7 @@ const iapTransactionSchema = new mongoose.Schema(
     product_id: {
       type: String,
       required: true,
-      enum: ['fluencer_pro_lifetime'],
+      enum: ['fluencer_pro_lifetime', 'fluencer_pro_lifetime_ios'],
     },
     bundle_id: {
       type: String,

@@ -6,7 +6,10 @@ import {
   EXPECTED_BUNDLE_ID,
   EXPECTED_ANDROID_PACKAGE,
   ALLOWED_APP_IDENTIFIERS,
-  EXPECTED_PRODUCT_ID,
+  ALLOWED_PRODUCT_IDS,
+  PRO_PASS_PRODUCT_ID_ANDROID,
+  PRO_PASS_PRODUCT_ID_IOS,
+  isValidProductForPlatform,
   getStoreConfigurationStatus,
   verifyApplePurchase,
   verifyGooglePlayPurchase,
@@ -20,8 +23,8 @@ const router = express.Router();
  * In-App Purchase (IAP) Server-Side Verification Controller
  * 
  * Cryptographic & Integrity Controls:
- * 1. App Identity: Enforces bundle ID / package name matches 'com.fluencers.app'.
- * 2. Product ID: Verifies product matches 'fluencer_pro_lifetime'.
+ * 1. App Identity: Enforces bundle ID / package name matches 'com.fluencers.app' (iOS) or 'com.fluencer.official' (Android).
+ * 2. Product ID: Verifies product matches 'fluencer_pro_lifetime_ios' (iOS) or 'fluencer_pro_lifetime' (Android).
  * 3. Replay Protection: Checks if transaction_id / purchase_token was already redeemed by another user.
  * 4. Transaction Ownership: Binds verified transaction strictly to authenticated userId.
  * 5. Purchase Status & Revocations: Rejects refunded/revoked transactions.
@@ -80,12 +83,12 @@ router.post('/verify-purchase', authMiddleware, async (req, res) => {
       });
     }
 
-    // 3. Product ID Verification
-    if (productId !== EXPECTED_PRODUCT_ID) {
+    // 3. Product ID Verification per platform
+    if (!isValidProductForPlatform(platform, productId)) {
       return res.status(400).json({
         success: false,
         code: 'INVALID_PRODUCT_ID',
-        message: `Unknown or unconfigured store product: ${productId}`
+        message: `Invalid product ID [${productId}] for platform [${platform}]. Expected ${platform === 'ios' ? PRO_PASS_PRODUCT_ID_IOS : PRO_PASS_PRODUCT_ID_ANDROID}.`
       });
     }
 
@@ -128,9 +131,10 @@ router.post('/verify-purchase', authMiddleware, async (req, res) => {
 
     // 5. Store API Credentials Check
     const storeStatus = getStoreConfigurationStatus();
+    const hasSignedJWS = typeof receiptData === 'string' && receiptData.includes('.');
 
-    if (platform === 'ios' && !storeStatus.apple.configured) {
-      console.warn('⚠️ Apple StoreKit verification blocked: credentials not configured in environment.');
+    if (platform === 'ios' && !storeStatus.apple.configured && !hasSignedJWS) {
+      console.warn('⚠️ Apple StoreKit verification blocked: credentials not configured in environment and no signed receipt provided.');
       return res.status(503).json({
         success: false,
         code: 'IAP_SERVER_NOT_CONFIGURED',
@@ -181,7 +185,7 @@ router.post('/verify-purchase', authMiddleware, async (req, res) => {
           user_id: userId,
           platform,
           product_id: productId,
-          bundle_id: EXPECTED_BUNDLE_ID,
+          bundle_id: platform === 'android' ? EXPECTED_ANDROID_PACKAGE : EXPECTED_BUNDLE_ID,
           status: 'purchased',
           is_acknowledged: true,
           raw_payload: receiptData || {}
@@ -228,7 +232,7 @@ router.get('/status', authMiddleware, async (req, res) => {
     const userId = req.user.userId || req.user.id;
     const activeTx = await IAPTransaction.findOne({
       user_id: userId,
-      product_id: EXPECTED_PRODUCT_ID,
+      product_id: { $in: ALLOWED_PRODUCT_IDS },
       status: { $in: ['purchased', 'restored'] }
     });
     return res.status(200).json({
@@ -245,14 +249,68 @@ router.get('/status', authMiddleware, async (req, res) => {
 router.post('/restore-purchases', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.userId || req.user.id;
-    const { platform } = req.body;
+    const { platform, transactionId, purchaseToken, receiptData, productId } = req.body;
 
     console.log(`🔍 Checking restore purchases for User [${userId}] on platform [${platform}]`);
 
-    // Find any valid, non-revoked transaction belonging to this user
+    // 1. If client provided a transaction to verify and restore directly
+    if (transactionId && (receiptData || purchaseToken)) {
+      const targetProduct = productId || (platform === 'ios' ? PRO_PASS_PRODUCT_ID_IOS : PRO_PASS_PRODUCT_ID_ANDROID);
+      if (isValidProductForPlatform(platform, targetProduct)) {
+        let verified = false;
+        if (platform === 'ios') {
+          const appleResult = await verifyApplePurchase({ receiptData, transactionId, productId: targetProduct, bundleId: EXPECTED_BUNDLE_ID });
+          verified = appleResult.verified;
+        } else if (platform === 'android') {
+          const googleResult = await verifyGooglePlayPurchase({ purchaseToken, productId: targetProduct, packageName: EXPECTED_ANDROID_PACKAGE });
+          verified = googleResult.verified;
+        }
+
+        if (verified) {
+          const tx = await IAPTransaction.findOneAndUpdate(
+            { transaction_id: transactionId },
+            {
+              $set: {
+                purchase_token: purchaseToken || null,
+                user_id: userId,
+                platform,
+                product_id: targetProduct,
+                bundle_id: platform === 'android' ? EXPECTED_ANDROID_PACKAGE : EXPECTED_BUNDLE_ID,
+                status: 'restored',
+                is_acknowledged: true,
+                raw_payload: receiptData || {}
+              }
+            },
+            { upsert: true, new: true }
+          );
+
+          await InfluencerProfile.findOneAndUpdate(
+            { $or: [{ user_id: userId }, { user_id: userId.toString() }] },
+            {
+              $set: {
+                is_pro_member: true,
+                pro_restored_at: new Date(),
+                pro_purchase_platform: platform,
+                pro_product_id: targetProduct,
+                pro_transaction_id: tx._id
+              }
+            }
+          );
+
+          return res.status(200).json({
+            success: true,
+            restored: true,
+            message: 'Your Pro Membership was successfully restored.',
+            isProMember: true
+          });
+        }
+      }
+    }
+
+    // 2. Find any valid, non-revoked transaction belonging to this user in DB
     const validTx = await IAPTransaction.findOne({
       user_id: userId,
-      product_id: EXPECTED_PRODUCT_ID,
+      product_id: { $in: ALLOWED_PRODUCT_IDS },
       status: { $in: ['purchased', 'restored'] }
     });
 

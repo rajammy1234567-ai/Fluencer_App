@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Platform } from "react-native";
 import { isAuthenticated } from "../utils/storage";
+import { setupPurchaseListeners } from "../utils/nativeBilling";
 import GlobalErrorBoundary from "../components/GlobalErrorBoundary";
 
 // Suppress ExponentImagePicker web proxy warning & verbose debug noise globally across all components
@@ -51,6 +52,22 @@ export default function RootLayout() {
   useEffect(() => {
     // Check if user is logged in from storage
     checkAuthStatus();
+
+    // Attach native purchase listeners for lifecycle & background recovery (Apple & Google guideline requirement)
+    let cleanupIap = () => {};
+    if (Platform.OS === 'ios' || Platform.OS === 'android') {
+      try {
+        cleanupIap = setupPurchaseListeners();
+      } catch (e) {
+        console.warn('IAP listeners setup notice:', e?.message);
+      }
+    }
+
+    return () => {
+      if (typeof cleanupIap === 'function') {
+        cleanupIap();
+      }
+    };
   }, []);
 
   const checkAuthStatus = async () => {

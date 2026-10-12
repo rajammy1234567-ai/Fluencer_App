@@ -11,12 +11,12 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.fluencers.app",
-      "buildNumber": "1",
+      "buildNumber": "8",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSCameraUsageDescription": "Fluencer requires camera access to take profile photos, campaign media, and proof of work.",
-        "NSPhotoLibraryUsageDescription": "Fluencer requires access to your photo library to select profile pictures and campaign deliverables.",
-        "NSPhotoLibraryAddUsageDescription": "Fluencer needs permission to save campaign creative assets to your photo library."
+        "NSCameraUsageDescription": "Fluencer needs access to your camera so you can take photos for your profile and campaign deliverables. For example, you can take a photo to attach directly to a brand campaign.",
+        "NSPhotoLibraryUsageDescription": "Fluencer needs access to your photos so you can upload a profile picture and campaign content. For example, you can pick a photo from your gallery to show on your influencer profile.",
+        "NSPhotoLibraryAddUsageDescription": "Fluencer needs permission to save images to your photo library. For example, you can download campaign briefs and creative assets directly to your photos."
       }
     },
     "android": {
@@ -54,27 +54,14 @@
         }
       ],
       [
-        "expo-media-library",
-        {
-          "photosPermission": "Allow Fluencer to access your photos.",
-          "savePhotosPermission": "Allow Fluencer to save photos.",
-          "isAccessMediaLocationEnabled": true
-        }
-      ],
-      [
         "expo-image-picker",
         {
-          "photosPermission": "Fluencer needs access to your photos.",
-          "videosPermission": "Fluencer needs access to your videos.",
-          "cameraPermission": "Fluencer needs access to your camera."
+          "photosPermission": "Fluencer needs access to your photos so you can upload a profile picture and campaign content. For example, you can pick a photo from your gallery to show on your influencer profile.",
+          "cameraPermission": "Fluencer needs access to your camera so you can take photos for your profile and campaign deliverables. For example, you can take a photo to attach directly to a brand campaign.",
+          "videosPermission": "Fluencer needs access to your videos so you can upload campaign video deliverables. For example, you can select a video from your library to submit for brand review."
         }
       ],
-      [
-        "react-native-iap",
-        {
-          "paymentProvider": "Play Store"
-        }
-      ]
+      "react-native-iap"
     ],
     "experiments": {
       "typedRoutes": true

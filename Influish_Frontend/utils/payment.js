@@ -53,7 +53,7 @@ export const initiatePayment = async ({
         },
         body: JSON.stringify({
           amount,
-          description: description || '₹499 Pro Membership Pass',
+          description: description || 'Brand Escrow Deposit',
           campaignId,
           userId: currentUserId
         }),
@@ -78,7 +78,7 @@ export const initiatePayment = async ({
           },
           body: JSON.stringify({
             amount,
-            description: description || '₹499 Pro Membership Pass',
+            description: description || 'Brand Escrow Deposit',
             campaignId,
             userId: currentUserId
           }),
