@@ -11,25 +11,31 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.fluencers.app",
+      "buildNumber": "8",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Fluencer needs access to your camera so you can take photos for your profile and campaign deliverables. For example, you can take a photo to attach directly to a brand campaign.",
+        "NSPhotoLibraryUsageDescription": "Fluencer needs access to your photos so you can upload a profile picture and campaign content. For example, you can pick a photo from your gallery to show on your influencer profile.",
+        "NSPhotoLibraryAddUsageDescription": "Fluencer needs permission to save images to your photo library. For example, you can download campaign briefs and creative assets directly to your photos."
       }
     },
     "android": {
-      "package": "com.fluencers.app",
+      "package": "com.fluencer.official",
+      "versionCode": 4,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundColor": "#E6F4FE"
       },
       "permissions": [
-        "android.permission.RECORD_AUDIO",
-        "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.CAMERA",
         "android.permission.READ_MEDIA_IMAGES",
         "android.permission.READ_MEDIA_VIDEO",
-        "android.permission.CAMERA",
         "android.permission.ACCESS_MEDIA_LOCATION",
         "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "com.android.vending.BILLING"
+      ],
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
         "android.permission.READ_MEDIA_AUDIO"
       ]
     },
@@ -48,21 +54,14 @@
         }
       ],
       [
-        "expo-media-library",
-        {
-          "photosPermission": "Allow Fluencer to access your photos.",
-          "savePhotosPermission": "Allow Fluencer to save photos.",
-          "isAccessMediaLocationEnabled": true
-        }
-      ],
-      [
         "expo-image-picker",
         {
-          "photosPermission": "Fluencer needs access to your photos.",
-          "videosPermission": "Fluencer needs access to your videos.",
-          "cameraPermission": "Fluencer needs access to your camera."
+          "photosPermission": "Fluencer needs access to your photos so you can upload a profile picture and campaign content. For example, you can pick a photo from your gallery to show on your influencer profile.",
+          "cameraPermission": "Fluencer needs access to your camera so you can take photos for your profile and campaign deliverables. For example, you can take a photo to attach directly to a brand campaign.",
+          "videosPermission": "Fluencer needs access to your videos so you can upload campaign video deliverables. For example, you can select a video from your library to submit for brand review."
         }
-      ]
+      ],
+      "react-native-iap"
     ],
     "experiments": {
       "typedRoutes": true
@@ -76,9 +75,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "4a46da97-973f-4b20-afe2-88165f8ef378"
+        "projectId": "a9028195-f376-4c43-8703-93a753a378b6"
       }
     },
-    "owner": "krishna73"
+    "owner": "viz_eas_001"
   }
 }

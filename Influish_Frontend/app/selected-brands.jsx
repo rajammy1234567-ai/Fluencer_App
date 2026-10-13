@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -12,12 +12,23 @@ const SelectedBrandsPage = () => {
   const params = useLocalSearchParams();
   
   // Parse brands from params safely
-  let brands = [];
-  try {
-    brands = params.brands ? (typeof params.brands === 'string' ? JSON.parse(params.brands) : params.brands) : [];
-  } catch (e) {
-    brands = [];
-  }
+  const initialBrands = useMemo(() => {
+    try {
+      return params.brands ? (typeof params.brands === 'string' ? JSON.parse(params.brands) : params.brands) : [];
+    } catch (e) {
+      return [];
+    }
+  }, [params.brands]);
+
+  const [brands, setBrands] = useState(initialBrands);
+
+  const handleRemoveBrand = (brandId) => {
+    setBrands((prev) => prev.filter((b) => b.id !== brandId));
+  };
+
+  const handleProceed = () => {
+    router.push('/(tabs)/campaigns');
+  };
 
   return (
     <LinearGradient
@@ -87,7 +98,11 @@ const SelectedBrandsPage = () => {
                   )}
                 </View>
 
-                <TouchableOpacity style={styles.removeButton}>
+                <TouchableOpacity 
+                  style={styles.removeButton}
+                  onPress={() => handleRemoveBrand(brand.id)}
+                  activeOpacity={0.7}
+                >
                   <Ionicons name="close-circle" size={24} color="#FF4458" />
                 </TouchableOpacity>
               </View>
@@ -102,10 +117,7 @@ const SelectedBrandsPage = () => {
           <TouchableOpacity 
             style={styles.proceedButton} 
             activeOpacity={0.8}
-            onPress={() => {
-              // TODO: Navigate to collaboration/campaign creation page
-              console.log('Proceeding with brands:', brands);
-            }}
+            onPress={handleProceed}
           >
             <Text style={styles.proceedText}>
               Proceed with {brands.length} brand{brands.length !== 1 ? 's' : ''}

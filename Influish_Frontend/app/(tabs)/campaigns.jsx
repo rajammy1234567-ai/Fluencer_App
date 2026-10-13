@@ -14,6 +14,7 @@ import {
   ScrollView,
   Animated,
   Platform,
+  Linking,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -30,7 +31,7 @@ import { API, getApiUrl } from '../../constants/api';
 import WaveHeader from '../../components/WaveHeader';
 import { SlideInCard, SlideUp } from '../../components/motion';
 import { FALLBACK_INDIAN } from '../../constants/sampleImages';
-import { initiatePayment } from '../../utils/payment';
+import { purchaseProPass, restorePurchases, fetchProPassProduct } from '../../utils/nativeBilling';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -41,6 +42,7 @@ export default function InfluencerCampaigns() {
   const [isProMember, setIsProMember] = useState(false);
   const [showProModal, setShowProModal] = useState(true);
   const [unlockingPro, setUnlockingPro] = useState(false);
+  const [proDisplayPrice, setProDisplayPrice] = useState('₹499');
   const [campaigns, setCampaigns] = useState([]);
 
   const handleBackToHome = () => {
@@ -75,6 +77,57 @@ export default function InfluencerCampaigns() {
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState(null);
   const [activeModalImgIndex, setActiveModalImgIndex] = useState(0);
+
+  // Report Campaign State
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState('inappropriate_content');
+  const [reportDetails, setReportDetails] = useState('');
+  const [submittingReport, setSubmittingReport] = useState(false);
+
+  const handleSubmitCampaignReport = async () => {
+    if (!selectedCampaign) return;
+    const campaignId = selectedCampaign.id || selectedCampaign._id;
+    const targetUserId = selectedCampaign.brand_id || selectedCampaign.brandId || selectedCampaign.user_id;
+
+    setSubmittingReport(true);
+    try {
+      const headers = await getAuthHeader();
+      const res = await fetch(getApiUrl('/api/moderation/report'), {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reportedUserId: targetUserId,
+          contentType: 'campaign',
+          contentId: campaignId,
+          reason: reportReason,
+          details: reportDetails,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setShowReportModal(false);
+        setReportDetails('');
+        Alert.alert(
+          '🛡️ Campaign Reported',
+          'Thank you. Our safety team reviews all reported campaigns within 24 hours under our zero-tolerance policy.'
+        );
+      } else {
+        Alert.alert('Error', data.message || 'Failed to submit report');
+      }
+    } catch (e) {
+      Alert.alert('Error', e.message || 'Network error while submitting report');
+    } finally {
+      setSubmittingReport(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProPassProduct().then((prod) => {
+      if (prod?.displayPrice) {
+        setProDisplayPrice(prod.displayPrice);
+      }
+    }).catch(() => {});
+  }, []);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -116,65 +169,39 @@ export default function InfluencerCampaigns() {
   const handleUnlockProPass = () => {
     if (unlockingPro) return;
     setUnlockingPro(true);
-    initiatePayment({
-      amount: 499,
-      description: '₹499 Pro Membership Pass - Unlimited Brand Campaign Access',
-      onSuccess: async (payRes) => {
-        try {
-          const headers = await getAuthHeader();
-          await fetch(getApiUrl('/api/influencers/unlock-pass'), {
-            method: 'POST',
-            headers: { ...headers, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ paymentId: payRes?.paymentId })
-          });
-        } catch (err) {
-          console.warn('Unlock pass API warning:', err);
-        }
+    purchaseProPass({
+      onStart: () => setUnlockingPro(true),
+      onSuccess: async (res) => {
         setIsProMember(true);
         setShowProModal(false);
         setUnlockingPro(false);
         await fetchCampaigns();
-        Alert.alert(
-          '🎉 Pro Membership Unlocked!',
-          'Your ₹499 payment is confirmed! You now have unlimited access to explore and apply to all brand campaigns.'
-        );
       },
-      onFailure: (err) => {
+      onError: (err) => {
         setUnlockingPro(false);
-        console.log('Payment cancelled/failed:', err);
-      }
+        console.warn('Purchase error/blocked:', err);
+      },
     });
-    setTimeout(() => setUnlockingPro(false), 500);
   };
 
-  const handleDirectProUnlock = async () => {
+  const handleRestorePurchases = async () => {
+    if (unlockingPro) return;
     setUnlockingPro(true);
-    try {
-      const headers = await getAuthHeader();
-      const res = await fetch(getApiUrl('/api/influencers/unlock-pass'), {
-        method: 'POST',
-        headers: { ...headers, 'Content-Type': 'application/json' },
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setIsProMember(true);
-        setShowProModal(false);
-        await fetchCampaigns();
-        Alert.alert('🎉 Pro Pass Activated', 'Your ₹499 payment is confirmed! Campaigns are now fully unlocked.');
-      } else {
-        setIsProMember(false);
-        setShowProModal(true);
-        Alert.alert(
-          '❌ Payment Not Verified',
-          data.message || 'No completed ₹499 payment was found for your account. Please complete payment via Razorpay to unlock campaigns.'
-        );
-      }
-    } catch (err) {
-      console.warn('Direct unlock error:', err);
-      Alert.alert('Error', 'Could not verify payment status. Please try again.');
-    } finally {
-      setUnlockingPro(false);
-    }
+    await restorePurchases({
+      onStart: () => setUnlockingPro(true),
+      onSuccess: async (res) => {
+        setUnlockingPro(false);
+        if (res.isProMember) {
+          setIsProMember(true);
+          setShowProModal(false);
+          await fetchCampaigns();
+        }
+      },
+      onError: (err) => {
+        setUnlockingPro(false);
+        console.warn('Restore error:', err);
+      },
+    });
   };
 
 
@@ -331,7 +358,7 @@ export default function InfluencerCampaigns() {
         setShowProModal(true);
         Alert.alert(
           '🔒 Pro Membership Required',
-          'Application could not be saved because Pro Pass is required. Please pay ₹499 to unlock Pro Pass access!'
+          'Application could not be saved because Pro Pass is required. Please unlock Pro Pass access to continue!'
         );
         return;
       }
@@ -738,6 +765,14 @@ export default function InfluencerCampaigns() {
           <View style={styles.newDesignModalCard}>
             {/* Close Icon Button */}
             <TouchableOpacity 
+              style={[styles.modalCloseIconBtn, { right: 54 }]} 
+              onPress={() => setShowReportModal(true)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="flag-outline" size={18} color="#F59E0B" />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
               style={styles.modalCloseIconBtn} 
               onPress={() => {
                 setDetailModalVisible(false);
@@ -947,7 +982,7 @@ export default function InfluencerCampaigns() {
             </LinearGradient>
 
             <View style={styles.proBody}>
-              <Text style={styles.proPriceText}>₹499 <Text style={{ fontSize: 16, color: 'rgba(255,255,255,0.55)', fontWeight: '400' }}>/ Lifetime Pass</Text></Text>
+              <Text style={styles.proPriceText}>{proDisplayPrice} <Text style={{ fontSize: 16, color: 'rgba(255,255,255,0.55)', fontWeight: '400' }}>/ Lifetime Pass</Text></Text>
               
               <View style={styles.proFeatureList}>
                 <View style={styles.proFeatureItem}>
@@ -983,7 +1018,7 @@ export default function InfluencerCampaigns() {
                   ) : (
                     <>
                       <MaterialCommunityIcons name="lock-open" size={22} color="#FFF" />
-                      <Text style={styles.proUnlockText}>Pay ₹499 & Unlock Campaigns</Text>
+                      <Text style={styles.proUnlockText}>Pay {proDisplayPrice} & Unlock Campaigns</Text>
                     </>
                   )}
                 </LinearGradient>
@@ -1003,14 +1038,113 @@ export default function InfluencerCampaigns() {
                   justifyContent: 'center',
                   gap: 8,
                 }}
-                onPress={handleDirectProUnlock}
+                onPress={handleRestorePurchases}
                 disabled={unlockingPro}
                 activeOpacity={0.7}
               >
-                <MaterialCommunityIcons name="refresh" size={18} color="#A855F7" />
+                <MaterialCommunityIcons name="history" size={18} color="#A855F7" />
                 <Text style={{ color: '#E2E8F0', fontSize: 13.5, fontWeight: '700' }}>
-                  Already Paid? Confirm & Unlock
+                  Restore Purchases
                 </Text>
+              </TouchableOpacity>
+
+              <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 14, marginTop: 14 }}>
+                <TouchableOpacity onPress={() => Linking.openURL('https://fluencer-app.onrender.com/terms').catch(() => {})} activeOpacity={0.7}>
+                  <Text style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: 12, textDecorationLine: 'underline' }}>Terms of Use</Text>
+                </TouchableOpacity>
+                <Text style={{ color: 'rgba(255, 255, 255, 0.3)', fontSize: 12 }}>•</Text>
+                <TouchableOpacity onPress={() => Linking.openURL('https://fluencer-app.onrender.com/privacy-policy').catch(() => {})} activeOpacity={0.7}>
+                  <Text style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: 12, textDecorationLine: 'underline' }}>Privacy Policy</Text>
+                </TouchableOpacity>
+              </View>
+              <Text style={{ color: 'rgba(255, 255, 255, 0.35)', fontSize: 11, textAlign: 'center', marginTop: 8 }}>
+                One-time purchase · Non-consumable lifetime pass
+              </Text>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* UGC REPORT CAMPAIGN MODAL */}
+      <Modal
+        visible={showReportModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowReportModal(false)}
+      >
+        <View style={styles.reportModalOverlay}>
+          <View style={styles.reportModalCard}>
+            <View style={styles.reportModalHeader}>
+              <Ionicons name="flag" size={22} color="#F59E0B" />
+              <Text style={styles.reportModalTitle}>Report Campaign</Text>
+              <TouchableOpacity onPress={() => setShowReportModal(false)}>
+                <Ionicons name="close" size={22} color="rgba(255,255,255,0.7)" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.reportModalSubtitle}>
+              Please select the reason for reporting this campaign. Our safety team reviews all reports within 24 hours under our zero-tolerance policy.
+            </Text>
+
+            <View style={styles.reasonsContainer}>
+              {[
+                { id: 'inappropriate_content', label: 'Inappropriate or Explicit Content' },
+                { id: 'scam_fraud', label: 'Scam, Fake Brand, or Deception' },
+                { id: 'spam', label: 'Spam or Misleading Requirements' },
+                { id: 'harassment', label: 'Harassment or Threatening Terms' },
+                { id: 'hate_speech', label: 'Hate Speech or Discrimination' },
+                { id: 'other', label: 'Other Policy Concern' },
+              ].map((reason) => (
+                <TouchableOpacity
+                  key={reason.id}
+                  style={[
+                    styles.reasonChip,
+                    reportReason === reason.id && styles.reasonChipActive
+                  ]}
+                  onPress={() => setReportReason(reason.id)}
+                >
+                  <MaterialCommunityIcons
+                    name={reportReason === reason.id ? "radiobox-marked" : "radiobox-blank"}
+                    size={18}
+                    color={reportReason === reason.id ? "#C084FC" : "rgba(255,255,255,0.5)"}
+                  />
+                  <Text style={[
+                    styles.reasonChipText,
+                    reportReason === reason.id && styles.reasonChipTextActive
+                  ]}>
+                    {reason.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TextInput
+              style={styles.reportDetailsInput}
+              value={reportDetails}
+              onChangeText={setReportDetails}
+              placeholder="Additional details (optional, max 500 chars)..."
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              multiline
+              maxLength={500}
+            />
+
+            <View style={styles.reportBtnRow}>
+              <TouchableOpacity
+                style={styles.reportCancelBtn}
+                onPress={() => setShowReportModal(false)}
+              >
+                <Text style={styles.reportCancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.reportSubmitBtn, submittingReport && { opacity: 0.6 }]}
+                onPress={handleSubmitCampaignReport}
+                disabled={submittingReport}
+              >
+                {submittingReport ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.reportSubmitBtnText}>Submit Report</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -1553,5 +1687,110 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14.5,
     fontWeight: '800',
+  },
+
+  // Report Modal Styles
+  reportModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  reportModalCard: {
+    width: '100%',
+    maxWidth: 440,
+    backgroundColor: '#161522',
+    borderRadius: 22,
+    padding: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+  },
+  reportModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 10,
+  },
+  reportModalTitle: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '800',
+    flex: 1,
+  },
+  reportModalSubtitle: {
+    color: 'rgba(255,255,255,0.65)',
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 16,
+  },
+  reasonsContainer: {
+    marginBottom: 14,
+    gap: 8,
+  },
+  reasonChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  reasonChipActive: {
+    backgroundColor: 'rgba(192, 132, 252, 0.15)',
+    borderColor: '#C084FC',
+  },
+  reasonChipText: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 13.5,
+    fontWeight: '500',
+  },
+  reasonChipTextActive: {
+    color: '#FFF',
+    fontWeight: '700',
+  },
+  reportDetailsInput: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 14,
+    padding: 12,
+    color: '#FFF',
+    fontSize: 13.5,
+    height: 70,
+    textAlignVertical: 'top',
+    marginBottom: 16,
+  },
+  reportBtnRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  reportCancelBtn: {
+    flex: 1,
+    paddingVertical: 13,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center',
+  },
+  reportCancelBtnText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  reportSubmitBtn: {
+    flex: 1.5,
+    paddingVertical: 13,
+    borderRadius: 14,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reportSubmitBtnText: {
+    color: '#FFF',
+    fontWeight: '700',
+    fontSize: 14,
   },
 });

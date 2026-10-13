@@ -20,6 +20,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { API, API_CONFIG } from '../../constants/api';
 import { saveAuth } from '../../utils/storage';
 import { clearAdminAuth } from '../../utils/adminStorage';
+import { fetchWithTimeoutAndRetry } from '../../utils/apiClient';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 
 const { width } = Dimensions.get('window');
@@ -68,11 +69,15 @@ const Login = () => {
       await clearAdminAuth();
 
       const apiUrl = `${API_CONFIG.BASE_URL}${API.AUTH.LOGIN}`;
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
+      const response = await fetchWithTimeoutAndRetry(
+        apiUrl,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        },
+        { timeoutMs: 40000, retries: 2, delayMs: 1500 }
+      );
 
       const data = await response.json();
 

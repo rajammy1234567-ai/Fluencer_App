@@ -1,6 +1,8 @@
 import express from 'express';
 import BrandProfile from '../models/BrandProfile.js';
 import User from '../models/User.js';
+import Campaign from '../models/Campaign.js';
+import Application from '../models/Application.js';
 import authMiddleware, { optionalAuth } from '../middleware/auth.js';
 import { uploadProfileImage } from '../middleware/upload.js';
 
@@ -19,8 +21,8 @@ router.get('/all', optionalAuth, async (req, res) => {
         companyName: b.company_name,
         category: b.category,
         address: b.address,
-        profile_image: b.profile_image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80',
-        profileImage: b.profile_image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80',
+        profile_image: b.profile_image || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80',
+        profileImage: b.profile_image || 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80',
       }))
     });
   } catch (error) {
@@ -200,19 +202,17 @@ router.get('/profile', authMiddleware, async (req, res) => {
         category: 'Fashion & Apparel',
         address: 'Mumbai, Maharashtra',
         description: 'Welcome to Fluencer brand partner dashboard.',
-        profile_image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500'
+        profile_image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=500&q=80'
       });
       profile = profile.toObject();
     }
 
-    const user = await User.findById(userId).select('email').lean();
-    
-    const Campaign = (await import('../models/Campaign.js')).default;
-    const Application = (await import('../models/Application.js')).default;
-
-    const totalCampaigns = await Campaign.countDocuments({ brand_id: userId });
-    const activeCampaigns = await Campaign.countDocuments({ brand_id: userId, status: 'active' });
-    const totalCollabs = await Application.countDocuments({ brand_id: userId, status: { $in: ['accepted', 'completed', 'escrow_locked'] } });
+    const [user, totalCampaigns, activeCampaigns, totalCollabs] = await Promise.all([
+      User.findById(userId).select('email').lean(),
+      Campaign.countDocuments({ brand_id: userId }),
+      Campaign.countDocuments({ brand_id: userId, status: 'active' }),
+      Application.countDocuments({ brand_id: userId, status: { $in: ['accepted', 'completed', 'escrow_locked'] } })
+    ]);
 
     res.status(200).json({
       success: true,

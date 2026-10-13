@@ -8,6 +8,7 @@ import InfluencerProfile from '../models/InfluencerProfile.js';
 import User from '../models/User.js';
 import authMiddleware from '../middleware/auth.js';
 import { uploadChatFile } from '../middleware/upload.js';
+import { isUserBlocked, getBlockDetails } from '../utils/moderation.js';
 
 const router = express.Router();
 
@@ -202,12 +203,15 @@ router.get('/:chatId/messages', authMiddleware, async (req, res) => {
 
     const isDealLocked = chat.deal_locked || chat.status === 'accepted' || chat.status === 'locked' || chat.status === 'escrow_locked' || (application && (application.status === 'escrow_locked' || application.status === 'completed')) || !!chat.escrow_amount;
     const submissionUrl = chat.submission_url || (application ? application.submission_url : null);
+    const otherUserId = isBrandUser ? chat.influencer_id.toString() : chat.brand_id.toString();
+    const blockDetails = await getBlockDetails(userId, otherUserId);
 
     res.status(200).json({ 
       success: true, 
       chat: {
         ...chat,
         id: actualChatId,
+        other_user_id: otherUserId,
         other_user_name: otherUserName,
         campaign_name: campaignName,
         current_user_role: req.user.role,
@@ -217,7 +221,10 @@ router.get('/:chatId/messages', authMiddleware, async (req, res) => {
         submission_url: submissionUrl,
         deliverable_status: chat.deliverable_status || (application ? application.deliverable_status : 'pending'),
         cost_per_influencer: (campaign ? campaign.cost_per_influencer : null) || (application ? application.escrow_amount : 5000) || 5000,
-        deal_amount: (campaign ? campaign.cost_per_influencer : null) || (application ? application.escrow_amount : null) || chat.escrow_amount || 5000
+        deal_amount: (campaign ? campaign.cost_per_influencer : null) || (application ? application.escrow_amount : null) || chat.escrow_amount || 5000,
+        isBlocked: blockDetails.isBlocked,
+        blockedByMe: blockDetails.blockedByMe,
+        blockedByOther: blockDetails.blockedByOther
       },
       messages: messages
     });
@@ -271,6 +278,17 @@ router.post('/:chatId/messages', authMiddleware, async (req, res) => {
       return res.status(403).json({ 
         success: false, 
         message: 'Chat is no longer active' 
+      });
+    }
+
+    // SERVER-SIDE UGC ENFORCEMENT: Reject message if either party has blocked the other
+    const targetUserId = (userId.toString() === chatDoc.influencer_id.toString()) ? chatDoc.brand_id : chatDoc.influencer_id;
+    const isBlocked = await isUserBlocked(userId, targetUserId);
+    if (isBlocked) {
+      return res.status(403).json({
+        success: false,
+        code: 'USER_BLOCKED',
+        message: 'Message cannot be delivered. Interaction between these accounts has been blocked.'
       });
     }
 
@@ -736,6 +754,53 @@ router.post('/:chatId/approve-work', authMiddleware, async (req, res) => {
   } catch (error) {
     console.error('In-chat approve work error:', error);
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Send image attachment in chat with UGC blocking enforcement
+router.post('/:chatId/upload-image', authMiddleware, uploadChatFile, async (req, res) => {
+  try {
+    const chatId = req.params.chatId;
+    const userId = req.user.userId;
+
+    const chatDoc = await resolveChatDoc(chatId, userId);
+    if (!chatDoc) {
+      return res.status(404).json({ success: false, message: 'Chat not found or unauthorized' });
+    }
+
+    const actualChatId = chatDoc._id.toString();
+    const targetUserId = (userId.toString() === chatDoc.influencer_id.toString()) ? chatDoc.brand_id : chatDoc.influencer_id;
+
+    if (await isUserBlocked(userId, targetUserId)) {
+      return res.status(403).json({
+        success: false,
+        code: 'USER_BLOCKED',
+        message: 'Action restricted. Interaction between these accounts has been blocked.'
+      });
+    }
+
+    const imageUrl = req.fileUrl || (req.file ? `/uploads/${req.file.filename}` : null);
+    if (!imageUrl) {
+      return res.status(400).json({ success: false, message: 'No image file uploaded' });
+    }
+
+    const newMsg = await ChatMessage.create({
+      chat_id: actualChatId,
+      sender_id: userId,
+      message: imageUrl,
+      message_type: 'image',
+      is_read: false
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Photo sent successfully',
+      imageUrl,
+      messageId: newMsg._id.toString()
+    });
+  } catch (error) {
+    console.error('Chat photo upload error:', error);
+    res.status(500).json({ success: false, message: 'Failed to upload photo: ' + error.message });
   }
 });
 

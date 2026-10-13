@@ -736,6 +736,13 @@ router.post('/:id/apply', authMiddleware, async (req, res) => {
       applicationId: result._id.toString()
     });
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ 
+        success: false, 
+        already_applied: true,
+        message: '⚠️ You have already applied to this campaign! You can track your application status in your Creator Dashboard.' 
+      });
+    }
     console.error('Apply to campaign error:', error);
     res.status(500).json({ 
       success: false, 

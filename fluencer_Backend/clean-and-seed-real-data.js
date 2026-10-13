@@ -27,7 +27,7 @@ async function seedCleanRealData() {
         address: 'Krishna Tower, Bandra West, Mumbai, Maharashtra 400050',
         website: 'https://krishnagroup.com',
         description: 'Premier Indian luxury fashion house specializing in handcrafted ethnic wear, festive apparel, and modern streetwear collections.',
-        profile_image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500'
+        profile_image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=500&q=80'
       },
       {
         email: 'glowaura@fluencer.app',
@@ -36,7 +36,7 @@ async function seedCleanRealData() {
         address: 'GlowAura Hub, Indiranagar, Bangalore, Karnataka 560038',
         website: 'https://glowaura.in',
         description: '100% Organic, vegan, and cruelty-free skincare brand formulating vitamin-enriched daily glowing serums and moisturizers.',
-        profile_image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=500'
+        profile_image: 'https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?auto=format&fit=crop&w=500&q=80'
       },
       {
         email: 'urbanthread@fluencer.app',
@@ -45,7 +45,7 @@ async function seedCleanRealData() {
         address: 'Connaught Place, New Delhi 110001',
         website: 'https://urbanthread.co.in',
         description: 'Contemporary streetwear and oversized denim label crafting trendsetting urban apparel for India’s top Gen-Z content creators.',
-        profile_image: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=500'
+        profile_image: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=500&q=80'
       },
       {
         email: 'apexfit@fluencer.app',
@@ -54,7 +54,7 @@ async function seedCleanRealData() {
         address: 'Fitness Zone, HSR Layout, Bangalore, Karnataka 560102',
         website: 'https://apexfit.in',
         description: 'Leading sports nutrition brand offering premium whey protein isolates, plant proteins, pre-workouts, and fitness gear.',
-        profile_image: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=500'
+        profile_image: 'https://images.unsplash.com/photo-1615109398623-88346a601842?auto=format&fit=crop&w=500&q=80'
       }
     ];
 
@@ -114,7 +114,7 @@ async function seedCleanRealData() {
         reference_images: [
           'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=800&q=80',
           'https://images.unsplash.com/photo-1583391733956-6c78276477e2?w=800&q=80',
-          'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&q=80'
+          'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=800&q=80'
         ],
         shooting_location_guide: 'Aesthetic outdoor courtyard, heritage monument, or well-lit studio with natural sunlight and aesthetic props.',
         guidelines: '1. Show quick outfit transition in first 3 seconds.\n2. Wear matching accessories.\n3. Tag @krishnaprivatelimited.\n4. Use trending audio and hashtag #KrishnaSummerVibes.',
@@ -131,9 +131,9 @@ async function seedCleanRealData() {
         min_followers: 5000,
         cost_per_influencer: 7500,
         total_budget: 30000,
-        product_image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&q=80',
+        product_image: 'https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?w=800&q=80',
         reference_images: [
-          'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&q=80',
+          'https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?w=800&q=80',
           'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=800&q=80',
           'https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=800&q=80'
         ],
@@ -152,9 +152,9 @@ async function seedCleanRealData() {
         min_followers: 15000,
         cost_per_influencer: 6000,
         total_budget: 36000,
-        product_image: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=800&q=80',
+        product_image: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=800&q=80',
         reference_images: [
-          'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=800&q=80',
+          'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=800&q=80',
           'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=800&q=80',
           'https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?w=800&q=80'
         ],
@@ -173,9 +173,9 @@ async function seedCleanRealData() {
         min_followers: 8000,
         cost_per_influencer: 8000,
         total_budget: 64000,
-        product_image: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&q=80',
+        product_image: 'https://images.unsplash.com/photo-1615109398623-88346a601842?w=800&q=80',
         reference_images: [
-          'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=800&q=80',
+          'https://images.unsplash.com/photo-1615109398623-88346a601842?w=800&q=80',
           'https://images.unsplash.com/photo-1540497077202-7c8a3999166f?w=800&q=80',
           'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=800&q=80'
         ],

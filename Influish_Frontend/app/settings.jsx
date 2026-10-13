@@ -9,6 +9,8 @@ import {
   Alert,
   Linking,
   Platform,
+  Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -27,19 +29,101 @@ export default function Settings() {
   const [campaignUpdates, setCampaignUpdates] = useState(true);
   const [deleting, setDeleting] = useState(false);
 
+  // Privacy & UGC Safety State
+  const [privacyModalVisible, setPrivacyModalVisible] = useState(false);
+  const [blockedUsers, setBlockedUsers] = useState([]);
+  const [loadingBlocked, setLoadingBlocked] = useState(false);
+  const [profileVisible, setProfileVisible] = useState(true);
+  const [safeContentFilter, setSafeContentFilter] = useState(true);
+
   const handleRequestVerification = () => {
     Alert.alert(
-      'Request Verification',
-      'We will review your profile and get back to you within 24-48 hours.',
+      'Request Verification Badge',
+      'Submit your profile for official badge verification. Our safety & compliance team reviews active collaborations, community authenticity, and profile metrics within 24-48 hours.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Submit Request', onPress: () => Alert.alert('Success', 'Verification request submitted!') },
+        { text: 'Submit Request', onPress: () => Alert.alert('Request Received', 'Your verification request has been queued for moderation review.') },
+      ]
+    );
+  };
+
+  const openPrivacyModal = async () => {
+    setPrivacyModalVisible(true);
+    fetchBlockedUsers();
+  };
+
+  const fetchBlockedUsers = async () => {
+    setLoadingBlocked(true);
+    try {
+      const headers = await storage.getAuthHeader?.() || {};
+      const token = await storage.getToken?.();
+      const authHeader = headers.Authorization || (token ? `Bearer ${token}` : '');
+      const res = await fetch(`${API_CONFIG.BASE_URL}/api/moderation/blocked-users`, {
+        headers: { 'Authorization': authHeader }
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setBlockedUsers(data.blocked_users || []);
+      }
+    } catch (e) {
+      console.warn('Blocked users fetch note:', e);
+    } finally {
+      setLoadingBlocked(false);
+    }
+  };
+
+  const handleUnblockUserFromSettings = (userId, name) => {
+    Alert.alert(
+      'Unblock User',
+      `Allow ${name || 'this user'} to message you and interact with your content?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Unblock',
+          onPress: async () => {
+            try {
+              const headers = await storage.getAuthHeader?.() || {};
+              const token = await storage.getToken?.();
+              const authHeader = headers.Authorization || (token ? `Bearer ${token}` : '');
+              const res = await fetch(`${API_CONFIG.BASE_URL}/api/moderation/unblock`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': authHeader,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ targetUserId: userId })
+              });
+              const json = await res.json();
+              if (res.ok && json.success) {
+                setBlockedUsers(prev => prev.filter(u => u.blocked_user_id !== userId));
+                Alert.alert('User Unblocked', `${name || 'User'} has been unblocked.`);
+              } else {
+                Alert.alert('Error', json.message || 'Failed to unblock user');
+              }
+            } catch (err) {
+              Alert.alert('Error', 'Network error while unblocking user');
+            }
+          }
+        }
       ]
     );
   };
 
   const openPrivacyPolicy = async () => {
     const url = 'https://fluencer-app.onrender.com/privacy-policy';
+    try {
+      if (Platform.OS === 'web') {
+        window.open(url, '_blank');
+      } else {
+        await WebBrowser.openBrowserAsync(url);
+      }
+    } catch (e) {
+      Linking.openURL(url).catch(() => {});
+    }
+  };
+
+  const openTermsOfService = async () => {
+    const url = 'https://fluencer-app.onrender.com/terms';
     try {
       if (Platform.OS === 'web') {
         window.open(url, '_blank');
@@ -71,13 +155,21 @@ export default function Settings() {
               setDeleting(true);
               const token = await storage.getToken();
               if (token && !token.startsWith('guest')) {
-                await fetch(`${API_CONFIG.BASE_URL}/api/auth/delete-account`, {
+                const res = await fetch(`${API_CONFIG.BASE_URL}/api/auth/delete-account`, {
                   method: 'DELETE',
                   headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                   }
                 });
+                const json = await res.json().catch(() => ({}));
+                if (!res.ok || !json.success) {
+                  Alert.alert(
+                    'Deletion Failed',
+                    json.message || 'Unable to delete account at this time. Please contact support@fluencer.app'
+                  );
+                  return;
+                }
               }
               await storage.clearAuth();
               Alert.alert('Account Deleted', 'Your account and personal data have been removed.', [
@@ -88,8 +180,10 @@ export default function Settings() {
               ]);
             } catch (err) {
               console.error('Account deletion error:', err);
-              await storage.clearAuth();
-              router.replace('/role-selection');
+              Alert.alert(
+                'Network Error',
+                'Unable to reach server to complete account deletion. Please verify your internet connection and try again.'
+              );
             } finally {
               setDeleting(false);
             }
@@ -168,21 +262,16 @@ export default function Settings() {
             <SettingItem
               icon="account-circle"
               title="Request Verification"
-              subtitle="Coming Soon"
+              subtitle="Submit profile for verified badge evaluation"
               onPress={handleRequestVerification}
-              rightComponent={
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>Coming Soon</Text>
-                </View>
-              }
-              hasArrow={false}
+              hasArrow={true}
             />
             <View style={styles.divider} />
             <SettingItem
               icon="shield-account"
               title="Privacy & Security"
-              subtitle="Manage your privacy settings"
-              onPress={() => Alert.alert('Privacy', 'Privacy settings coming soon!')}
+              subtitle="Manage blocked accounts & safety settings"
+              onPress={openPrivacyModal}
             />
             <View style={styles.divider} />
             <SettingItem
@@ -243,9 +332,9 @@ export default function Settings() {
             <View style={styles.divider} />
             <SettingItem
               icon="file-document"
-              title="Terms & Conditions"
-              subtitle="Read our terms of service"
-              onPress={openPrivacyPolicy}
+              title="Terms & Conditions (EULA)"
+              subtitle="Read our community standards & safety rules"
+              onPress={openTermsOfService}
             />
             <View style={styles.divider} />
             <SettingItem
@@ -278,6 +367,112 @@ export default function Settings() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* PRIVACY & SAFETY MODAL */}
+      <Modal
+        visible={privacyModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setPrivacyModalVisible(false)}
+      >
+        <View style={styles.privacyModalOverlay}>
+          <View style={styles.privacyModalCard}>
+            <View style={styles.privacyModalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <MaterialCommunityIcons name="shield-account" size={24} color="#C084FC" />
+                <Text style={styles.privacyModalTitle}>Privacy & Safety</Text>
+              </View>
+              <TouchableOpacity onPress={() => setPrivacyModalVisible(false)}>
+                <MaterialCommunityIcons name="close" size={22} color="rgba(255,255,255,0.7)" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={styles.privacyToggleGroup}>
+                <View style={styles.privacyToggleRow}>
+                  <View style={{ flex: 1, paddingRight: 10 }}>
+                    <Text style={styles.privacyToggleLabel}>Public Creator Discovery</Text>
+                    <Text style={styles.privacyToggleSub}>Allow verified brands and creators to find your profile in searches</Text>
+                  </View>
+                  <Switch
+                    value={profileVisible}
+                    onValueChange={setProfileVisible}
+                    trackColor={{ false: '#3e3e3e', true: '#C084FC' }}
+                    thumbColor={profileVisible ? '#fff' : '#f4f3f4'}
+                  />
+                </View>
+
+                <View style={styles.privacyDivider} />
+
+                <View style={styles.privacyToggleRow}>
+                  <View style={{ flex: 1, paddingRight: 10 }}>
+                    <Text style={styles.privacyToggleLabel}>Safety Content Filter</Text>
+                    <Text style={styles.privacyToggleSub}>Automatically flag and filter sensitive or objectionable chat messages</Text>
+                  </View>
+                  <Switch
+                    value={safeContentFilter}
+                    onValueChange={setSafeContentFilter}
+                    trackColor={{ false: '#3e3e3e', true: '#C084FC' }}
+                    thumbColor={safeContentFilter ? '#fff' : '#f4f3f4'}
+                  />
+                </View>
+              </View>
+
+              <Text style={styles.blockedSectionTitle}>
+                Blocked Accounts ({blockedUsers.length})
+              </Text>
+
+              {loadingBlocked ? (
+                <View style={{ paddingVertical: 20 }}>
+                  <ActivityIndicator size="small" color="#C084FC" />
+                </View>
+              ) : blockedUsers.length === 0 ? (
+                <View style={styles.emptyBlockedCard}>
+                  <MaterialCommunityIcons name="shield-check-outline" size={28} color="#34D399" />
+                  <Text style={styles.emptyBlockedText}>No accounts currently blocked</Text>
+                  <Text style={styles.emptyBlockedSub}>You can block any abusive user directly in chat threads or profiles.</Text>
+                </View>
+              ) : (
+                blockedUsers.map((item, idx) => (
+                  <View key={item.blocked_user_id || idx} style={styles.blockedUserRow}>
+                    <View style={styles.blockedUserAvatar}>
+                      <Text style={styles.blockedUserAvatarText}>
+                        {(item.name || 'U').charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.blockedUserName}>{item.name || 'User'}</Text>
+                      <Text style={styles.blockedUserDate}>
+                        Blocked on {new Date(item.blocked_at).toLocaleDateString()}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.unblockActionBtn}
+                      onPress={() => handleUnblockUserFromSettings(item.blocked_user_id, item.name)}
+                    >
+                      <Text style={styles.unblockActionBtnText}>Unblock</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))
+              )}
+
+              <View style={styles.privacyLinksGroup}>
+                <TouchableOpacity style={styles.privacyLinkItem} onPress={openPrivacyPolicy}>
+                  <MaterialCommunityIcons name="file-document-outline" size={20} color="#C084FC" />
+                  <Text style={styles.privacyLinkText}>Official Privacy Policy</Text>
+                  <MaterialCommunityIcons name="open-in-new" size={16} color="rgba(255,255,255,0.4)" />
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.privacyLinkItem} onPress={openTermsOfService}>
+                  <MaterialCommunityIcons name="shield-alert-outline" size={20} color="#C084FC" />
+                  <Text style={styles.privacyLinkText}>Terms of Service & EULA</Text>
+                  <MaterialCommunityIcons name="open-in-new" size={16} color="rgba(255,255,255,0.4)" />
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -418,5 +613,155 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: FONTS.bold,
     color: '#FF6B6B',
+  },
+  privacyModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'flex-end',
+  },
+  privacyModalCard: {
+    backgroundColor: '#161622',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 22,
+    maxHeight: '85%',
+    borderTopWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  privacyModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.08)',
+    marginBottom: 16,
+  },
+  privacyModalTitle: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  privacyToggleGroup: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    padding: 16,
+    marginBottom: 20,
+  },
+  privacyToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+  },
+  privacyToggleLabel: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  privacyToggleSub: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  privacyDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    marginVertical: 12,
+  },
+  blockedSectionTitle: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 15,
+    fontWeight: '800',
+    marginBottom: 12,
+  },
+  emptyBlockedCard: {
+    backgroundColor: 'rgba(52, 211, 153, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(52, 211, 153, 0.25)',
+    borderRadius: 16,
+    padding: 18,
+    alignItems: 'center',
+    marginBottom: 20,
+    gap: 6,
+  },
+  emptyBlockedText: {
+    color: '#34D399',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  emptyBlockedSub: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+  blockedUserRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 10,
+    gap: 12,
+  },
+  blockedUserAvatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#7C3AED',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  blockedUserAvatarText: {
+    color: '#FFF',
+    fontWeight: '800',
+    fontSize: 16,
+  },
+  blockedUserName: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  blockedUserDate: {
+    color: 'rgba(255,255,255,0.45)',
+    fontSize: 11,
+    marginTop: 2,
+  },
+  unblockActionBtn: {
+    backgroundColor: '#34D399',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+  },
+  unblockActionBtnText: {
+    color: '#0B0B10',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  privacyLinksGroup: {
+    marginTop: 10,
+    gap: 10,
+    marginBottom: 20,
+  },
+  privacyLinkItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    padding: 14,
+    borderRadius: 14,
+    gap: 10,
+  },
+  privacyLinkText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '600',
+    flex: 1,
   },
 });

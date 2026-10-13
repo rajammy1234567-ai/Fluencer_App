@@ -20,6 +20,7 @@ import { COLORS } from '../../constants/colors';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { API, API_CONFIG } from '../../constants/api';
 import { getToken } from '../../utils/storage';
+import * as ImagePicker from 'expo-image-picker';
 
 const BRAND_CATEGORIES = [
   'Fashion', 'Beauty & Cosmetics', 'Technology', 'Food & Beverage',
@@ -47,9 +48,49 @@ const CompleteBrandProfile = () => {
     }).start();
   }, []);
 
-  const handleImagePicker = () => {
-    // TODO: Implement image picker
-    Alert.alert('Coming Soon', 'Image upload will be implemented with expo-image-picker');
+  const handleImagePicker = async () => {
+    try {
+      if (Platform.OS === 'web' && typeof document !== 'undefined') {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = (e) => {
+          const file = e.target.files && e.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+              setProfileImage(event.target.result);
+            };
+            reader.readAsDataURL(file);
+          }
+        };
+        input.click();
+        return;
+      }
+
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert('Permission Required', 'Please allow gallery access to select your company logo.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets?.[0]) {
+        const asset = result.assets[0];
+        const imageUri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
+        setProfileImage(imageUri);
+      }
+    } catch (err) {
+      console.error('Brand image picker error:', err);
+      Alert.alert('Error', 'Failed to select image: ' + err.message);
+    }
   };
 
   const handleComplete = async () => {

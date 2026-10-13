@@ -1,7 +1,8 @@
 import { verifyToken } from '../utils/auth.js';
+import User from '../models/User.js';
 
 // CRITICAL: JWT Auth Middleware - ALWAYS returns JSON
-export const authMiddleware = (req, res, next) => {
+export const authMiddleware = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     
@@ -31,7 +32,7 @@ export const authMiddleware = (req, res, next) => {
       });
     }
 
-    // Verify token
+    // Verify token signature
     const decoded = verifyToken(token);
 
     if (!decoded) {
@@ -39,6 +40,42 @@ export const authMiddleware = (req, res, next) => {
         success: false, 
         message: 'Invalid or expired token. Please login again.' 
       });
+    }
+
+    // Check if user still exists in database (rejects deleted users and revoked sessions)
+    const userId = decoded.userId || decoded.id;
+    if (decoded.role !== 'admin' && userId && userId !== 'guest_user') {
+      const activeUser = await User.findById(userId).select('_id is_deleted token_version sessions_invalidated_at');
+      if (!activeUser || activeUser.is_deleted) {
+        return res.status(401).json({
+          success: false,
+          code: 'USER_DELETED',
+          message: 'Account no longer exists. Please register or login again.'
+        });
+      }
+
+      // Check explicit session revocation via token_version
+      if (decoded.tokenVersion !== undefined && activeUser.token_version !== undefined) {
+        if (decoded.tokenVersion < activeUser.token_version) {
+          return res.status(401).json({
+            success: false,
+            code: 'SESSION_REVOKED',
+            message: 'Session has been revoked. Please login again.'
+          });
+        }
+      }
+
+      // Check session invalidation timestamp
+      if (activeUser.sessions_invalidated_at && decoded.iat) {
+        const invalidatedAtSeconds = Math.floor(new Date(activeUser.sessions_invalidated_at).getTime() / 1000);
+        if (decoded.iat < invalidatedAtSeconds) {
+          return res.status(401).json({
+            success: false,
+            code: 'SESSION_REVOKED',
+            message: 'Session has been revoked. Please login again.'
+          });
+        }
+      }
     }
 
     // Attach user to request

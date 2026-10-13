@@ -1,10 +1,9 @@
 import { getApiUrl, API_CONFIG } from '../constants/api';
 import { storage } from './storage';
+import { fetchWithTimeoutAndRetry } from './apiClient';
 
-// Generic API call handler with error handling & fast timeout protection
-export const apiCall = async (endpoint, options = {}, timeoutMs = 15000) => {
-  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-  const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+// Generic API call handler with cold-start timeout & retry protection
+export const apiCall = async (endpoint, options = {}, timeoutMs = 35000) => {
   try {
     const url = getApiUrl(endpoint);
     const authHeader = await storage.getAuthHeader();
@@ -24,11 +23,13 @@ export const apiCall = async (endpoint, options = {}, timeoutMs = 15000) => {
         ...defaultOptions.headers,
         ...options.headers,
       },
-      signal: controller ? controller.signal : undefined,
     };
 
-    const response = await fetch(url, fetchOptions);
-    if (timeoutId) clearTimeout(timeoutId);
+    const response = await fetchWithTimeoutAndRetry(url, fetchOptions, {
+      timeoutMs,
+      retries: 2,
+      delayMs: 1500,
+    });
 
     const data = await response.json();
 
@@ -42,7 +43,6 @@ export const apiCall = async (endpoint, options = {}, timeoutMs = 15000) => {
 
     return { success: true, data };
   } catch (error) {
-    if (timeoutId) clearTimeout(timeoutId);
     console.error('❌ API call error:', {
       message: error.message || error.name,
       status: error.status,
@@ -51,7 +51,7 @@ export const apiCall = async (endpoint, options = {}, timeoutMs = 15000) => {
     });
     return {
       success: false,
-      error: error.name === 'AbortError' ? 'Request timed out' : (error.message || 'Network error'),
+      error: error.message || 'Network error',
       status: error.status,
       data: error.data,
     };

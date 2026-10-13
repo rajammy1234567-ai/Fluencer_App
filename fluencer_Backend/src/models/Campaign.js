@@ -76,5 +76,8 @@ const campaignSchema = new mongoose.Schema({
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });
 
+campaignSchema.index({ brand_id: 1, status: 1 });
+campaignSchema.index({ status: 1, is_deleted: 1, is_available: 1 });
+
 const Campaign = mongoose.model('Campaign', campaignSchema);
 export default Campaign;

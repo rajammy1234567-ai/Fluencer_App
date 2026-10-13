@@ -55,6 +55,163 @@ export default function ConversationScreen() {
   const [restrictionModalVisible, setRestrictionModalVisible] = useState(false);
   const [restrictionModalMsg, setRestrictionModalMsg] = useState('');
 
+  // UGC & Moderation State (Apple Guideline 1.2 & Google Play Policy)
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [blockedByMe, setBlockedByMe] = useState(false);
+  const [blockedByOther, setBlockedByOther] = useState(false);
+  const [showActionMenu, setShowActionMenu] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportTargetType, setReportTargetType] = useState('user'); // 'user' or 'message'
+  const [reportTargetId, setReportTargetId] = useState(null);
+  const [reportReason, setReportReason] = useState('harassment');
+  const [reportDetails, setReportDetails] = useState('');
+  const [submittingModeration, setSubmittingModeration] = useState(false);
+
+  const handleBlockUser = () => {
+    const targetUserId = chatInfo?.other_user_id;
+    if (!targetUserId) {
+      Alert.alert('Notice', 'Unable to determine user identity to block.');
+      return;
+    }
+    Alert.alert(
+      'Block User?',
+      `Are you sure you want to block ${chatInfo?.other_user_name || 'this user'}?\n\nThey will no longer be able to message you, and mutual communication will be blocked.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Block User',
+          style: 'destructive',
+          onPress: async () => {
+            setSubmittingModeration(true);
+            try {
+              const headers = await getAuthHeader();
+              const res = await fetch(getApiUrl('/api/moderation/block'), {
+                method: 'POST',
+                headers: { ...headers, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ targetUserId, reason: 'Blocked by user in chat' }),
+              });
+              const json = await res.json();
+              if (res.ok && json.success) {
+                setIsBlocked(true);
+                setBlockedByMe(true);
+                setShowActionMenu(false);
+                Alert.alert('User Blocked', 'This user has been blocked. They cannot message you or view your updates.');
+              } else {
+                Alert.alert('Error', json.message || 'Failed to block user');
+              }
+            } catch (err) {
+              Alert.alert('Error', err.message || 'Network error while blocking user');
+            } finally {
+              setSubmittingModeration(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleUnblockUser = () => {
+    const targetUserId = chatInfo?.other_user_id;
+    if (!targetUserId) return;
+    Alert.alert(
+      'Unblock User?',
+      `Allow ${chatInfo?.other_user_name || 'this user'} to message you again?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Unblock',
+          onPress: async () => {
+            setSubmittingModeration(true);
+            try {
+              const headers = await getAuthHeader();
+              const res = await fetch(getApiUrl('/api/moderation/unblock'), {
+                method: 'POST',
+                headers: { ...headers, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ targetUserId }),
+              });
+              const json = await res.json();
+              if (res.ok && json.success) {
+                setIsBlocked(false);
+                setBlockedByMe(false);
+                setShowActionMenu(false);
+                Alert.alert('User Unblocked', 'This user has been unblocked.');
+              } else {
+                Alert.alert('Error', json.message || 'Failed to unblock user');
+              }
+            } catch (err) {
+              Alert.alert('Error', err.message || 'Network error while unblocking');
+            } finally {
+              setSubmittingModeration(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleOpenReportModal = (type = 'user', contentId = null) => {
+    setReportTargetType(type);
+    setReportTargetId(contentId);
+    setReportReason('harassment');
+    setReportDetails('');
+    setShowActionMenu(false);
+    setShowReportModal(true);
+  };
+
+  const handleSubmitReport = async () => {
+    const reportedUserId = chatInfo?.other_user_id;
+    if (!reportedUserId) {
+      Alert.alert('Notice', 'Unable to determine user identity to report.');
+      return;
+    }
+    setSubmittingModeration(true);
+    try {
+      const headers = await getAuthHeader();
+      const res = await fetch(getApiUrl('/api/moderation/report'), {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reportedUserId,
+          contentType: reportTargetType,
+          contentId: reportTargetId,
+          reason: reportReason,
+          details: reportDetails,
+        }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setShowReportModal(false);
+        Alert.alert(
+          '🛡️ Report Submitted',
+          'Thank you for reporting. Our moderation team reviews all flagged content within 24 hours under our zero-tolerance policy.'
+        );
+      } else {
+        Alert.alert('Error', json.message || 'Failed to submit report');
+      }
+    } catch (err) {
+      Alert.alert('Error', err.message || 'Network error while submitting report');
+    } finally {
+      setSubmittingModeration(false);
+    }
+  };
+
+  const handleMessageLongPress = (item) => {
+    const isMe = String(item.sender_id) === String(currentUserId);
+    if (isMe) return; // Don't report self
+    Alert.alert(
+      'Message Options',
+      'Choose an action for this message:',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: '🚨 Report Message',
+          style: 'destructive',
+          onPress: () => handleOpenReportModal('message', item.id || item._id),
+        },
+      ]
+    );
+  };
+
   const flatListRef = useRef(null);
   const isMountedRef = useRef(true);
 
@@ -171,6 +328,11 @@ export default function ConversationScreen() {
       if (isMountedRef.current && response.ok && data.success) {
         setMessages(Array.isArray(data.messages) ? data.messages : []);
         setChatInfo(data.chat || null);
+        if (data.chat) {
+          if (typeof data.chat.isBlocked !== 'undefined') setIsBlocked(!!data.chat.isBlocked);
+          if (typeof data.chat.blockedByMe !== 'undefined') setBlockedByMe(!!data.chat.blockedByMe);
+          if (typeof data.chat.blockedByOther !== 'undefined') setBlockedByOther(!!data.chat.blockedByOther);
+        }
       }
     } catch (error) {
       if (error.name !== 'AbortError') {
@@ -202,6 +364,10 @@ export default function ConversationScreen() {
 
   // Send Message (Text or Photo)
   const handleSend = async () => {
+    if (isBlocked) {
+      Alert.alert('Restricted', 'Messaging is disabled because this account is blocked.');
+      return;
+    }
     if ((!newMessage.trim() && !selectedImage) || sending) return;
 
     if (newMessage.trim()) {
@@ -443,7 +609,12 @@ export default function ConversationScreen() {
             <Text style={styles.senderName}>{item.sender_name || 'User'}</Text>
           </View>
         )}
-        <View style={[styles.messageBubble, isMe ? styles.myBubble : styles.theirBubble, isImageMsg && { padding: 4, overflow: 'hidden' }]}>
+        <TouchableOpacity 
+          activeOpacity={0.9}
+          onLongPress={() => handleMessageLongPress(item)}
+          delayLongPress={350}
+          style={[styles.messageBubble, isMe ? styles.myBubble : styles.theirBubble, isImageMsg && { padding: 4, overflow: 'hidden' }]}
+        >
           {isImageMsg ? (
             <TouchableOpacity
               activeOpacity={0.88}
@@ -482,7 +653,7 @@ export default function ConversationScreen() {
               minute: '2-digit',
             })}
           </Text>
-        </View>
+        </TouchableOpacity>
       </View>
     );
   };
@@ -635,11 +806,33 @@ export default function ConversationScreen() {
               {chatInfo?.campaign_name || 'Campaign'}
             </Text>
           </View>
-          <View style={styles.headerIconContainer}>
-            <MaterialCommunityIcons name="chat" size={32} color="rgba(255,255,255,0.25)" />
-          </View>
+          <TouchableOpacity
+            style={styles.headerOptionsBtn}
+            onPress={() => setShowActionMenu(true)}
+            activeOpacity={0.7}
+            accessibilityLabel="Chat options and moderation"
+          >
+            <MaterialCommunityIcons name="dots-vertical" size={24} color="#FFF" />
+          </TouchableOpacity>
         </View>
       </LinearGradient>
+
+      {/* UGC RESTRICTION / BLOCKED USER BANNER */}
+      {isBlocked && (
+        <View style={styles.blockedNoticeBanner}>
+          <MaterialCommunityIcons name="shield-alert" size={20} color="#FF6B6B" />
+          <Text style={styles.blockedNoticeText}>
+            {blockedByMe 
+              ? 'You have blocked this account. Direct communication is paused.'
+              : 'Direct communication between these accounts has been restricted.'}
+          </Text>
+          {blockedByMe && (
+            <TouchableOpacity onPress={handleUnblockUser} style={styles.inlineUnblockBtn}>
+              <Text style={styles.inlineUnblockBtnText}>Unblock</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
       {/* PROMINENT SUBMITTED REEL BANNER FOR BRAND REVIEW ONLY */}
       {isBrandOwnerView && chatInfo?.submission_url && (
@@ -780,6 +973,20 @@ export default function ConversationScreen() {
 
         {/* Input Box */}
         {(() => {
+          if (isBlocked) {
+            return (
+              <View style={[styles.inputContainer, { paddingBottom: insets.bottom || 10, backgroundColor: '#14141C' }]}>
+                <View style={[styles.inputCapsule, { backgroundColor: 'rgba(239, 68, 68, 0.08)', borderColor: 'rgba(239, 68, 68, 0.25)', paddingHorizontal: 14, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }]}>
+                  <MaterialCommunityIcons name="lock-outline" size={20} color="#EF4444" />
+                  <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, flex: 1, fontFamily: FONTS.medium }}>
+                    {blockedByMe 
+                      ? 'You blocked this user. Tap the "..." menu above to unblock.' 
+                      : 'Messaging is disabled because communication is restricted.'}
+                  </Text>
+                </View>
+              </View>
+            );
+          }
           const isCompletedDeal = chatInfo?.status === 'completed' || chatInfo?.deliverable_status === 'approved' || chatInfo?.deliverable_status === 'brand_approved';
           const canSend = (newMessage.trim() || selectedImage) && !sending && !isCompletedDeal;
           return (
@@ -966,6 +1173,173 @@ export default function ConversationScreen() {
             </LinearGradient>
           </View>
         </View>
+      </Modal>
+
+      {/* UGC MODERATION ACTION MENU (APPLE GUIDELINE 1.2 COMPLIANT) */}
+      <Modal
+        visible={showActionMenu}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowActionMenu(false)}
+      >
+        <TouchableOpacity 
+          style={styles.actionMenuOverlay} 
+          activeOpacity={1} 
+          onPress={() => setShowActionMenu(false)}
+        >
+          <View style={styles.actionMenuCard}>
+            <View style={styles.actionMenuHeader}>
+              <Text style={styles.actionMenuTitle}>{chatInfo?.other_user_name || 'User'} Options</Text>
+              <TouchableOpacity onPress={() => setShowActionMenu(false)}>
+                <MaterialCommunityIcons name="close" size={20} color="rgba(255,255,255,0.7)" />
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={styles.actionMenuItem}
+              onPress={() => handleOpenReportModal('user', chatInfo?.other_user_id)}
+            >
+              <MaterialCommunityIcons name="flag-outline" size={22} color="#F87171" />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.actionMenuItemText, { color: '#F87171' }]}>Report User</Text>
+                <Text style={styles.actionMenuItemSub}>Report harassment, scams, or inappropriate content</Text>
+              </View>
+            </TouchableOpacity>
+
+            <View style={styles.actionMenuDivider} />
+
+            <TouchableOpacity
+              style={styles.actionMenuItem}
+              onPress={isBlocked && blockedByMe ? handleUnblockUser : handleBlockUser}
+              disabled={submittingModeration}
+            >
+              <MaterialCommunityIcons 
+                name={isBlocked && blockedByMe ? "account-check-outline" : "account-cancel-outline"} 
+                size={22} 
+                color={isBlocked && blockedByMe ? "#34D399" : "#EF4444"} 
+              />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.actionMenuItemText, { color: isBlocked && blockedByMe ? "#34D399" : "#EF4444" }]}>
+                  {isBlocked && blockedByMe ? 'Unblock User' : 'Block User'}
+                </Text>
+                <Text style={styles.actionMenuItemSub}>
+                  {isBlocked && blockedByMe 
+                    ? 'Restore ability to message and collaborate' 
+                    : 'Prevent them from messaging you or seeing profile updates'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <View style={styles.actionMenuDivider} />
+
+            <TouchableOpacity
+              style={styles.actionMenuItem}
+              onPress={() => {
+                setShowActionMenu(false);
+                Linking.openURL('https://fluencer-app.onrender.com/terms').catch(() => {});
+              }}
+            >
+              <MaterialCommunityIcons name="shield-check-outline" size={22} color="#C084FC" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.actionMenuItemText}>Community Guidelines & Terms</Text>
+                <Text style={styles.actionMenuItemSub}>Read our zero-tolerance safety policies</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* UGC REPORT CONTENT MODAL */}
+      <Modal
+        visible={showReportModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowReportModal(false)}
+      >
+        <KeyboardAvoidingView 
+          style={styles.reportModalOverlay} 
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <View style={styles.reportModalCard}>
+            <View style={styles.reportModalHeader}>
+              <MaterialCommunityIcons name="shield-alert-outline" size={24} color="#EF4444" />
+              <Text style={styles.reportModalTitle}>
+                {reportTargetType === 'message' ? 'Report Message' : 'Report User'}
+              </Text>
+              <TouchableOpacity onPress={() => setShowReportModal(false)}>
+                <MaterialCommunityIcons name="close" size={22} color="rgba(255,255,255,0.7)" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.reportModalSubtitle}>
+              Please select the reason for reporting this {reportTargetType === 'message' ? 'message' : 'user'}. All reports are reviewed by our safety team within 24 hours.
+            </Text>
+
+            <View style={styles.reasonsContainer}>
+              {[
+                { id: 'harassment', label: 'Harassment or Bullying' },
+                { id: 'spam', label: 'Spam or Commercial Solicitation' },
+                { id: 'inappropriate_content', label: 'Inappropriate or Explicit Content' },
+                { id: 'scam_fraud', label: 'Scam, Fraud, or Deception' },
+                { id: 'hate_speech', label: 'Hate Speech or Discrimination' },
+                { id: 'other', label: 'Other Safety Concern' }
+              ].map((reason) => (
+                <TouchableOpacity
+                  key={reason.id}
+                  style={[
+                    styles.reasonChip,
+                    reportReason === reason.id && styles.reasonChipActive
+                  ]}
+                  onPress={() => setReportReason(reason.id)}
+                >
+                  <MaterialCommunityIcons
+                    name={reportReason === reason.id ? "radiobox-marked" : "radiobox-blank"}
+                    size={18}
+                    color={reportReason === reason.id ? "#C084FC" : "rgba(255,255,255,0.5)"}
+                  />
+                  <Text style={[
+                    styles.reasonChipText,
+                    reportReason === reason.id && styles.reasonChipTextActive
+                  ]}>
+                    {reason.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TextInput
+              style={styles.reportDetailsInput}
+              value={reportDetails}
+              onChangeText={setReportDetails}
+              placeholder="Additional details (optional, max 500 chars)..."
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              multiline
+              maxLength={500}
+            />
+
+            <View style={styles.reportBtnRow}>
+              <TouchableOpacity
+                style={styles.reportCancelBtn}
+                onPress={() => setShowReportModal(false)}
+                disabled={submittingModeration}
+              >
+                <Text style={styles.reportCancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.reportSubmitBtn}
+                onPress={handleSubmitReport}
+                disabled={submittingModeration}
+              >
+                {submittingModeration ? (
+                  <ActivityIndicator size="small" color="#FFF" />
+                ) : (
+                  <Text style={styles.reportSubmitBtnText}>Submit Report</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -1155,5 +1529,190 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     letterSpacing: 0.3,
+  },
+  headerOptionsBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  blockedNoticeBanner: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(239, 68, 68, 0.3)',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  blockedNoticeText: {
+    color: '#FF6B6B',
+    fontSize: 12,
+    fontWeight: '600',
+    flex: 1,
+    lineHeight: 16,
+  },
+  inlineUnblockBtn: {
+    backgroundColor: '#34D399',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+  },
+  inlineUnblockBtnText: {
+    color: '#0B0B10',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  actionMenuOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    justifyContent: 'flex-end',
+  },
+  actionMenuCard: {
+    backgroundColor: '#161622',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    borderTopWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  actionMenuHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.08)',
+  },
+  actionMenuTitle: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  actionMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingVertical: 12,
+  },
+  actionMenuItemText: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  actionMenuItemSub: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  actionMenuDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    marginVertical: 4,
+  },
+  reportModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    justifyContent: 'flex-end',
+  },
+  reportModalCard: {
+    backgroundColor: '#161622',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    maxHeight: '85%',
+    borderTopWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  reportModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 10,
+  },
+  reportModalTitle: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '800',
+    flex: 1,
+  },
+  reportModalSubtitle: {
+    color: 'rgba(255,255,255,0.65)',
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 16,
+  },
+  reasonsContainer: {
+    marginBottom: 14,
+    gap: 8,
+  },
+  reasonChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  reasonChipActive: {
+    backgroundColor: 'rgba(192, 132, 252, 0.15)',
+    borderColor: '#C084FC',
+  },
+  reasonChipText: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  reasonChipTextActive: {
+    color: '#FFF',
+    fontWeight: '700',
+  },
+  reportDetailsInput: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 14,
+    padding: 12,
+    color: '#FFF',
+    fontSize: 14,
+    height: 70,
+    textAlignVertical: 'top',
+    marginBottom: 16,
+  },
+  reportBtnRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  reportCancelBtn: {
+    flex: 1,
+    paddingVertical: 13,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center',
+  },
+  reportCancelBtnText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  reportSubmitBtn: {
+    flex: 1.5,
+    paddingVertical: 13,
+    borderRadius: 14,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reportSubmitBtnText: {
+    color: '#FFF',
+    fontWeight: '700',
+    fontSize: 14,
   },
 });

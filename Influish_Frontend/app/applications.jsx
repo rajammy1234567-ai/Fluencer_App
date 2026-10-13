@@ -274,7 +274,7 @@ export default function ApplicationsScreen() {
           <View style={styles.avatarWrap}>
             <Image
               source={{ 
-                uri: item.profile_image || item.profile_picture || `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500`
+                uri: item.profile_image || item.profile_picture || 'https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?auto=format&fit=crop&w=500&q=80'
               }}
               style={styles.creatorAvatar}
               resizeMode="cover"

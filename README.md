@@ -437,8 +437,9 @@ To guarantee approval under **Google Play Data Safety Policies** and **Apple App
 | **Reviewer Brand** | `testbrand@fluncer.com` | `Test@123` | Clean reviewer brand account with ₹50,000 wallet balance |
 | **Master Admin** | `admin@fluencer.app` | `Admin@123` | Master control panel at `/admin`: user approvals & escrow locks |
 
-### 4. iOS App Store Submission Metadata (`app.json`)
-- `bundleIdentifier`: `com.fluencers.app`
+### 4. App Store & Google Play Store Submission Metadata (`app.json`)
+- **iOS App Store (`bundleIdentifier`)**: `com.fluencers.app`
+- **Android Google Play Store (`package`)**: `com.fluencer.official`
 - `ITSAppUsesNonExemptEncryption`: `false` (Exempt from standard US export compliance)
 - Android Granular Scoped Media Permissions: `READ_MEDIA_IMAGES`, `READ_MEDIA_VIDEO`, `READ_MEDIA_AUDIO`, `READ_MEDIA_VISUAL_USER_SELECTED`
 

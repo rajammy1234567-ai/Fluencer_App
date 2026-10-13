@@ -34,6 +34,14 @@ const userSchema = new mongoose.Schema({
   is_verified: {
     type: Boolean,
     default: false
+  },
+  token_version: {
+    type: Number,
+    default: 0
+  },
+  sessions_invalidated_at: {
+    type: Date,
+    default: null
   }
 }, {
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }

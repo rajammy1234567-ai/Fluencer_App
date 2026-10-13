@@ -18,8 +18,21 @@ const otpSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['influencer', 'brand'],
-    required: true
+    enum: ['influencer', 'brand', 'user', 'admin'],
+    default: 'user'
+  },
+  purpose: {
+    type: String,
+    enum: ['signup', 'login', 'reset_password', 'account_deletion'],
+    default: 'signup'
+  },
+  attempts: {
+    type: Number,
+    default: 0
+  },
+  max_attempts: {
+    type: Number,
+    default: 5
   },
   phone: {
     type: String,

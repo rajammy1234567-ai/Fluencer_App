@@ -16,6 +16,8 @@ import debugRoutes from './routes/debug.js';
 import notificationRoutes from './routes/notifications.js';
 import walletRoutes from './routes/wallet.js';
 import bannerRoutes from './routes/banners.js';
+import iapRoutes from './routes/iap.js';
+import moderationRoutes from './routes/moderation.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -37,6 +39,7 @@ app.use(express.urlencoded({ extended: true }));
 import { getAdminPageContent } from './adminHtml.js';
 import { getPrivacyPageContent } from './privacyHtml.js';
 import { getDeletionPageContent } from './deletionHtml.js';
+import { getTermsPageContent } from './termsHtml.js';
 
 // Static files (Web App and Uploads)
 const webDistPath = path.join(__dirname, '../public/web');
@@ -72,6 +75,18 @@ app.get(['/admin', '/admin/'], (req, res) => {
   return res.status(200).send(getAdminPageContent());
 });
 
+// Serve Public Privacy Policy Page
+app.get(['/privacy-policy', '/privacy', '/privacy-policy.html'], (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=UTF-8');
+  return res.status(200).send(getPrivacyPageContent());
+});
+
+// Serve Public Terms of Service & EULA Page (Apple Guideline 1.2 Compliance)
+app.get(['/terms', '/terms/', '/terms-of-service', '/eula', '/community-guidelines'], (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=UTF-8');
+  return res.status(200).send(getTermsPageContent());
+});
+
 // Serve Public Data & Account Deletion Page (Google Play Store & Apple Compliance)
 app.get(['/delete-account', '/delete-account/', '/data-deletion', '/data-deletion/'], (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=UTF-8');
@@ -98,6 +113,8 @@ app.use('/api/debug', debugRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/banners', bannerRoutes);
+app.use('/api/iap', iapRoutes);
+app.use('/api/moderation', moderationRoutes);
 
 // API Health Check
 app.get('/api/health', (req, res) => {
