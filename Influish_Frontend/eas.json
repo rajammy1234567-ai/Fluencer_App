@@ -20,7 +20,8 @@
         "autoIncrement": true
       },
       "ios": {
-        "distribution": "store"
+        "distribution": "store",
+        "autoIncrement": true
       }
     }
   },
@@ -29,7 +30,9 @@
       "android": {
         "track": "internal"
       },
-      "ios": {}
+      "ios": {
+        "ascAppId": "6816401169"
+      }
     }
   }
 }
